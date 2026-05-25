@@ -4972,15 +4972,15 @@ async def on_message(message):
             await bot.process_commands(message)
             return
 
-        if m["internal"]["is_sleeping"]:
-            save_db(m)
-            await bot.process_commands(message)
-            return
-        # --- TRUST-GATED PASSIVE PRESENCE REACTIONS ---
-        # When Creator wakes him by name, skip - that's handled above.
-        # For everyone else: occasional silent reactions based on trust score.
-        elif not m["internal"]["is_sleeping"]:
-            _u_score = m["social_matrix"].get(u_id, {}).get("score", 0)
+            if m["internal"]["is_sleeping"]:
+                save_db(m)
+                await bot.process_commands(message)
+                return
+            # --- TRUST-GATED PASSIVE PRESENCE REACTIONS ---
+            # When Creator wakes him by name, skip - that's handled above.
+            # For everyone else: occasional silent reactions based on trust score.
+            elif not m["internal"]["is_sleeping"]:
+                _u_score = m["social_matrix"].get(u_id, {}).get("score", 0)
             _presence_chance = 0.0
             if _u_score >= 40:
                 _presence_chance = 0.12
@@ -6791,16 +6791,6 @@ async def on_message(message):
         ]
     ) and len(msg.split()) <= 4:
         if m["internal"]["is_sleeping"]:
-            await message.channel.send(
-                random.choice([
-                    "*A faint twitch of one ear. He's asleep. He heard something. He didn't wake up.* **...prrr...**",
-                    "*No response - but his tail moves, just once. He's in there.* **...mrr...**",
-                    "*He's here. He's just very far away right now. He'll be back.* **...prrr...**",
-                    "*He breathes. That's the whole answer.* **...prr...**",
-                    "*Both eyes stay closed. One paw uncurls slightly, then curls back. He knows. He'll be up when he's up.* **...mrr...**",
-                ])
-            )
-        elif m["internal"].get("is_wandered_off"):
             await message.channel.send(
                 random.choice([
                     "*He's here somewhere. You can sense him. You just can't see him right now.* **...mrr...**",
@@ -12743,6 +12733,15 @@ async def inventory_cmd(ctx):
     """See everything Yarnaby has hoarded over time."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     inv = m.get("inventory", {})
     if not inv:
         await ctx.send(
@@ -12975,6 +12974,15 @@ async def steal(ctx, *, item: Optional[str] = None):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     thief_name = ctx.author.display_name
 
     cd_key = f"steal_{u_id}"
@@ -14101,6 +14109,15 @@ async def seek_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if not m["internal"].get("yarnaby_hiding"):
         await ctx.send(
@@ -14209,6 +14226,15 @@ async def pockets_cmd(ctx):
     """See what Yarnaby has collected in his pockets."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     pockets = m.get("pockets", [])
 
     if not pockets:
@@ -14348,6 +14374,15 @@ async def show_cmd(ctx, *, item: str = ""):
     """Have Yarnaby proudly show off a specific item from his hoard."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     inv = m.get("inventory", {})
     if not item.strip():
         await ctx.send("*He tilts his head. He doesn't know what you want him to bring. Try `!display [part of the item name]`.*")
@@ -14519,6 +14554,15 @@ async def drop_cmd(ctx, *, item: str = ""):
     """Have Yarnaby drop / return a specific item from his hoard."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     inv = m.setdefault("inventory", {})
     if not item.strip():
         await ctx.send("*He waits. He doesn't know what to drop. Try `!drop [part of the item name]`.*")
@@ -15498,11 +15542,11 @@ async def whisper_cmd(ctx, *, text: str = ""):
         await ctx.send("*You lean close, but say nothing. Yarnaby tilts his head, waiting.*")
         return
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(
-            "*You whisper softly. He doesn't wake. One ear flicks toward the sound.*"
-        )
-        return
+        if m["internal"]["is_sleeping"]:
+            await ctx.send(
+                "*You whisper softly. He doesn't wake. One ear flicks toward the sound.*"
+            )
+            return
 
     text_lower = text.lower()
     sweet_words = ["love", "good", "sweet", "soft", "warm", "miss", "stay", "happy", "best", "beautiful"]
@@ -15583,6 +15627,15 @@ async def miss_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     # Soft per-user cooldown so it isn't spammed
     if not is_doctor:
@@ -15693,6 +15746,15 @@ async def seeart_cmd(ctx):
     """Show the latest bad drawing."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_art_defaults(m)
     if not m["art_gallery"]:
         await ctx.send("*He hasn't made any drawings yet. Ask him to `!draw` something first.*")
@@ -15745,6 +15807,15 @@ async def health_cmd(ctx):
     """Check on Yarnaby's physical health and temperature."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     health = m["stats"].get("health", 100)
     temp = m["stats"].get("temperature", "warm")
 
@@ -16184,6 +16255,15 @@ async def vidgame_cmd(ctx, *, game_name: Optional[str] = None):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     SUPPORTED_GAMES = [
         "among us",
@@ -16218,9 +16298,9 @@ async def vidgame_cmd(ctx, *, game_name: Optional[str] = None):
         )
         return
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*Yarnaby is asleep. He can't play right now.*")
-        return
+        if m["internal"]["is_sleeping"]:
+            await ctx.send("*Yarnaby is asleep. He can't play right now.*")
+            return
 
     game_lower = game_name.lower().strip()
     matched = next((g for g in SUPPORTED_GAMES if g in game_lower or game_lower in g), None)
@@ -16483,6 +16563,15 @@ async def find_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if not is_doctor:
         remaining = _cooldown_remaining(m, "find", COOLDOWN_FIND)
@@ -16529,6 +16618,15 @@ async def lore_cmd(ctx):
     """View lore fragments unlocked through Chromatic fetches."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     unlocked = m.get("lore_unlocked", [])
     if not unlocked:
         await ctx.send(
@@ -16742,6 +16840,15 @@ async def forgive_cmd(ctx):
 
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     user = ctx.message.mentions[0]
     uid = str(user.id)
     name = user.display_name
@@ -18661,15 +18768,15 @@ async def yarn_cmd(ctx):
             return
         _set_cooldown(m, f"yarn:{u_id}")
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(
-            random.choice([
-                "*He's asleep. A tiny **prrr** through his nose. One paw twitches. Whatever moment you wanted, this is the only one available.*",
-                "*Curled into a wool ball. A barely-audible **mrp** in his sleep. He is, in his own way, here.*",
-                "*Asleep. Glass eyes shut. The slow rise and fall of his chest is the entire show.*",
-                "*A small sleep-**chrrp** from the corner. He is dreaming about something. He won't be telling.*",
-            ])
-        )
+        if m["internal"]["is_sleeping"]:
+            await ctx.send(
+                random.choice([
+                    "*He's asleep. A tiny **prrr** through his nose. One paw twitches. Whatever moment you wanted, this is the only one available.*",
+                    "*Curled into a wool ball. A barely-audible **mrp** in his sleep. He is, in his own way, here.*",
+                    "*Asleep. Glass eyes shut. The slow rise and fall of his chest is the entire show.*",
+                    "*A small sleep-**chrrp** from the corner. He is dreaming about something. He won't be telling.*",
+                ])
+            )
         return
 
     lines = [
@@ -18791,6 +18898,15 @@ async def dreamseed_cmd(ctx):
 
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if kind in ("clear", "none"):
         m["internal"]["dream_seed"] = None
         save_db(m)
@@ -18973,9 +19089,9 @@ async def bless_cmd(ctx, *, member_text: Optional[str] = None):
             return
         _set_cooldown(m, f"bless:{u_id}")
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He's asleep. The blessing is queued. He won't perform it until he wakes.*")
-        return
+        if m["internal"]["is_sleeping"]:
+            await ctx.send("*He's asleep. The blessing is queued. He won't perform it until he wakes.*")
+            return
 
     target_id = str(target.id)
     target_name = target.display_name
@@ -19024,6 +19140,15 @@ async def curse_cmd(ctx, *, member_text: Optional[str] = None):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     target = None
     if ctx.message.mentions:
@@ -19051,9 +19176,9 @@ async def curse_cmd(ctx, *, member_text: Optional[str] = None):
             return
         _set_cooldown(m, f"curse:{u_id}")
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He's asleep. The curse is queued - he'll deliver it when he wakes.*")
-        return
+        if m["internal"]["is_sleeping"]:
+            await ctx.send("*He's asleep. The curse is queued - he'll deliver it when he wakes.*")
+            return
 
     target_id = str(target.id)
     target_name = target.display_name
@@ -19090,6 +19215,15 @@ async def grudge_cmd(ctx):
     """Yarnaby names his current least-favourite person (lowest score in the social matrix)."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     sm = m.get("social_matrix", {})
     candidates = []
     for uid, entry in sm.items():
@@ -19148,6 +19282,15 @@ async def grievance_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     # --- Resolve target ---
     if ctx.message.mentions:
@@ -19327,6 +19470,15 @@ async def favored_cmd(ctx):
     """Yarnaby names his current favourite person (highest score in the social matrix)."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     sm = m.get("social_matrix", {})
     candidates = []
     for uid, entry in sm.items():
@@ -19873,15 +20025,15 @@ async def home_cmd(ctx):
             ])
         )
         return
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He's already asleep - he likely is at home already. **prrr.***")
-        return
-    here_id = str(ctx.channel.id)
-    if here_id == str(home_id):
-        await ctx.send(
-            random.choice([
-                "*Yarnaby looks around. He's already here. This is home. He sits down, satisfied. **prrr.***",
-                "*A flat **mrr**. He is, in fact, at home. He folds into a loaf to prove it.*",
+        if m["internal"]["is_sleeping"]:
+            await ctx.send("*He's already asleep - he likely is at home already. **prrr.***")
+            return
+        here_id = str(ctx.channel.id)
+        if here_id == str(home_id):
+            await ctx.send(
+                random.choice([
+                    "*Yarnaby looks around. He's already here. This is home. He sits down, satisfied. **prrr.***",
+                    "*A flat **mrr**. He is, in fact, at home. He folds into a loaf to prove it.*",
                 "*He blinks at you slowly. He is home. He has been the whole time. **prrt.***",
             ])
         )
@@ -20017,15 +20169,15 @@ async def blink_cmd(ctx, *, member_text: Optional[str] = None):
     if target.id == ctx.bot.user.id:
         await ctx.send("*Yarnaby cannot slow-blink at himself. He does, however, blink slowly at the nearest reflective surface. **prrt.***")
         return
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He's asleep. He cannot blink at anyone right now.*")
-        return
-    if not is_doctor:
-        remaining = _cooldown_remaining(m, f"blink:{u_id}", 60)
-        if remaining > 0:
-            await ctx.send(f"*He just blinked at someone. He needs a moment. ({remaining}s)*")
+        if m["internal"]["is_sleeping"]:
+            await ctx.send("*He's asleep. He cannot blink at anyone right now.*")
             return
-        _set_cooldown(m, f"blink:{u_id}")
+        if not is_doctor:
+            remaining = _cooldown_remaining(m, f"blink:{u_id}", 60)
+            if remaining > 0:
+                await ctx.send(f"*He just blinked at someone. He needs a moment. ({remaining}s)*")
+                return
+            _set_cooldown(m, f"blink:{u_id}")
     target_id = str(target.id)
     target_name = target.display_name
     if target.id == DOCTOR_ID:
@@ -20517,6 +20669,15 @@ async def candle_cmd(ctx, *, member_text: Optional[str] = None):
     """Yarnaby lights a small (imaginary) candle for someone - birthdays, the Creator's away-day, or whoever you mention."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     target = ctx.message.mentions[0] if ctx.message.mentions else None
     is_doctor_target = bool(target and target.id == DOCTOR_ID)
     # Auto-detect: today is The Creator's away anniversary?
@@ -21224,15 +21385,15 @@ async def praise_cmd(ctx):
         )
         return
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(
-            random.choice([
-                "*Yarnaby was asleep - but at the sound of The Creator's praise, he stirs. His wool puffs. A long, contented **prrr** starts before he's even fully awake. He doesn't open his eyes. He doesn't need to.*",
-                "*A small, sleepy **chrrp** as he hears it. The purr starts almost immediately. He rolls a fraction closer to The Creator without waking. **prrr...***",
-            ])
-        )
-        if "affection_crave" in m["stats"]:
-            m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 6)
+        if m["internal"]["is_sleeping"]:
+            await ctx.send(
+                random.choice([
+                    "*Yarnaby was asleep - but at the sound of The Creator's praise, he stirs. His wool puffs. A long, contented **prrr** starts before he's even fully awake. He doesn't open his eyes. He doesn't need to.*",
+                    "*A small, sleepy **chrrp** as he hears it. The purr starts almost immediately. He rolls a fraction closer to The Creator without waking. **prrr...***",
+                ])
+            )
+            if "affection_crave" in m["stats"]:
+                m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 6)
         if "integrity" in m["stats"]:
             m["stats"]["integrity"] = min(100, m["stats"].get("integrity", 100) + 4)
         save_db(m)
@@ -21675,6 +21836,15 @@ async def journal_cmd(ctx):
     """Read today's journal entry from Yarnaby's internal perspective."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     remaining = _cooldown_remaining(m, "journal", 72000)
     if remaining > 0:
         hrs = remaining // 3600
@@ -21779,6 +21949,15 @@ async def remember_cmd(ctx):
     """Yarnaby recalls what he knows about someone."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if not target:
         await ctx.send("*He tilts his head. Who? Give him a name.* **mrr.**")
         return
@@ -22127,6 +22306,15 @@ async def name_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     stage = _age_stage(_get_age_days(m))
     if is_doctor:
         await ctx.send(
@@ -22163,6 +22351,15 @@ async def yarnyplace_cmd(ctx):
     """He describes the room from his perspective."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     stage = _age_stage(_get_age_days(m))
     inv = m.get("inventory", {})
     inv_count = len(inv)
@@ -22204,6 +22401,15 @@ async def gifts_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     inv = m.get("inventory", {})
     if not inv:
@@ -22238,6 +22444,15 @@ async def missing_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if not is_doctor:
         await ctx.send("*He blinks at you. He keeps his thoughts about absent people to himself.* **mrr.**")
         return
@@ -22282,6 +22497,15 @@ async def firstmeeting_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     if score < 5 and not is_doctor:
         await ctx.send("*He is not sure you've been here long enough for him to recall the beginning.* **mrr.**")
@@ -22445,6 +22669,15 @@ async def forget_cmd(ctx):
     """Creator only: make Yarnaby forget something he was taught."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He tilts his head. He doesn't take forgetting instructions from just anyone.* **mrr.**")
         return
@@ -22519,6 +22752,15 @@ async def vocabulary_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     if score < 3 and not is_doctor:
         await ctx.send("*He blinks at you. He doesn't recite what he knows for strangers.* **mrr.**")
@@ -22643,6 +22885,15 @@ async def reminisce_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     # Resolve target
     if ctx.message.mentions:
@@ -22867,6 +23118,15 @@ async def hisday_cmd(ctx):
     """Daily summary - visitors, food, mood."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     t = get_istanbul_time()
     today_str = t.strftime("%Y-%m-%d")
     hour = t.hour
@@ -23228,6 +23488,15 @@ async def secret_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if not is_doctor and score < 30:
@@ -23363,6 +23632,15 @@ async def trust_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if is_doctor:
         await ctx.send(
@@ -23498,6 +23776,15 @@ async def territory_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     # Creator sets new territory
     if new_item.strip() and is_doctor:
@@ -23560,6 +23847,15 @@ async def lastdream_cmd(ctx):
     """Show the most recent thing Yarnaby dreamed about."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     dream_text = m["internal"].get("last_dream_text", "")
     last_dream_at = m["internal"].get("last_dream_at")
     if not dream_text:
@@ -23586,6 +23882,15 @@ async def favorites_cmd(ctx):
     """See Yarnaby's top 3 favourite people, shown through body language."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     sm = m.get("social_matrix", {})
     ranked = []
     for uid_str, entry in sm.items():
@@ -23675,6 +23980,15 @@ async def wander_cmd(ctx):
     """Narrate where Yarnaby went today."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     today = (datetime.now(timezone.utc).replace(tzinfo=None) + ISTANBUL_OFFSET).date()
     day_seed = int(today.strftime("%Y%m%d"))
     rng = random.Random(day_seed)
@@ -23772,6 +24086,15 @@ async def challenge_cmd(ctx):
     """Show what challenge Yarnaby set for himself today and how it went."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     today = (datetime.now(timezone.utc).replace(tzinfo=None) + ISTANBUL_OFFSET).date()
     day_seed = int(today.strftime("%Y%m%d")) + 7
     rng = random.Random(day_seed)
@@ -24024,6 +24347,15 @@ async def boopbattle_cmd(ctx):
 async def protect_cmd(ctx, target: Optional[discord.Member] = None):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     target = target or ctx.author
     m.setdefault("internal", {})["protected_user_id"] = str(target.id)
     m["internal"]["protected_user_name"] = target.display_name
@@ -24122,6 +24454,15 @@ async def listen_cmd(ctx, *, text: str = ""):
 async def routine_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     mood = m.get("stats", {}).get("mood", "Content")
     await ctx.send(f"*Today's routine: inspect the room, pretend not to wait by the door, nap at the wrong time, guard something small, and end the day feeling **{mood}**.* **mrr.**")
 
@@ -24141,6 +24482,15 @@ async def jealousof_cmd(ctx):
 async def dreamlog_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     dreams = m.setdefault("internal", {}).setdefault("dream_log", [])
     if not dreams:
         await ctx.send("*His dream log is empty. Either he has not dreamed, or he has not admitted it.* **mrr.**")
@@ -24158,6 +24508,15 @@ async def promise_cmd(ctx):
         return
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     promises = m.setdefault("internal", {}).setdefault("promises", [])
     promises.append({"user_id": str(ctx.author.id), "user_name": ctx.author.display_name, "text": text.strip()[:180], "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
     m["internal"]["promises"] = promises[-50:]
@@ -24175,6 +24534,15 @@ async def comfort_other_cmd(ctx):
 async def moodreason_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     stats = m.get("stats", {})
     reasons = [f"mood is {stats.get('mood', 'Content')}"]
     if stats.get("hunger", 0) > 6:
@@ -24192,6 +24560,15 @@ async def moodreason_cmd(ctx):
 async def safeplace_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if spot.strip():
         m.setdefault("internal", {})["safe_place"] = spot.strip()[:120]
         save_db(m)
@@ -24205,6 +24582,15 @@ async def safeplace_cmd(ctx):
 async def toybox_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     toys = m.setdefault("internal", {}).setdefault("toybox", [])
     if toy.strip():
         toys.append(toy.strip()[:80])
@@ -24221,6 +24607,15 @@ async def toybox_cmd(ctx):
 async def adventure_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     finds = ["a ribbon", "dust on his nose", "a bottlecap", "a suspicious receipt", "nothing, proudly", "a tiny screw"]
     found = random.choice(finds)
     _track_item(m, found, rarity="Adventure", source="adventure")
@@ -24512,6 +24907,15 @@ async def lookup_cmd(ctx):
         return
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if not ctx.message.mentions:
         await ctx.send("*Mention someone to look them up.* `!lookup @user`")
         return
@@ -24796,6 +25200,15 @@ async def rate_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if target is None:
         target = ctx.author
     u_id = str(target.id)
@@ -25251,6 +25664,15 @@ async def ritual_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if is_doctor:
@@ -25381,6 +25803,15 @@ async def imprison_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if is_doctor:
@@ -25421,6 +25852,15 @@ async def drink_cmd(ctx, *, liquid: str = ""):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     liquid_clean = (liquid or "water").strip()
     liquid_lower = liquid_clean.lower()
 
@@ -25859,6 +26299,15 @@ async def level_cmd(ctx):
     """Check a user's level."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if target is None:
         target = ctx.author
     u_id = str(target.id)
@@ -26743,6 +27192,15 @@ async def image_memory_cmd(ctx, page: int = 1):
     """Show images/gifs Yarnaby has seen."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     log = m["internal"].get("image_log", [])
     if not log:
         await ctx.send("*He tilts his head. He hasn't been shown any images yet.* **mrr.**")
@@ -26786,6 +27244,15 @@ async def dirtiness_cmd(ctx):
     """Check how dirty Yarnaby currently is."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     dirt = m["stats"].get("cleanliness", 0)  # 0 = clean, 10 = filthy
 
     if dirt <= 0:
@@ -26901,6 +27368,15 @@ async def suggest_cmd(ctx):
         return
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     store = m.setdefault("internal", {}).setdefault("pending_suggestions", {})
     _suggestion_counter[0] = max(_suggestion_counter[0], *(int(k) for k in store.keys())) if store else _suggestion_counter[0]
     _suggestion_counter[0] += 1
@@ -27463,6 +27939,15 @@ async def bump_cmd(ctx, target: Optional[discord.Member] = None):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if target is None or target.id == bot.user.id:
@@ -28032,6 +28517,15 @@ async def opendoor_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     taught = m["internal"].get("taught_words", [])
     knows_doors = any(
         any(t in tw.get("word", "") for t in ["door", "open door"])
@@ -29164,6 +29658,15 @@ async def mood_history_cmd(ctx):
 async def weigh_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     hunger = m["stats"].get("hunger", 0)
     base_kg = 4.2
     weight = base_kg + (hunger * 0.05)
@@ -29184,6 +29687,15 @@ async def weigh_cmd(ctx):
 async def temperature_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     health = m["stats"].get("health", 100)
     injuries = m["internal"].get("injuries", [])
     infected = any(i.get("infected") for i in injuries)
@@ -29277,6 +29789,15 @@ async def patrol_cmd(ctx):
 async def map_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     explored = m["internal"].get("explored_rooms", [])
     total = 10
     if not explored:
@@ -29298,6 +29819,15 @@ async def map_cmd(ctx):
 async def territory_map_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     territories = m["internal"].get("territories", [])
     if not territories:
         await ctx.send("*He hasn't claimed any specific spots yet. Use `!territory` to claim one.* **mrr.**")
@@ -29403,6 +29933,15 @@ async def gift_creator_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     GIFTS = [
         ("a carefully selected piece of string", "He carries it in his mouth with great dignity and drops it at The Creator's feet. It is the best string he has found."),
@@ -29880,6 +30419,15 @@ async def hotstove_cmd(ctx):
 async def tvbird_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     await ctx.send(
         "*A bird appears on the television screen. Yarnaby's pupils blow open to maximum. "
         "He crouches. His tail lashes once. He is going to get that bird.* **ch-ch-chrrr...**"
@@ -29900,6 +30448,15 @@ async def cone_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     has_cone = m["internal"].get("wearing_cone", False)
 
     if has_cone:
@@ -29938,6 +30495,15 @@ async def cone_cmd(ctx):
 async def lightfight_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     await ctx.send(
         "*A light reflection dances across the floor. Yarnaby sees it. "
         "His entire body locks onto it.* **ch-ch-ch-chrrr!**"
@@ -30241,6 +30807,15 @@ async def sleep_spot_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     from datetime import date
     today = str(date.today())
     spots = [
@@ -30300,6 +30875,15 @@ async def seekyarny_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if not m["internal"].get("is_hiding"):
@@ -30397,6 +30981,15 @@ async def family_cmd(ctx, action: str = "", target: Optional[discord.Member] = N
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     action_lower = action.lower().strip()
 
     if action_lower == "list" or not action_lower:
@@ -30444,6 +31037,15 @@ async def checkup_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     stats = m["stats"]
     health = stats.get("health", 100)
     hunger = stats.get("hunger", 0)
@@ -30857,6 +31459,15 @@ async def gender_cmd(ctx):
     """Check Yarnaby's gender for this server."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     gender = m["internal"].get("guild_states", {}).get(guild_id, {}).get("gender", "unknown")
     if gender == "unknown":
@@ -30994,6 +31605,15 @@ async def untie_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if not m["internal"].get("is_tied"):
@@ -31528,6 +32148,15 @@ async def standup_cmd(ctx):
 async def tangerine_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     await ctx.send("*You offer the tangerine. Yarnaby sniffs it. His face does something remarkable. He recoils. He backs up. He hisses at the tangerine specifically.* **HSSSS. mrrow.**")
     await asyncio.sleep(2)
     await ctx.send("*He continues staring at the tangerine from a safe distance. He does not trust it. He has never trusted it. He will never trust it.* **mrr.**")
@@ -31563,6 +32192,15 @@ async def untrap_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if not m["internal"].get("is_trapped"):
@@ -31767,6 +32405,15 @@ async def snow_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     try:
@@ -32205,6 +32852,15 @@ async def takeout_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     if not m["internal"].get("head_stuck"):
@@ -32442,6 +33098,15 @@ async def forget_thing_cmd(ctx):
     entry = _FORGETTABLE_THINGS[matched]
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     m["internal"][entry["flag"]] = False if matched != "forgot_loaf" else True
     save_db(m)
 
@@ -32456,6 +33121,15 @@ async def whatforgot_cmd(ctx):
     """Check what Yarnaby has forgotten."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     forgotten = []
     for thing, entry in _FORGETTABLE_THINGS.items():
         flag = entry["flag"]
@@ -32647,6 +33321,15 @@ async def visual_cmd(ctx, *, scene: str = ""):
     """Generate a Yarnaby scene image."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     prompt = _visual_prompt(scene or "current mood portrait", m, ctx)
     _remember_life(m, "visual_prompt", f"{ctx.author.display_name} asked for a visual: {scene or 'current'}", ctx.author)
     save_db(m)
@@ -32671,6 +33354,15 @@ async def povshot_cmd(ctx, *, scene: str = ""):
 async def pov_gallery_cmd(ctx, page: int = 1):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_life_defaults(m)
     log = m["internal"]["visual_log"]
     if not log:
@@ -32690,6 +33382,15 @@ async def pov_gallery_cmd(ctx, page: int = 1):
 async def dreamjournal_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_life_defaults(m)
     dreams = m["internal"].setdefault("dream_log", [])
     memories = m["internal"].get("life_memories", [])
@@ -32817,6 +33518,15 @@ async def crime_report_cmd(ctx):
 async def nickname_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_life_defaults(m)
     target = target or ctx.author
     uid = str(target.id)
@@ -32919,6 +33629,15 @@ async def useitem_cmd(ctx, *, item: str = ""):
 
 @bot.command(name="season_event", aliases=["seasonal", "holidayevent", "weather_event"])
 async def season_event_cmd(ctx):
+    m = bot.db
+    await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+        ]))
+        return
     month = datetime.now().month
     if month in (12, 1, 2):
         line = "*Winter event: his wool fluffs up until he looks twice his size. He pretends this is tactical.* **prrr.**"
@@ -33067,6 +33786,15 @@ def _v28_visual_preset_prompt(preset: str, m, ctx=None) -> str:
 async def povpreset_cmd(ctx, preset: str = "current"):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     prompt = _v28_visual_preset_prompt(preset, m, ctx)
     await ctx.send(f"*Preset: **{preset}**. He lets you borrow his eyes again...*")
     await _send_visual_result(ctx, prompt, f"pov_{preset}")
@@ -33076,6 +33804,15 @@ async def povpreset_cmd(ctx, preset: str = "current"):
 async def visual_diary_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_v28_defaults(m)
     last_mem = (m["internal"].get("life_memories") or [{"text": "a quiet factory day"}])[-1]["text"]
     last_food = m["internal"].get("last_fed_item", "nothing memorable")
@@ -33321,6 +34058,15 @@ async def sniffhunt_cmd(ctx, *, target: str = ""):
 async def camera_react_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     _ensure_v28_defaults(m)
     log = m["internal"].get("image_log", [])
     if not log:
@@ -34023,6 +34769,15 @@ async def children_cmd(ctx):
     """Show Yarnaby's children in this server."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
 
@@ -34047,6 +34802,15 @@ async def addchild_cmd(ctx, *, name: str = ""):
         return
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     guild_state = m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {})
     children = guild_state.setdefault("children", [])
@@ -34768,6 +35532,15 @@ _YARNABY_FEARS = [
 
 @bot.command(name="fears", aliases=["dislikes", "fearlist", "dislikelist", "hates"])
 async def fears_cmd(ctx):
+    m = bot.db
+    await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+        ]))
+        return
     await ctx.send(
         "📋 **Things Yarnaby genuinely dislikes** *(confirmed across multiple incidents)*\n"
         + "\n".join(f"• {f}" for f in _YARNABY_FEARS)
@@ -34814,6 +35587,15 @@ async def nextbirthday_cmd(ctx):
 async def rivalcat_cmd(ctx, *, rival_name: str = None):
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     if rival_name:
         m["internal"]["rival_cat"] = rival_name.strip()
         save_db(m)
@@ -34939,6 +35721,15 @@ async def argue_back_cmd(ctx):
     u_id = str(ctx.author.id)
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
     await ctx.send(
@@ -35029,6 +35820,15 @@ async def test_patience_cmd(ctx):
     m = bot.db
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     await ctx.send("*You stare at him. He stares back. Neither of you moves.*")
     await asyncio.sleep(3)
@@ -35061,6 +35861,15 @@ async def hat_cmd(ctx, *, hat_type: str = None):
     m = bot.db
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     hat_reactions = {
         "beanie": (
@@ -38905,6 +39714,15 @@ async def remind_cmd(ctx, time_str: str = "", *, text: str = ""):
 
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
     await ctx.send(random.choice([
         f"*He picks up a small note with **{ctx.author.display_name}**'s reminder on it, folds it carefully, and tucks it somewhere safe. He'll find it in **{val}{unit}**.* **mrr.**",
         f"*He nods once and stores the reminder. He will not forget. He never forgets things he's been asked to hold. **{val}{unit}**.* **mrr.**",
@@ -38936,6 +39754,15 @@ async def afk_cmd(ctx, *, reason: str = "AFK"):
     """Set yourself as AFK. Yarnaby will tell people when they ping you."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     _afk_users[ctx.author.id] = {
         "reason": reason.strip(),
@@ -39004,6 +39831,15 @@ async def ticket_cmd(ctx, *, issue: str = ""):
     """Open a private support ticket with the Creator."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if not ctx.guild:
         await ctx.send("*Use this in a server.* **mrr.**")
@@ -39083,6 +39919,15 @@ async def closeticket_cmd(ctx):
 
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     await ctx.send(
         f"*He stands, stretches once, and pads toward the door. The matter has been resolved. "
@@ -39109,6 +39954,15 @@ async def growl_cmd(ctx, member: discord.Member = None, *, reason: str = ""):
 
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     await ctx.send(random.choice([
         f"*He turns his full attention to **{member.display_name}**. His ears go flat. His tail stills. A low, quiet sound builds in his chest — not loud, not aggressive, just absolutely, unmistakably present. He has noted them. They should reconsider.* **grrrr...**",
@@ -39455,6 +40309,15 @@ async def rules_cmd(ctx):
     """Point to the rules channel."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     ch_id = m["internal"].get("rules_channel", {}).get(str(ctx.guild.id) if ctx.guild else "")
     if not ch_id:
@@ -39749,6 +40612,15 @@ async def impression_cmd(ctx, member: discord.Member = None):
     """What is Yarnaby's impression of a user based on their history."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     target = member or ctx.author
     uid = str(target.id)
@@ -39825,6 +40697,15 @@ async def bond_cmd(ctx, member: discord.Member = None):
     """Check your personal bond with Yarnaby — interactions, care, history."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     target = member or ctx.author
     uid = str(target.id)
@@ -39918,6 +40799,15 @@ async def trivia_cmd(ctx):
     """Yarnaby poses a trivia question. First correct answer gets a trust bump."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if ctx.channel.id in _active_trivia:
         await ctx.send("*He already has a question out there. He taps his paw impatiently. Answer that one first.* **mrr.**")
@@ -40011,6 +40901,15 @@ async def eightball_cmd(ctx, *, question: str = ""):
     """Ask Yarnaby a yes/no question. He answers in his own way."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if not question.strip():
         await ctx.send("*He looks at you waiting for a question. `!8ball [your question]`* **mrr.**")
@@ -40041,6 +40940,15 @@ async def rps_cmd(ctx, choice: str = ""):
     """Play rock paper scissors against Yarnaby. He cheats if he's in a bad mood."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     choice = choice.lower().strip()
     if choice not in _RPS_CHOICES:
@@ -40129,6 +41037,15 @@ async def scramble_cmd(ctx):
     """Yarnaby drops a scrambled word. First to unscramble it wins a trust bump."""
     m = bot.db
     await _add_reactions(ctx, m)
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
 
     if ctx.channel.id in _active_scramble:
         await ctx.send("*He taps the scrambled word on the floor. That one's still out there. Solve it first.* **mrr.**")
