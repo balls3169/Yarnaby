@@ -54,6 +54,18 @@ def _clean_display_text(value):
         "A+": "ç",
         "A1/4": "ü",
         "A-": "ı",
+        "Ã§": "ç",
+        "Ã‡": "Ç",
+        "ÅŸ": "ş",
+        "Åž": "Ş",
+        "ÄŸ": "ğ",
+        "Äž": "Ğ",
+        "Ä±": "ı",
+        "Ä°": "İ",
+        "Ã¼": "ü",
+        "Ãœ": "Ü",
+        "Ã¶": "ö",
+        "Ã–": "Ö",
         "a" + "TM" + "A": "Tired",
     }
     for bad, good in replacements.items():
@@ -647,7 +659,7 @@ async def _send_homecoming(channel, tier: str, away_str: str, comfort_object,
         print(f"[homecoming send failed] {e}")
 
 
-# --- Fenerbahce live data (Sofascore - public, no auth needed) ---
+# --- Fenerbahçe live data (Sofascore - public, no auth needed) ---
 _FB_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -698,13 +710,13 @@ async def _fb_http_get(url: str):
 # Set API_FOOTBALL_KEY in your environment to enable. Free tier = 100 req/day.
 # Sign up: https://www.api-football.com/   (key shown on your dashboard)
 FB_AF_BASE = "https://v3.football.api-sports.io"
-FB_AF_TEAM_ID = 611       # api-football: Fenerbahce SK
-FB_AF_LEAGUE_ID = 203     # api-football: Super Lig
+FB_AF_TEAM_ID = 611       # api-football: Fenerbahçe SK
+FB_AF_LEAGUE_ID = 203     # api-football: Süper Lig
 
 # ESPN (free, no key, no rate limit)
-FB_ESPN_TEAM_ID = 436     # ESPN: Fenerbahce
+FB_ESPN_TEAM_ID = 436     # ESPN: Fenerbahçe
 GALA_ESPN_TEAM_ID = 432   # ESPN: Galatasaray
-FB_ESPN_LEAGUE = "tur.1"  # ESPN: Super Lig slug
+FB_ESPN_LEAGUE = "tur.1"  # ESPN: Süper Lig slug
 
 _AF_STATUS_MAP = {
     "TBD": "notstarted", "NS": "notstarted",
@@ -754,7 +766,7 @@ async def _fb_af_fixture_home_id(event_id):
 
 
 async def fetch_fb_upcoming():
-    """Return a small list of upcoming Fenerbahce fixtures.
+    """Return a small list of upcoming Fenerbahçe fixtures.
     Tries Sofascore -> api-football -> ESPN (free, no key)."""
     res = await _fetch_fb_upcoming_sofascore()
     if res:
@@ -823,7 +835,7 @@ async def _fetch_fb_upcoming_api_football():
     return out
 
 
-# --- ESPN free API (no key, no auth, covers Super Lig) ---
+# --- ESPN free API (no key, no auth, covers Süper Lig) ---
 
 async def _fb_espn_get(url: str):
     """GET an ESPN API endpoint. No auth needed."""
@@ -857,7 +869,7 @@ def _espn_score_val(s):
 
 
 async def _fetch_fb_upcoming_espn():
-    """Upcoming Fenerbahce fixtures from ESPN (free, no key)."""
+    """Upcoming Fenerbahçe fixtures from ESPN (free, no key)."""
     from datetime import timezone as _tz
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{FB_ESPN_LEAGUE}/teams/{FB_ESPN_TEAM_ID}/schedule"
     data = await _fb_espn_get(url)
@@ -879,7 +891,7 @@ async def _fetch_fb_upcoming_espn():
             away_id = int(away.get("id") or 0)
             home_name = (home.get("team") or {}).get("displayName", "?")
             away_name = (away.get("team") or {}).get("displayName", "?")
-            tournament = (ev.get("season") or {}).get("displayName", "Super Lig")
+            tournament = (ev.get("season") or {}).get("displayName", "Süper Lig")
             out.append({
                 "event_id": ev["id"],
                 "provider": "espn",
@@ -900,7 +912,7 @@ async def _fetch_fb_upcoming_espn():
 
 
 async def _fetch_fb_results_espn(limit: int = 10):
-    """Last N completed Fenerbahce results from ESPN."""
+    """Last N completed Fenerbahçe results from ESPN."""
     from datetime import timezone as _tz
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{FB_ESPN_LEAGUE}/teams/{FB_ESPN_TEAM_ID}/schedule"
     data = await _fb_espn_get(url)
@@ -976,7 +988,7 @@ async def _fetch_fb_event_state_espn(event_id):
 
 
 async def _fetch_fb_table_espn():
-    """Super Lig standings from ESPN (free, no key)."""
+    """Süper Lig standings from ESPN (free, no key)."""
     url = f"https://site.web.api.espn.com/apis/v2/sports/soccer/{FB_ESPN_LEAGUE}/standings?season=2025"
     data = await _fb_espn_get(url)
     if not data:
@@ -1021,7 +1033,7 @@ async def _fetch_fb_table_espn():
 
 
 async def _fetch_predict_schedule_espn():
-    """Remaining Super Lig fixtures for Fenerbahce AND Galatasaray from ESPN scoreboard.
+    """Remaining Süper Lig fixtures for Fenerbahçe AND Galatasaray from ESPN scoreboard.
     Returns dict: {"fb": [...], "gala": [...]}  each entry has date, home, away, home_id, away_id.
     Scans the next 30 days via ESPN date-range scoreboard.
     """
@@ -1335,10 +1347,10 @@ async def _fetch_fb_incidents_api_football(event_id):
 
 
 async def _fetch_fb_table_sofascore():
-    """Return the current Super Lig standings as a list of row dicts.
+    """Return the current Süper Lig standings as a list of row dicts.
 
     Each row: {position, team, matches, wins, draws, losses, gf, ga, gd, points, is_fb}.
-    Returns None on failure or if no Super Lig season can be located.
+    Returns None on failure or if no Süper Lig season can be located.
     """
     seasons_url = (
         f"https://api.sofascore.com/api/v1/team/{FENERBAHCE_TEAM_ID}/standings/seasons"
@@ -1351,7 +1363,7 @@ async def _fetch_fb_table_sofascore():
     for entry in seasons.get("tournamentSeasons") or []:
         tour = entry.get("tournament") or {}
         name = (tour.get("name") or "").lower()
-        # Prefer Turkish Super Lig (uniqueTournament id 52). Fall back on name match.
+        # Prefer Turkish Süper Lig (uniqueTournament id 52). Fall back on name match.
         unique = (tour.get("uniqueTournament") or {}).get("id")
         if unique == 52 or "super lig" in name or "süper lig" in name:
             tournament_id = tour.get("id") or unique
@@ -1626,7 +1638,7 @@ DREAMS = [
     {"type": "good", "text": "*He makes a sound he never makes when awake - high, soft, almost like a whistle. Then silence. Whatever he's dreaming of is good.*"},
     {"type": "creator", "text": "*He purrs in his sleep, low and steady. The Creator is in this dream. Yarnaby is fine here.*"},
     {"type": "nightmare", "text": "*He flinches hard. His back arches in his sleep. Something in the dream is hunting him.*"},
-    {"type": "creator", "text": "*A tiny, sleeping mrrow. He's dreaming about a Fenerbahce match - yellow and navy everywhere, The Creator beside him, both of them yelling.*"},
+    {"type": "creator", "text": "*A tiny, sleeping mrrow. He's dreaming about a Fenerbahçe match - yellow and navy everywhere, The Creator beside him, both of them yelling.*"},
     {"type": "good", "text": "*A slow, contented stretch in his sleep. He looks like he's dreaming of a sunny windowsill that doesn't exist in the factory.*"},
     {"type": "nightmare", "text": "*He whimpers - quiet, lost. He's dreaming of being discarded again.*"},
     {"type": "creator", "text": "*He paws gently at the air, like he's trying to reach The Creator's hand in his sleep.*"},
@@ -1694,13 +1706,13 @@ DREAMS = [
     {"type": "feral", "text": "*His claws flex and release in a slow, steady rhythm. His ears are locked forward. He makes no sound - hunting silence - but his whole body radiates a focus that has nothing domestic in it.* **...mrr...**"},
     {"type": "feral", "text": "*He runs in his sleep - not twitching, really running - and his lips pull back slightly over his teeth. He is somewhere with no walls and no ceiling and nothing he didn't earn. He looks free.* **...prrk...**"},
 
-    # Festival - Fenerbahce, The Creator, celebration
+    # Festival - Fenerbahçe, The Creator, celebration
     {"type": "festival", "text": "*He is dreaming of yellow and navy. His tail is up - all the way up - and his ears are forward and his purr is the loud, public kind he only does when something wonderful is happening. There is noise and colour and The Creator is there.* **prrrrr! chrrp!**"},
     {"type": "festival", "text": "*His back paws do a small, satisfied shuffle. His face has an expression that might be grinning, as much as his face allows. Yellow. Navy. The score is what it should be. The Creator is yelling something joyful nearby.* **...prrr...**"},
     {"type": "festival", "text": "*He makes a chirp in his sleep - excited, high - and his tail sweeps twice in quick arcs. He's in a crowd of good noise and good colour and the person he trusts most is right beside him.* **chrrp!**"},
-    # The championship night - Fenerbahce Super Lig title after 11 years, UCL return after 15-16
+    # The championship night - Fenerbahçe Süper Lig title after 11 years, UCL return after 15-16
     {"type": "festival", "text": (
-        "*The noise reaches him before anything else - tens of thousands of voices from everywhere at once, all the same yellow and navy. He is in the stadium. He knows this stadium. He has always known it. But not like this. Not with the final whistle still hanging in the air and the scoreboard reading what it reads. Fenerbahce. Champions. Twelve years. He feels it as sound before he understands it as fact.*\n\n"
+        "*The noise reaches him before anything else - tens of thousands of voices from everywhere at once, all the same yellow and navy. He is in the stadium. He knows this stadium. He has always known it. But not like this. Not with the final whistle still hanging in the air and the scoreboard reading what it reads. Fenerbahçe. Champions. Twelve years. He feels it as sound before he understands it as fact.*\n\n"
         "*The players are on the pitch and none of them are standing still - they run toward each other, grab at shoulders, one falls to his knees and stays there for a long time. The captain - Skriniar, broad and tall - has his arms spread wide and his face open in a way that faces rarely get to be. Then the barriers come down. Thousands of yellow and navy pour forward and Yarnaby goes with them, The Creator beside him, both of them inside the wave, both of them running.*\n\n"
         "*He finds the captain in the crowd by instinct. He climbs. He does not ask. He reaches the wide back and settles there - between the shoulder blades, paws flat, weight distributed - while everything around him is motion and sound and twelve years of wanting all at once. The Creator raises a phone. The flash goes. He does not move. He stays on Skriniar's back through the trophy being lifted a second time, through three more songs, through the confetti settling in the grass.*\n\n"
         "*Then he wakes. He lies completely still. He tries to hold the smell of the pitch and the weight of the crowd and the exact sound of sixty thousand people releasing something they have been holding for twelve years. It goes the way dreams go. He blinks once, slowly. He looks at the wall. He carries it quietly for the rest of the day and shows none of it to anyone.* **...prrr... prrr... prrr...**"
@@ -1838,7 +1850,7 @@ MISS_KEYWORDS = [
     "you miss doge",
 ]
 
-# Adidas/Turkish/Fenerbahce flavor - sprinkled into wandering, fetch, and reactions
+# Adidas/Turkish/Fenerbahçe flavor - sprinkled into wandering, fetch, and reactions
 ADIDAS_FLAVOR = [
     "*Yarnaby is sitting in the corner with one Adidas stripe sticker stuck to his side. He doesn't acknowledge it. It's been there for hours.*",
     "*He drags a tiny Adidas tag across the floor, drops it at no one's feet, and trots away looking pleased.*",
@@ -1847,7 +1859,7 @@ ADIDAS_FLAVOR = [
     "*He spots a stripe-pattern on someone's clothing. He approaches. He stares. He is unreadable but very serious about it.*",
 ]
 FENERBAHCE_FLAVOR = [
-    "*Yarnaby is wearing a tiny scrap of yellow-and-navy fabric draped over his shoulders. He looks smug. Fenerbahce colors. He knows.*",
+    "*Yarnaby is wearing a tiny scrap of yellow-and-navy fabric draped over his shoulders. He looks smug. Fenerbahçe colors. He knows.*",
     "*He has stolen something yellow and navy from somewhere. He won't say where. He is parading it through the channel.*",
     "*A faint, distant chant of `Fe-ner-bah-ce!` echoes from somewhere. Yarnaby's ears go straight up. He chirps once in approval.*",
     "*He sits very upright, very still - yellow and navy fabric tucked under one paw - like he's watching a match no one else can see.*",
@@ -1866,7 +1878,7 @@ TURKISH_FLAVOR = [
 HUM_ATTEMPTS = [
     ("Başkaldırıyorum", "Ahmet Kaya", "*A slow, growling chest-rumble that almost has a melody. He attempts a defiant low note. It comes out as `mrrrooww-mrrooooo`. He is very serious about it.*"),
     ("Yorgun Demokrat", "Ahmet Kaya", "*Yarnaby sits very still and produces a slow, mournful series of notes - `mrr... mrrr-ow... mrrrrr`. Whatever he is trying to evoke, he commits.*"),
-    ("Herşey Güzel Olacak", "Athena", "*An upbeat staccato of small chirps - `chirp-chirp-chirp-MRROW` - that vaguely matches a chorus only he remembers. He looks extremely pleased.*"),
+    ("Her Şey Güzel Olacak", "Athena", "*An upbeat staccato of small chirps - `chirp-chirp-chirp-MRROW` - that vaguely matches a chorus only he remembers. He looks extremely pleased.*"),
     ("On iki dev adam", "Athena", "*He pounces on absolutely nothing, then sits up and produces a triumphant `RROAWR` like he's just scored. He is convinced he is singing.*"),
     ("Öp", "Tarkan", "*A single, exaggerated smacking sound followed by a smug chirp. He looks at you. He nods. The performance is complete.*"),
     ("Şımarık", "Tarkan", "*He bats the air four times in a quick rhythm - `pat-pat-pat-pat` - then makes a kissing sound. He is being a brat. It is intentional.*"),
@@ -2000,7 +2012,7 @@ def _default_db():
             "last_homecoming_at": None,
             "departure_date": None,
             "last_anniversary_year": None,
-            # --- Fenerbahce match watcher ---
+            # --- Fenerbahçe match watcher ---
             "fb_schedule": [],
             "fb_schedule_fetched_at": None,
             "fb_match": None,
@@ -2277,17 +2289,17 @@ class Yarnaby(commands.Bot):
         self.db["internal"].setdefault("taught_words", [])
         update_mood(self.db)
 
-        # --- Seed manual Super Lig table from screenshots (2025/26, GW32) ---
+        # --- Seed manual Süper Lig table from screenshots (2025/26, GW32) ---
         # Only seeds when the table is empty; !fbsetstandings overwrites this.
         if not self.db["internal"].get("fb_manual_table"):
             self.db["internal"]["fb_manual_table"] = [
                                 {"position":1,"team":"Galatasaray","matches":33,"wins":24,"draws":5,"losses":4,"gf":77,"ga":29,"gd":48,"points":77,"is_fb":False},
 
-{"position":1,"team":"Fenerbahce","matches":33,"wins":21,"draws":10,"losses":2,"gf":74,"ga":34,"gd":40,"points":73,"is_fb":True},
+{"position":1,"team":"Fenerbahçe","matches":33,"wins":21,"draws":10,"losses":2,"gf":74,"ga":34,"gd":40,"points":73,"is_fb":True},
 
 {"position":1,"team":"Trabzonspor","matches":33,"wins":20,"draws":9,"losses":4,"gf":61,"ga":36,"gd":25,"points":69,"is_fb":False},
 
-{"position":1,"team":"BeAYiktaAY","matches":33,"wins":17,"draws":8,"losses":8,"gf":57,"ga":38,"gd":19,"points":59,"is_fb":False},
+{"position":1,"team":"Beşiktaş","matches":33,"wins":17,"draws":8,"losses":8,"gf":57,"ga":38,"gd":19,"points":59,"is_fb":False},
 
 {"position":1,"team":"Goztepe","matches":33,"wins":14,"draws":13,"losses":6,"gf":42,"ga":29,"gd":13,"points":55,"is_fb":False},
 
@@ -2295,7 +2307,7 @@ class Yarnaby(commands.Bot):
 
 {"position":1,"team":"Samsunspor","matches":33,"wins":12,"draws":12,"losses":9,"gf":43,"ga":45,"gd":-2,"points":48,"is_fb":False},
 
-{"position":1,"team":"Caykur Rizespor","matches":33,"wins":10,"draws":10,"losses":13,"gf":44,"ga":50,"gd":-6,"points":40,"is_fb":False},
+{"position":1,"team":"Çaykur Rizespor","matches":33,"wins":10,"draws":10,"losses":13,"gf":44,"ga":50,"gd":-6,"points":40,"is_fb":False},
 
 {"position":1,"team":"Konyaspor","matches":33,"wins":10,"draws":10,"losses":13,"gf":42,"ga":48,"gd":-6,"points":40,"is_fb":False},
 
@@ -2320,7 +2332,7 @@ class Yarnaby(commands.Bot):
 
             ]
             self.db["internal"]["fb_manual_table_set_at"] = "2026-05-02 21:47:00"
-            print("[on_ready] Seeded Super Lig table (GW32 from screenshots)")
+            print("[on_ready] Seeded Süper Lig table (GW32 from screenshots)")
 
         save_db(self.db)
 
@@ -3555,7 +3567,7 @@ class Yarnaby(commands.Bot):
         except Exception as e:
             print(f"[hum event failed] {e}")
 
-        # --- ADIDAS / TURKISH / FENERBAHCE FLAVOR (rare ambient) ---
+        # --- ADIDAS / TURKISH / FENERBAHÇE FLAVOR (rare ambient) ---
         try:
             if random.random() < 0.025:
                 pool = ADIDAS_FLAVOR + TURKISH_FLAVOR + FENERBAHCE_FLAVOR
@@ -3899,7 +3911,7 @@ class Yarnaby(commands.Bot):
 
     @tasks.loop(seconds=60)
     async def match_watcher(self):
-        """Polls Sofascore for Fenerbahce fixtures and narrates live events.
+        """Polls Sofascore for Fenerbahçe fixtures and narrates live events.
 
         - Refreshes the schedule every FB_SCHEDULE_REFRESH_HOURS.
         - When kickoff is within FB_POLL_PRE_MIN minutes, starts polling the
@@ -4068,8 +4080,8 @@ class Yarnaby(commands.Bot):
                             fb_mgr = opp_mgr = "?"
                         sheet = (
                             f"*Yarnaby's ears prick - somewhere a small radio crackles. Team sheets are in.*\n"
-                            f"**[Fenerbahce vs {opponent} - {confirmed_tag} Lineups]**\n\n"
-                            f"__**Fenerbahce**__ ({fb_form}) - Manager: **{fb_mgr}**, Captain: **{fb_capt}**\n"
+                            f"**[Fenerbahçe vs {opponent} - {confirmed_tag} Lineups]**\n\n"
+                            f"__**Fenerbahçe**__ ({fb_form}) - Manager: **{fb_mgr}**, Captain: **{fb_capt}**\n"
                             f"XI: {fb_xi}\n"
                             f"Bench: {fb_bench}\n\n"
                             f"__**{opponent}**__ ({opp_form}) - Manager: **{opp_mgr}**, Captain: **{opp_capt}**\n"
@@ -4086,14 +4098,14 @@ class Yarnaby(commands.Bot):
             if status_type == "inprogress" and not active.get("kickoff_announced"):
                 active["kickoff_announced"] = True
                 await channel.send(
-                    f"*Yarnaby's ears prick. Somewhere in the room a small radio crackles to life. **Fenerbahce vs {opponent}** has begun. He settles into his watching spot. He does not look away.*"
+                    f"*Yarnaby's ears prick. Somewhere in the room a small radio crackles to life. **Fenerbahçe vs {opponent}** has begun. He settles into his watching spot. He does not look away.*"
                 )
-                # Support poll: Adidas Doge always backs Fenerbahce; ask the room.
+                # Support poll: Adidas Doge always backs Fenerbahçe; ask the room.
                 try:
                     poll_msg = await channel.send(
-                        f"**Adidas Doge supports Fenerbahce in this match, like he always did.**\n"
+                        f"**Adidas Doge supports Fenerbahçe in this match, like he always did.**\n"
                         f"Who are you supporting?\n\n"
-                        f"1\u20e3  Fenerbahce\n"
+                        f"1\u20e3  Fenerbahçe\n"
                         f"2\u20e3  {opponent}"
                     )
                     await poll_msg.add_reaction("1\u20e3")
@@ -4137,13 +4149,13 @@ class Yarnaby(commands.Bot):
                 if fb_scored:
                     fb_goals_named += 1
                     await channel.send(
-                        f"*Yarnaby's whole body goes rigid - then **explodes** into a spinning, leaping celebration. **{scorer}**{type_tag} has scored for Fenerbahce{minute_str}. **Fenerbahce {fb_score}-{opp_score} {opponent}.***"
+                        f"*Yarnaby's whole body goes rigid - then **explodes** into a spinning, leaping celebration. **{scorer}**{type_tag} has scored for Fenerbahçe{minute_str}. **Fenerbahçe {fb_score}-{opp_score} {opponent}.***"
                     )
                     await asyncio.sleep(1)
                 else:
                     opp_goals_named += 1
                     await channel.send(
-                        f"*Yarnaby flattens. Ears back. A long, low `mrrrrr...` **{scorer}**{type_tag} scored for {opponent}{minute_str}. **Fenerbahce {fb_score}-{opp_score} {opponent}.***"
+                        f"*Yarnaby flattens. Ears back. A long, low `mrrrrr...` **{scorer}**{type_tag} scored for {opponent}{minute_str}. **Fenerbahçe {fb_score}-{opp_score} {opponent}.***"
                     )
                     await asyncio.sleep(1)
 
@@ -4173,7 +4185,7 @@ class Yarnaby(commands.Bot):
                     is_fb = (is_home_event and fb_is_home) or (not is_home_event and not fb_is_home)
                     if player_in and player_out and is_fb:
                         await channel.send(
-                            f"*Yarnaby tilts his head as a change is made. **{player_out} -> {player_in}** for Fenerbahce{minute_str}.*"
+                            f"*Yarnaby tilts his head as a change is made. **{player_out} -> {player_in}** for Fenerbahçe{minute_str}.*"
                         )
                         await asyncio.sleep(1)
 
@@ -4183,18 +4195,18 @@ class Yarnaby(commands.Bot):
             for _ in range(fb_goal_fallback):
                 await channel.send(
                     random.choice([
-                        f"*Yarnaby's whole body goes rigid - then **explodes** into a spinning, leaping celebration, scattering tufts of wool everywhere. A goal. **Fenerbahce {fb_score}-{opp_score} {opponent}.** He is, briefly, the happiest object in the universe.*",
-                        f"*A noise nobody has ever heard him make - somewhere between a chirp and a yelp - bursts out of him. He sprints a victory lap around the room. **{fb_score}-{opp_score}.** Fenerbahce scored.*",
-                        f"*Yarnaby launches into the air, all four felt feet off the ground. He lands, shakes himself, and immediately does it again. **Fenerbahce {fb_score}-{opp_score} {opponent}.***",
+                        f"*Yarnaby's whole body goes rigid - then **explodes** into a spinning, leaping celebration, scattering tufts of wool everywhere. A goal. **Fenerbahçe {fb_score}-{opp_score} {opponent}.** He is, briefly, the happiest object in the universe.*",
+                        f"*A noise nobody has ever heard him make - somewhere between a chirp and a yelp - bursts out of him. He sprints a victory lap around the room. **{fb_score}-{opp_score}.** Fenerbahçe scored.*",
+                        f"*Yarnaby launches into the air, all four felt feet off the ground. He lands, shakes himself, and immediately does it again. **Fenerbahçe {fb_score}-{opp_score} {opponent}.***",
                     ])
                 )
                 await asyncio.sleep(1)
             for _ in range(opp_goal_fallback):
                 await channel.send(
                     random.choice([
-                        f"*Yarnaby flattens. His ears go back. A long, low, deeply unhappy `mrrrrr...` Whoever scored, they should not have. **Fenerbahce {fb_score}-{opp_score} {opponent}.***",
+                        f"*Yarnaby flattens. His ears go back. A long, low, deeply unhappy `mrrrrr...` Whoever scored, they should not have. **Fenerbahçe {fb_score}-{opp_score} {opponent}.***",
                         f"*A small, betrayed huff. Yarnaby turns his back on the imaginary screen. Then, slowly, he turns back, because he can't help it. **{fb_score}-{opp_score}.***",
-                        f"*A quiet, wounded chirp. **Fenerbahce {fb_score}-{opp_score} {opponent}.** He doesn't move from his spot. He is processing.*",
+                        f"*A quiet, wounded chirp. **Fenerbahçe {fb_score}-{opp_score} {opponent}.** He doesn't move from his spot. He is processing.*",
                     ])
                 )
                 await asyncio.sleep(1)
@@ -4218,15 +4230,15 @@ class Yarnaby(commands.Bot):
                 if cooldown_ok:
                     if fb_score > opp_score:
                         msg = (
-                            f"*Full time. **Fenerbahce {fb_score}-{opp_score} {opponent}.** Yarnaby is incandescent. He does one final lap of the room and then collapses, exhausted and content.*"
+                            f"*Full time. **Fenerbahçe {fb_score}-{opp_score} {opponent}.** Yarnaby is incandescent. He does one final lap of the room and then collapses, exhausted and content.*"
                         )
                     elif fb_score < opp_score:
                         msg = (
-                            f"*Full time. **Fenerbahce {fb_score}-{opp_score} {opponent}.** Yarnaby curls into a small, defeated shape. Somewhere, very quietly, he chirps once. Tomorrow is another day.*"
+                            f"*Full time. **Fenerbahçe {fb_score}-{opp_score} {opponent}.** Yarnaby curls into a small, defeated shape. Somewhere, very quietly, he chirps once. Tomorrow is another day.*"
                         )
                     else:
                         msg = (
-                            f"*Full time. **Fenerbahce {fb_score}-{opp_score} {opponent}.** A draw. Yarnaby looks philosophical. He has, after all, seen worse.*"
+                            f"*Full time. **Fenerbahçe {fb_score}-{opp_score} {opponent}.** A draw. Yarnaby looks philosophical. He has, after all, seen worse.*"
                         )
                     await channel.send(msg)
                     m["internal"]["fb_last_match_summary_at"] = datetime.now().strftime(
@@ -4343,7 +4355,7 @@ async def rub_cmd(ctx, *, place: Optional[str] = None):
     save_db(m)
     await ctx.send(f"{line} *(place: **{safe_place}**)*")
 
-# --- Fenerbahce live match watcher ---
+# --- Fenerbahçe live match watcher ---
 
 
 
@@ -5791,7 +5803,7 @@ async def on_message(message):
                                 f"*He is aware of what the table says. He doesn't make it into more than it is right now. He is still watching.* **...mrr...**",
                             ])
                         await message.channel.send(
-                            f"*[Fenerbahce - Super Lig - {_line}]*\n\n{_react}"
+                            f"*[Fenerbahçe - Süper Lig - {_line}]*\n\n{_react}"
                         )
                     else:
                         # No table data - just a quiet acknowledgment
@@ -5804,7 +5816,7 @@ async def on_message(message):
                 except Exception:
                     pass  # Silent fail - passive triggers never crash the bot
 
-        # Adidas / Turkish / Fenerbahce mention - small reaction
+        # Adidas / Turkish / Fenerbahçe mention - small reaction
         elif any(
             kw in msg
             for kw in [
@@ -8876,13 +8888,13 @@ async def feed(ctx, *, item: Optional[str] = None):
             f"*He sniffs the pide carefully - the bread, the egg if there is one, the meat inside. He eats the filling out first with surgical precision. Then he eats the bread. He finds this sequence correct. He has never done it the other way. He would not.* **prrr.**",
             f"*The pide gets his full attention immediately. He eats it low to the ground, covering it slightly with his body, with the focused energy of a creature who has decided this belongs to him alone. He licks the pan. He licks it again.* **mrrow.**",
         ],
-        "kofte": [
-            f"*He finds the kofte and the sound he makes is not quite a purr and not quite a growl - something between, something that means *yes, this exactly.* He eats every piece. He presses his nose into the plate after, checking for any piece he might have missed. There are none. He checked thoroughly.* **prrrrr.**",
-            f"*Kofte lands and Yarnaby is crouched over it in one fluid motion. He eats with complete and unselfconscious commitment, making small urgent sounds throughout. He finishes. He blinks. He sits very upright. He has been fed correctly.* **PRRR.**",
+        "köfte": [
+            f"*He finds the köfte and the sound he makes is not quite a purr and not quite a growl - something between, something that means *yes, this exactly.* He eats every piece. He presses his nose into the plate after, checking for any piece he might have missed. There are none. He checked thoroughly.* **prrrrr.**",
+            f"*Köfte lands and Yarnaby is crouched over it in one fluid motion. He eats with complete and unselfconscious commitment, making small urgent sounds throughout. He finishes. He blinks. He sits very upright. He has been fed correctly.* **PRRR.**",
         ],
         "cay": [
-            f"*He sniffs the cay. He has been near this smell many times. He recognises the steam, the dark colour, the small glass. He approaches the glass very carefully and laps once from the surface - hot, bitter, not for him - and pulls back. He sniffs it once more anyway. He approves of the ritual even if not the contents.* **...mrr...**",
-            f"*He bats the cay glass very gently with one paw. It moves. He bats it the other way. He is not interested in drinking it. He is interested in its presence in the room. He sits beside it and purrs at the warmth radiating from the glass.* **prrr.**",
+            f"*He sniffs the çay. He has been near this smell many times. He recognises the steam, the dark colour, the small glass. He approaches the glass very carefully and laps once from the surface - hot, bitter, not for him - and pulls back. He sniffs it once more anyway. He approves of the ritual even if not the contents.* **...mrr...**",
+            f"*He bats the çay glass very gently with one paw. It moves. He bats it the other way. He is not interested in drinking it. He is interested in its presence in the room. He sits beside it and purrs at the warmth radiating from the glass.* **prrr.**",
         ],
         "cay": [
             f"*He sniffs the tea glass and recognises the warmth immediately. He doesn't drink it. He sits very close to it and lets the steam reach his face. His eyes half-close. He stays there for a while.* **...prrr...**",
@@ -8895,18 +8907,18 @@ async def feed(ctx, *, item: Optional[str] = None):
             f"*He investigates the tulumba - the ridged shape, the syrup - with one careful paw tap. It is sticky. He examines his paw. He licks the syrup off. He eats the rest in two bites and then licks the plate in long, slow arcs. He is very happy. He has not said so. He does not have to.* **...prrr...**",
             f"*Tulumba. He bites through the outer layer and the syrup runs. He tracks the syrup. He eats the syrup path first, then the tulumba itself. He licks the surface it sat on. He sits back and blinks at the ceiling. That was correct.* **mrrt. prrr.**",
         ],
-        "kunefe": [
-            f"*He approaches the kunefe with enormous eyes. Hot. Cheese inside. Shredded pastry on top. He bites it and the cheese stretches. He pulls back. The cheese stretches more. He looks at the strand connecting him to the kunefe. He bites through it. He eats the rest carefully, managing the heat, managing the cheese. He is a professional.* **...prrr...**",
-            f"*The kunefe is warm and smells like cheese and syrup and something crispy and he is already eating it. He burns his tongue slightly and pauses. He continues. He is not going to stop for something as minor as that.* **PRRR.**",
+        "künefe": [
+            f"*He approaches the künefe with enormous eyes. Hot. Cheese inside. Shredded pastry on top. He bites it and the cheese stretches. He pulls back. The cheese stretches more. He looks at the strand connecting him to the künefe. He bites through it. He eats the rest carefully, managing the heat, managing the cheese. He is a professional.* **...prrr...**",
+            f"*The künefe is warm and smells like cheese and syrup and something crispy and he is already eating it. He burns his tongue slightly and pauses. He continues. He is not going to stop for something as minor as that.* **PRRR.**",
         ],
-        "kunefe": [
-            f"*He sniffs the kunefe and pulls his nose back from the heat. He waits four seconds. He eats it anyway. The cheese stretches when he bites. He finds this unacceptable and eats faster to prevent further stretching.* **mrrow.**",
+        "künefe": [
+            f"*He sniffs the künefe and pulls his nose back from the heat. He waits four seconds. He eats it anyway. The cheese stretches when he bites. He finds this unacceptable and eats faster to prevent further stretching.* **mrrow.**",
         ],
-        "corba": [
-            f"*Yarnaby lowers his nose to the corba and the steam hits him first. He pulls back. He waits for it to cool, sitting in front of it with total patience. When he tries again, he laps carefully at the edge. Warm broth. He drinks it all. He licks the bowl.* **prrr.**",
-            f"*He approaches the corba, sniffs the lentils and the butter on top, and makes a sound of quiet approval before lapping it with long, considered strokes. He drinks more than expected. He came back for the bowl twice.* **...prrrrr...**",
+        "çorba": [
+            f"*Yarnaby lowers his nose to the çorba and the steam hits him first. He pulls back. He waits for it to cool, sitting in front of it with total patience. When he tries again, he laps carefully at the edge. Warm broth. He drinks it all. He licks the bowl.* **prrr.**",
+            f"*He approaches the çorba, sniffs the lentils and the butter on top, and makes a sound of quiet approval before lapping it with long, considered strokes. He drinks more than expected. He came back for the bowl twice.* **...prrrrr...**",
         ],
-        "corba": [
+        "çorba": [
             f"*He recognises the soup smell immediately - warm, filling, something important. He laps it up slowly from the edge, working inward. He finishes it. He rests his chin on the empty bowl for a moment.* **prrr.**",
         ],
         "strawberry": [
@@ -10816,7 +10828,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  - *Chess*: named openings (Sicilian Najdorf/London/Ruy Lopez), specific move numbers and combinations\n"
             "  - *Geometry Dash*: named levels (Clubstep/Fingerdash/ToE2/Deadlocked), specific death percentages\n"
             "  - *Minecraft*: biomes, Y-level diamonds, Woodland Mansion, Ender Dragon, creeper events\n"
-            "  - *FC Mobile*: formations (4-3-3/4-2-3-1), Division Rivals, Squad Battles, Fenerbahce kit\n"
+            "  - *FC Mobile*: formations (4-3-3/4-2-3-1), Division Rivals, Squad Battles, Fenerbahçe kit\n"
             "- `!challenge` / `!dailychallenge` - what self-imposed task he set for himself today and how it went\n"
             "- `!pounce` / `!ambush` [@user] - he ambushes someone (see `yarn!help core`)"
         ),
@@ -10938,7 +10950,7 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!comfort` - shows what comfort object he's been carrying since Creator left\n"
             "- `!comfortyarny` / `!comforthim` / `!sitwithhim` - sit with him to reduce his trauma\n"
             "  Effect scales with trust score — Creator clears all, high trust clears partial\n"
-            "- `!fb_status` / `!fener` - Fenerbahce status\n"
+            "- `!fb_status` / `!fener` - Fenerbahçe status\n"
             "- `!about` - version number + full stat dashboard\n"
             "- `!missing` / `!whosmissing` - **Creator only**: people with score >= 2\n"
             "  who haven't been seen in 5+ days; he has a note on each"
@@ -11023,14 +11035,14 @@ async def help_cmd(ctx, *, section: str = None):
             "- Creator view: also shows a summary of who's been around recently"
         ),
         "fb": (
-            "**Fenerbahce & debug** - `yarn!help fb`\n"
+            "**Fenerbahçe & debug** - `yarn!help fb`\n"
             "- `!fbpreview` - preview upcoming match\n"
             "- `!fblive` - live match status\n"
             "- `!fbresult` - last result\n"
             "- `!fbhistory` - recent match history\n"
             "- `!fbtable` - current league table\n"
             "- `!yarnstate` / `!debug` - **Creator only**: internal state dump\n"
-            "*(Match data: Sofascore -> api-football -> ESPN - ESPN requires no key and covers all Super Lig fixtures)*\n"
+            "*(Match data: Sofascore -> api-football -> ESPN - ESPN requires no key and covers all Süper Lig fixtures)*\n"
             "- `!fbseason` / `!fbstats` / `!fboverview` - full 2025-26 season stats:\n"
             "  position, W/D/L, goals for/against, points gap to leader, last 5 results\n"
             "  Live data via ESPN - always up to date, no configuration needed\n"
@@ -11041,7 +11053,7 @@ async def help_cmd(ctx, *, section: str = None):
             "**Set data manually (when API is quiet):**\n"
             "- `!fbsetfixture [opponent] [YYYY-MM-DD] [HH:MM]` / `!fbsetmatch` / `!fbsetdate`\n"
             "  Time is **Istanbul time**. Add `home`/`away` and tournament name after the time.\n"
-            "  e.g. `!fbsetfixture Galatasaray 2026-05-10 21:00 away Super Lig`\n"
+            "  e.g. `!fbsetfixture Galatasaray 2026-05-10 21:00 away Süper Lig`\n"
             "- `!fbsetstandings` / `!fbstandings` - paste the full table; he reads and stores it\n"
             "  He'll show it on `!fbtable` automatically (manual table takes priority over API)\n"
             "- `!fbnews [text]` / `!fbtransfer` / `!fbbreaking` - DM him a news item\n"
@@ -11049,7 +11061,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  it to his home channel in the server. Just `!fbnews` to be prompted.\n\n"
             "**Manual live feed (DM him, announces to home channel):**\n"
             "- `!fbupdate` - start a goal session; he asks who scored\n"
-            "- `!fbfener` / `!fbgol` / `!fbgoal` - Fenerbahce scored (chaos)\n"
+            "- `!fbfener` / `!fbgol` / `!fbgoal` - Fenerbahçe scored (chaos)\n"
             "- `!fbopponent [team]` / `!fbother` / `!fbagainst` - opponent scored (flat ears)\n"
             "- `!fbtotal 2 1 [team]` / `!fbline` - post current scoreline\n"
             "- `!fbfixtures` / `!fbwhen` / `!fbkickoff` - next match date & time (Istanbul)\n"
@@ -11066,7 +11078,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  e.g. `!fbaddresult W home Trabzonspor 2-0 2026-04-27`\n\n"
             "**Championship:**\n"
             "- `!fbchampions [team]` - **Creator only**: announce the league champion\n"
-            "  Fenerbahce win -> Yarnaby loses his mind + festival dream seeded\n"
+            "  Fenerbahçe win -> Yarnaby loses his mind + festival dream seeded\n"
             "  Rival win -> flat ears, filed under things he will not forgive\n"
             "  No argument -> shows stored champion"
         ),
@@ -11085,9 +11097,9 @@ async def help_cmd(ctx, *, section: str = None):
             "- `go to sleep` / `bedtime yarny` / `night night yarny` - resists (obeys if Creator)\n"
             "- `you're cute` / `so fluffy` / `so adorable` - smug delight; Creator: full meltdown\n"
             "- `i miss you yarny` / `miss you naby` - quiet warmth; extra tender from Creator\n"
-            "- Fenerbahce matches - he narrates them live\n"
+            "- Fenerbahçe matches - he narrates them live\n"
             "- `sampiyon` / `sampiyonluk` / `title race` / `kim kazanr` etc. -\n"
-            "  he checks live standings and reacts based on Fenerbahce's gap to the leader\n"
+            "  he checks live standings and reacts based on Fenerbahçe's gap to the leader\n"
             "  (throttled: once per 20 minutes to avoid spam)"
         ),
         "scores": (
@@ -11312,7 +11324,7 @@ async def help_cmd(ctx, *, section: str = None):
         "creator      - Creator-only commands\n"
         "logs         - !logset, !logsetchannel — server event logging\n"
         "safety       - !cleanup, !getoutNSFW — NSFW server detection\n"
-        "fb           - Fenerbahce commands + !debug\n"
+        "fb           - Fenerbahçe commands + !debug\n"
         "passive      - passive chat triggers and reactions\n"
         "scores       - all 22 trust milestones explained\n"
         "ambient      - background events: wandering, shedding, lonely tick\n"
@@ -11594,7 +11606,7 @@ async def yarnstate_cmd(ctx):
         f"**Comfort object:** {comfort}",
         f"  assigned: {comfort_at}",
         "",
-        f"**Fenerbahce:** {fb_line}",
+        f"**Fenerbahçe:** {fb_line}",
         f"  schedule fetched: {fb_fetched}",
         "",
         f"**Hoard items:** {inv_count}",
@@ -11605,7 +11617,7 @@ async def yarnstate_cmd(ctx):
 
 @bot.command(name="fbpreview", aliases=["fbpre", "fbnext"])
 async def fbpreview_cmd(ctx):
-    """Creator-only: preview the next Fenerbahce fixture (lineups, managers, kickoff)."""
+    """Creator-only: preview the next Fenerbahçe fixture (lineups, managers, kickoff)."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Yarnaby tilts his head. He doesn't understand what you're asking.*")
         return
@@ -11627,7 +11639,7 @@ async def fbpreview_cmd(ctx):
 
     if not schedule:
         await ctx.send(
-            "*No upcoming Fenerbahce fixture is cached and Sofascore returned nothing.*"
+            "*No upcoming Fenerbahçe fixture is cached and Sofascore returned nothing.*"
         )
         return
 
@@ -11656,8 +11668,8 @@ async def fbpreview_cmd(ctx):
         print(f"[fb preview lineup fetch failed] {e}")
 
     lines = [
-        "**[Fenerbahce - Next Fixture Preview]**",
-        f"**Match:** Fenerbahce vs {opponent} ({venue})",
+        "**[Fenerbahçe - Next Fixture Preview]**",
+        f"**Match:** Fenerbahçe vs {opponent} ({venue})",
         f"**Tournament:** {tournament}",
         f"**Kickoff (Istanbul):** {kickoff_ist}",
         f"**Sofascore event id:** `{event_id}`",
@@ -11689,7 +11701,7 @@ async def fbpreview_cmd(ctx):
         lines.extend([
             f"**Lineups:** {confirmed_tag}",
             "",
-            f"__**Fenerbahce**__ ({fb_side.get('formation') or '?'}) - Manager: **{fb_mgr}**, Captain: **{fb_side.get('captain') or '?'}**",
+            f"__**Fenerbahçe**__ ({fb_side.get('formation') or '?'}) - Manager: **{fb_mgr}**, Captain: **{fb_side.get('captain') or '?'}**",
             f"XI: {fb_xi}",
             f"Bench: {fb_bench}",
             "",
@@ -11705,7 +11717,7 @@ async def fbpreview_cmd(ctx):
 
 @bot.command(name="fblive", aliases=["fbnow"])
 async def fblive_cmd(ctx):
-    """Creator-only: show the in-progress Fenerbahce match - score, minute, recent incidents."""
+    """Creator-only: show the in-progress Fenerbahçe match - score, minute, recent incidents."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Yarnaby tilts his head. He doesn't understand what you're asking.*")
         return
@@ -11715,7 +11727,7 @@ async def fblive_cmd(ctx):
     active = m["internal"].get("fb_match")
     if not active:
         await ctx.send(
-            "*Yarnaby is not currently watching a match. No active Fenerbahce fixture in his head.*"
+            "*Yarnaby is not currently watching a match. No active Fenerbahçe fixture in his head.*"
         )
         return
 
@@ -11734,7 +11746,7 @@ async def fblive_cmd(ctx):
 
     if not state:
         await ctx.send(
-            f"*He's tracking event `{event_id}` (Fenerbahce vs {opponent}) but Sofascore returned nothing right now. Try again in a minute.*"
+            f"*He's tracking event `{event_id}` (Fenerbahçe vs {opponent}) but Sofascore returned nothing right now. Try again in a minute.*"
         )
         return
 
@@ -11780,9 +11792,9 @@ async def fblive_cmd(ctx):
     kickoff_done = "yes" if active.get("kickoff_announced") else "no"
 
     out = "\n".join([
-        "**[Fenerbahce - Live Match Status]**",
-        f"**Match:** Fenerbahce vs {opponent}",
-        f"**Score:** Fenerbahce {fb_score}-{opp_score} {opponent}",
+        "**[Fenerbahçe - Live Match Status]**",
+        f"**Match:** Fenerbahçe vs {opponent}",
+        f"**Score:** Fenerbahçe {fb_score}-{opp_score} {opponent}",
         f"**Status:** {status_desc}",
         f"**Sofascore event id:** `{event_id}`",
         "",
@@ -11798,7 +11810,7 @@ async def fblive_cmd(ctx):
 
 @bot.command(name="fbresult", aliases=["fbfinal"])
 async def fbresult_cmd(ctx):
-    """Creator-only: summary of the most recent finished Fenerbahce match."""
+    """Creator-only: summary of the most recent finished Fenerbahçe match."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Yarnaby tilts his head. He doesn't understand what you're asking.*")
         return
@@ -11807,7 +11819,7 @@ async def fbresult_cmd(ctx):
     await _add_reactions(ctx, m)
     last = m["internal"].get("fb_last_match")
     if not last:
-        await ctx.send("*No finished Fenerbahce match in his memory yet.*")
+        await ctx.send("*No finished Fenerbahçe match in his memory yet.*")
         return
 
     event_id = last["event_id"]
@@ -11862,13 +11874,13 @@ async def fbresult_cmd(ctx):
 
     venue = "home" if fb_is_home else "away"
     lines = [
-        "**[Fenerbahce - Match Result]**",
-        f"**Match:** Fenerbahce vs {opponent} ({venue})",
+        "**[Fenerbahçe - Match Result]**",
+        f"**Match:** Fenerbahçe vs {opponent} ({venue})",
         f"**Tournament:** {tournament}",
-        f"**Final Score:** Fenerbahce **{fb_score}-{opp_score}** {opponent}",
+        f"**Final Score:** Fenerbahçe **{fb_score}-{opp_score}** {opponent}",
         f"**Finished:** {finished_at}",
         "",
-        f"__**Fenerbahce goals**__ ({len(fb_goals)}):",
+        f"__**Fenerbahçe goals**__ ({len(fb_goals)}):",
     ]
     if fb_goals:
         lines.extend(f"  - {g}" for g in fb_goals)
@@ -11896,7 +11908,7 @@ async def fbresult_cmd(ctx):
 
 @bot.command(name="fbsetstandings", aliases=["fbsetable", "fbmanualtable", "fbstandings", "fbupdatetable"])
 async def fbsetstandings_cmd(ctx):
-    """Manually set the Super Lig table. Paste it in your next message."""
+    """Manually set the Süper Lig table. Paste it in your next message."""
     import re as _re
 
     def same_author(msg):
@@ -11975,14 +11987,14 @@ async def fbsetstandings_cmd(ctx):
     fb_note = ""
     if fb_row:
         gd_s = f"+{fb_row['gd']}" if fb_row['gd'] > 0 else str(fb_row['gd'])
-        fb_note = f"\n*He noted it. Fenerbahce: **{fb_row['position']}{_ord_suffix(fb_row['position'])} place**, {fb_row['points']} pts, GD {gd_s}.* **...prrr...**"
+        fb_note = f"\n*He noted it. Fenerbahçe: **{fb_row['position']}{_ord_suffix(fb_row['position'])} place**, {fb_row['points']} pts, GD {gd_s}.* **...prrr...**"
 
     await ctx.send(f"*He read all {len(rows)} rows. He has it now.*{fb_note}")
 
 
 @bot.command(name="fbtable", aliases=["fbstanding", "fbleague"])
 async def fbtable_cmd(ctx):
-    """Current Super Lig standings - manual table first, API fallback."""
+    """Current Süper Lig standings - manual table first, API fallback."""
     m = bot.db
     await _add_reactions(ctx, m)
     manual = m["internal"].get("fb_manual_table") or []
@@ -12002,7 +12014,7 @@ async def fbtable_cmd(ctx):
         await ctx.send("*He sniffed at the air for the league table but couldn't find one right now. Try `!fbsetstandings` to set it manually.*")
         return
 
-    #  Zone boundaries for Trendyol Super Lig (18 teams, 2025/26) 
+    #  Zone boundaries for Trendyol Süper Lig (18 teams, 2025/26) 
     # 1st  -> Champions League (confirmed)
     # 2nd  -> Champions League Qualifying
     # 3rd  -> Europa League Qualifying
@@ -12041,14 +12053,14 @@ async def fbtable_cmd(ctx):
         return None
 
     fb_row = next((r for r in table if r.get("is_fb")), None)
-    lines = ["**[Super Lig - Standings]**", ""]
+    lines = ["**[Süper Lig - Standings]**", ""]
     if fb_row:
         gd = fb_row["gd"]
         gd_str = f"+{gd}" if gd > 0 else str(gd)
         zone = _zone_label(fb_row["position"])
         zone_note = f" - *{zone}*" if zone else ""
         lines.append(
-            f"**Fenerbahce - {fb_row['position']}{_ord_suffix(fb_row['position'])} place**{zone_note}, "
+            f"**Fenerbahçe - {fb_row['position']}{_ord_suffix(fb_row['position'])} place**{zone_note}, "
             f"{fb_row['points']} pts ({fb_row['wins']}W {fb_row['draws']}D {fb_row['losses']}L), "
             f"GD {gd_str} ({fb_row['gf']}-{fb_row['ga']})"
         )
@@ -12089,7 +12101,7 @@ def _ord_suffix(n):
 
 @bot.command(name="fbhistory", aliases=["fbform", "fbrecent"])
 async def fbhistory_cmd(ctx):
-    """Creator-only: rolling list of the last 10 finished Fenerbahce matches."""
+    """Creator-only: rolling list of the last 10 finished Fenerbahçe matches."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Yarnaby tilts his head. He doesn't understand what you're asking.*")
         return
@@ -12098,12 +12110,12 @@ async def fbhistory_cmd(ctx):
     await _add_reactions(ctx, m)
     history = m["internal"].get("fb_history") or []
     if not history:
-        await ctx.send("*No Fenerbahce matches in his memory yet.*")
+        await ctx.send("*No Fenerbahçe matches in his memory yet.*")
         return
 
     wins = draws = losses = 0
     gf = ga = 0
-    lines = ["**[Fenerbahce - Recent Form]**", ""]
+    lines = ["**[Fenerbahçe - Recent Form]**", ""]
     # Most recent first.
     for h in reversed(history):
         opp = h.get("opponent", "?")
@@ -12122,7 +12134,7 @@ async def fbhistory_cmd(ctx):
             draws += 1
         gf += fb
         ga += op
-        lines.append(f"`{tag}` {venue}  Fenerbahce **{fb}-{op}** {opp}  *({when})*")
+        lines.append(f"`{tag}` {venue}  Fenerbahçe **{fb}-{op}** {opp}  *({when})*")
 
     lines.append("")
     lines.append(
@@ -12139,7 +12151,7 @@ async def fbhistory_cmd(ctx):
 # ==========================================
 @bot.command(name="fbstreak", aliases=["fbform5", "fblast5", "fenform", "fbrecent5"])
 async def fbstreak_cmd(ctx):
-    """Show Fenerbahce's last 5 results with a non-verbal reaction from Yarnaby."""
+    """Show Fenerbahçe's last 5 results with a non-verbal reaction from Yarnaby."""
     m = bot.db
     await _add_reactions(ctx, m)
     history = m["internal"].get("fb_history") or []
@@ -12226,7 +12238,7 @@ async def fbstreak_cmd(ctx):
     )
     summary = f"{wins}W  {draws}D  {losses}L"
 
-    lines = [f"**[Fenerbahce - Last {n}]**", ""]
+    lines = [f"**[Fenerbahçe - Last {n}]**", ""]
     lines.append(f"{badge_str}   -   {summary}")
     lines.append("")
 
@@ -12243,9 +12255,9 @@ async def fbstreak_cmd(ctx):
         else:
             tag = "D"
         if r.get("fb_is_home"):
-            scoreline = f"Fenerbahce {fs}-{os} {opp}"
+            scoreline = f"Fenerbahçe {fs}-{os} {opp}"
         else:
-            scoreline = f"{opp} {os}-{fs} Fenerbahce"
+            scoreline = f"{opp} {os}-{fs} Fenerbahçe"
         lines.append(f"`{tag}` `{venue}`  {scoreline}  *({when})*")
 
     lines.append("")
@@ -12258,7 +12270,7 @@ async def fbstreak_cmd(ctx):
 # ==========================================
 @bot.command(name="fbseason", aliases=["fbstats", "fboverview", "fenseason", "fbsummary", "fbstandings2"])
 async def fbseason_cmd(ctx):
-    """Show Fenerbahce's full season stats from ESPN - position, record, goals, gap to top."""
+    """Show Fenerbahçe's full season stats from ESPN - position, record, goals, gap to top."""
     m = bot.db
     await _add_reactions(ctx, m)
     await ctx.send("*He goes to check the numbers...*")
@@ -12273,12 +12285,12 @@ async def fbseason_cmd(ctx):
         ]))
         return
 
-    # Find Fenerbahce's row and the leader
+    # Find Fenerbahçe's row and the leader
     fb_row = next((r for r in table if r.get("is_fb")), None)
     leader_row = min(table, key=lambda r: r.get("position", 99)) if table else None
 
     if not fb_row:
-        await ctx.send("*He found the table but couldn't locate Fenerbahce in it. Something is off.* **mrr.**")
+        await ctx.send("*He found the table but couldn't locate Fenerbahçe in it. Something is off.* **mrr.**")
         return
 
     pos      = fb_row.get("position", "?")
@@ -12311,9 +12323,9 @@ async def fbseason_cmd(ctx):
         venue = "H" if r.get("fb_is_home") else "A"
         date = r.get("date", "?")
         if r.get("fb_is_home"):
-            scoreline = f"Fenerbahce **{fbs}-{ops}** {opp}"
+            scoreline = f"Fenerbahçe **{fbs}-{ops}** {opp}"
         else:
-            scoreline = f"{opp} **{ops}-{fbs}** Fenerbahce"
+            scoreline = f"{opp} **{ops}-{fbs}** Fenerbahçe"
         tag = "**W**" if res == "W" else ("*D*" if res == "D" else "~~L~~")
         recent_lines.append(f"`{tag}` `{venue}`  {scoreline}  *({date})*")
 
@@ -12362,9 +12374,9 @@ async def fbseason_cmd(ctx):
         gap_line = f"**{gap}** behind {leader_name} ({leader_pts} pts)"
 
     lines = [
-        f"**[Fenerbahce - 2025-26 Season]**",
+        f"**[Fenerbahçe - 2025-26 Season]**",
         f"",
-        f"**{pos_str}** in Super Lig  -  **{pts} pts**  from {gp} matches",
+        f"**{pos_str}** in Süper Lig  -  **{pts} pts**  from {gp} matches",
         f"W **{wins}**  -  D **{draws}**  -  L **{losses}**",
         f"Goals: **{gf}** for  -  **{ga}** against  -  GD **{gd_str}**",
         f"",
@@ -12512,7 +12524,7 @@ async def fbpredict_cmd(ctx):
     gala_safe_pts = max(0, fb_max - gala_pts + 1)  # get this many and they're champions
 
     if gap == 0 and fb_pos == 1:
-        scenario_line = f"FB lead on {fb_pts} pts - **Fenerbahce in control**. Stay there."
+        scenario_line = f"FB lead on {fb_pts} pts - **Fenerbahçe in control**. Stay there."
     elif gap == 0:
         scenario_line = f"**Level** on {fb_pts} pts. Goal difference decides if it stays this way."
     elif fb_max < gala_pts:
@@ -12610,12 +12622,12 @@ async def fbpredict_cmd(ctx):
 
     #  8. Assemble output 
     lines = [
-        f"**[ Super Lig Title Race - 2025-26]**  *(MD {fb_gp}/34)*",
+        f"**[ Süper Lig Title Race - 2025-26]**  *(MD {fb_gp}/34)*",
         f"",
         f" **Galatasaray** - {_pos_str(gala_pos)} - **{gala_pts} pts** - {gala_games_left} game{'s' if gala_games_left!=1 else ''} left",
-        f" **Fenerbahce**  - {_pos_str(fb_pos)} - **{fb_pts} pts** - {fb_games_left} game{'s' if fb_games_left!=1 else ''} left  *(-{gap})*",
+        f" **Fenerbahçe**  - {_pos_str(fb_pos)} - **{fb_pts} pts** - {fb_games_left} game{'s' if fb_games_left!=1 else ''} left  *(-{gap})*",
         f"",
-        f"** Fenerbahce fixtures:**",
+        f"** Fenerbahçe fixtures:**",
     ]
     lines.extend([f"  {l}" for l in fb_fix_lines])
     lines.append(f"")
@@ -12630,7 +12642,7 @@ async def fbpredict_cmd(ctx):
     lines.append(f"  {scenario_line}")
     lines.append(f"")
     lines.append(reaction)
-    lines.append("**Adidas Doge Supports Fenerbahce!**")
+    lines.append("**Adidas Doge Supports Fenerbahçe!**")
 
     await ctx.send(str("\n".join(lines)))
 
@@ -12640,7 +12652,7 @@ async def fbpredict_cmd(ctx):
 # ==========================================
 @bot.command(name="fbaddresult", aliases=["fbseedresult", "fblogresult", "fbmanualresult"])
 async def fbaddresult_cmd(ctx):
-    """Creator only: manually log a past Fenerbahce result into streak history.
+    """Creator only: manually log a past Fenerbahçe result into streak history.
     Usage: !fbaddresult W/D/L [home/away] [opponent] [fb_score]-[opp_score] [YYYY-MM-DD]
     Example: !fbaddresult W home Trabzonspor 2-0 2026-04-27
     """
@@ -12710,9 +12722,9 @@ async def fbaddresult_cmd(ctx):
 
     venue_label = "home" if fb_is_home else "away"
     scoreline = (
-        f"Fenerbahce {fb_score}-{opp_score} {opponent}"
+        f"Fenerbahçe {fb_score}-{opp_score} {opponent}"
         if fb_is_home
-        else f"{opponent} {opp_score}-{fb_score} Fenerbahce"
+        else f"{opponent} {opp_score}-{fb_score} Fenerbahçe"
     )
     await ctx.send(
         f"*He nods once and files it.*\n"
@@ -16280,7 +16292,7 @@ async def vidgame_cmd(ctx, *, game_name: Optional[str] = None):
             "*He sets his formation to **4-3-3**, presses from the front, wins the ball high up the pitch on minute 4. His striker - fastest in his squad - runs in behind the last defender. Slotted finish. 1-0. He defends with a high line for the rest and adds a second from a set piece. 2-0 full time. He closes the app and sits back.* **prrr.**",
             "*He opens **Squad Battles** on Legendary difficulty. He presses early and earns a penalty on minute 12. He converts it himself. His opponent's CPU equalizes from a corner he didn't track. He responds with a driven low cross in the 67th minute, clean finish. 2-1 until the final whistle. He logs the three stars and moves on.* **mrrrp.**",
             "*He enters a **Division Rivals** match. He plays a narrow **4-2-3-1** and completely controls the center. His number 10 threads a through ball in the 38th minute that his striker runs onto - 1-0. His opponent pushes late; he defends with patient shape and wins a clean sheet. He gains 45 Division Points. He was always going to.* **prrr.**",
-            "*He finds a **Fenerbahce** kit in the game. He puts it on his whole squad immediately, regardless of stats. He plays with this lineup and wins 3-0. He chirps at the yellow and navy on screen for a full minute before closing the app.* **chrrp! PRRR.**",
+            "*He finds a **Fenerbahçe** kit in the game. He puts it on his whole squad immediately, regardless of stats. He plays with this lineup and wins 3-0. He chirps at the yellow and navy on screen for a full minute before closing the app.* **chrrp! PRRR.**",
         ],
         "roblox": [
             "*He enters **Roblox** and immediately finds the weirdest server available. He survives the obby, finishes the tower, and leaves the minigame with exact timing and no wasted jumps. He likes the structure of it. He will not explain further.* **mrr.**",
@@ -16349,7 +16361,7 @@ async def vidgame_cmd(ctx, *, game_name: Optional[str] = None):
             "*He goes to the **Nether** unprepared. He has iron armor, a stone sword, and no fire resistance. A Ghast finds him in the first thirty seconds. He tries to deflect the fireball back with his sword. He misses. He does not survive the Nether today. He respawns.* **mrr.**",
         ],
         "fc mobile": [
-            "*He plays a **Division Rivals** match with his full Fenerbahce kit squad. His opponent plays a meta team with 105-rated players. He loses the first tackle, concedes a counter on minute 8, equalizes from a corner on 34, then concedes again from a driven shot he got a hand to but couldn't stop. 1-2 full time. He closes the game and sits for a moment.* **...mrr...**",
+            "*He plays a **Division Rivals** match with his full Fenerbahçe kit squad. His opponent plays a meta team with 105-rated players. He loses the first tackle, concedes a counter on minute 8, equalizes from a corner on 34, then concedes again from a driven shot he got a hand to but couldn't stop. 1-2 full time. He closes the game and sits for a moment.* **...mrr...**",
             "*He sets up a **4-2-3-1** and controls the first half cleanly. His striker misses a clear one-on-one in the 29th minute. His opponent scores from a set piece in the second half. 0-1. He pushes, earns a penalty in the 88th, and his player hits the post. Full time whistle. He stares at the final scoreboard for exactly seven seconds.* **mrrp.**",
             "*He queues for **Squad Battles** on Legendary. He controls the game for 70 minutes - his pressing is organised, his build-up is clean. The CPU scores two goals in the last fifteen minutes from long shots that should not have gone in. He concedes he cannot control this. He does not accept it. He queues again.* **...mrr...**",
         ],
@@ -17027,7 +17039,7 @@ async def set_departure_cmd(ctx):
 
 @bot.command(name="fb_status", aliases=["fb", "fenerbahce", "fener"])
 async def fb_status_cmd(ctx):
-    """Show what Yarnaby knows about Fenerbahce right now."""
+    """Show what Yarnaby knows about Fenerbahçe right now."""
     if aiohttp is None:
         await ctx.send(
             "*Yarnaby's little radio isn't plugged in (network library missing).*"
@@ -17046,7 +17058,7 @@ async def fb_status_cmd(ctx):
             fb = home if active.get("fb_is_home") else away
             opp_s = away if active.get("fb_is_home") else home
             await ctx.send(
-                f"*Live: **Fenerbahce {fb}-{opp_s} {opp}** ({state.get('status_desc') or state.get('status_type') or 'live'}). Yarnaby is watching very intently.*"
+                f"*Live: **Fenerbahçe {fb}-{opp_s} {opp}** ({state.get('status_desc') or state.get('status_type') or 'live'}). Yarnaby is watching very intently.*"
             )
             return
 
@@ -17070,13 +17082,13 @@ async def fb_status_cmd(ctx):
     when_str = when_dt.strftime("%Y-%m-%d %H:%M UTC")
     home_away = "(H)" if nxt.get("fb_is_home") else "(A)"
     await ctx.send(
-        f"*Next up: **Fenerbahce vs {nxt.get('opponent','?')}** {home_away} - `{when_str}`. {nxt.get('tournament','')}. Yarnaby is already pacing.*"
+        f"*Next up: **Fenerbahçe vs {nxt.get('opponent','?')}** {home_away} - `{when_str}`. {nxt.get('tournament','')}. Yarnaby is already pacing.*"
     )
 
 
 # ==========================================
 # !fbupdate - manual live goal feed via DM
-# !fbfener  - Fenerbahce scored
+# !fbfener  - Fenerbahçe scored
 # !fbopponent [team] - opponent scored
 # ==========================================
 
@@ -17097,14 +17109,14 @@ async def fbupdate_cmd(ctx):
     await ctx.send(
         "*He looks up immediately. His ears prick forward.*\n"
         "**Who scored?**\n"
-        "- `!fbfener` - Fenerbahce scored\n"
+        "- `!fbfener` - Fenerbahçe scored\n"
         "- `!fbopponent [team name]` - the other team scored"
     )
 
 
 @bot.command(name="fbfener", aliases=["fbgol", "fbgoal", "fbfb", "fbscore", "fbfenerscored", "fenergol"])
 async def fbfener_cmd(ctx):
-    """Fenerbahce scored - he reacts with joy and announces to home channel."""
+    """Fenerbahçe scored - he reacts with joy and announces to home channel."""
     m = bot.db
     await _add_reactions(ctx, m)
     pending = m["internal"].get("fb_update_pending")
@@ -17122,7 +17134,7 @@ async def fbfener_cmd(ctx):
     await ctx.send(
         random.choice([
             "*His tail PUFFS. He is on his feet immediately. He is pacing. This is not a drill.* **MRRROW!!**",
-            "*He stands up so fast he knocks into something. He does not care. FENERBAHCE SCORED.* **PRRRROW!!**",
+            "*He stands up so fast he knocks into something. He does not care. FENERBAHÇE SCORED.* **PRRRROW!!**",
             "*His ears are forward, his tail is up, his eyes are huge. He is vibrating.* **mROWW!!**",
             "*He stops everything. He looks at you. He looks at nothing. He starts pacing with great purpose.* **rROWR!!**",
             "*He makes a noise somewhere between a chirp and a howl. He is extremely pleased with this development.* **CHIRPROWL!!**",
@@ -17133,10 +17145,10 @@ async def fbfener_cmd(ctx):
     if home_ch:
         await home_ch.send(
             random.choice([
-                " **GOL! FENERBAHCE SCORED!!** \n*Yarnaby is on his feet. He is pacing very fast. His tail is enormous.*",
-                " **FENERBAHCE - GOOOOL!!** \n*He stands up and knocks something over. He does not apologise. THEY SCORED.* **MRRROW!!**",
+                " **GOL! FENERBAHÇE SCORED!!** \n*Yarnaby is on his feet. He is pacing very fast. His tail is enormous.*",
+                " **FENERBAHÇE - GOOOOL!!** \n*He stands up and knocks something over. He does not apologise. THEY SCORED.* **MRRROW!!**",
                 " **GOL GOL GOL** \n*Yarnaby is sprinting in circles. His tail is three times its normal size. He is making sounds.* **pRROWWW!!**",
-                " **IT'S IN. FENERBAHCE.** \n*He is vibrating. He cannot contain it. THEY SCORED AND HE KNOWS IT.* **CHIRPROWL!!**",
+                " **IT'S IN. FENERBAHÇE.** \n*He is vibrating. He cannot contain it. THEY SCORED AND HE KNOWS IT.* **CHIRPROWL!!**",
             ])
         )
     else:
@@ -17197,7 +17209,7 @@ async def fbopponent_cmd(ctx):
 async def fbsetfixture_cmd(ctx):
     """Manually set the next fixture date/time (Istanbul time).
     Usage: !fbsetfixture Galatasaray 2026-05-10 21:00
-    Full:  !fbsetfixture Galatasaray 2026-05-10 21:00 away Super Lig
+    Full:  !fbsetfixture Galatasaray 2026-05-10 21:00 away Süper Lig
     """
     import re as _re
 
@@ -17318,7 +17330,7 @@ async def fbsetfixture_cmd(ctx):
 
     await ctx.send(
         f"*He nods. He has it.*\n"
-        f"**Fenerbahce vs {opponent}** ({ha_str})\n"
+        f"**Fenerbahçe vs {opponent}** ({ha_str})\n"
         f" **{confirm_date}** at **{confirm_time} Istanbul time**"
         + (f"\n*{tournament}*" if tournament else "")
     )
@@ -17353,29 +17365,29 @@ async def fbtotal_cmd(ctx):
     # Determine Yarnaby's emotional state from the score
     if fener_score > opp_score:
         mood_dm = random.choice([
-            f"*He is pacing with purpose. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. He likes this.* **...prrr...**",
-            f"*His tail is up. **{fener_score}-{opp_score}** to Fenerbahce. He is allowing himself to be pleased about this.* **mrr.**",
+            f"*He is pacing with purpose. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. He likes this.* **...prrr...**",
+            f"*His tail is up. **{fener_score}-{opp_score}** to Fenerbahçe. He is allowing himself to be pleased about this.* **mrr.**",
         ])
         mood_home = random.choice([
-            f" **Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is pacing with great intent. He approves of this scoreline.* **...prrr...**",
-            f" **{fener_score}-{opp_score}. Fenerbahce leading.**\n*He is walking back and forth. His tail is high.* **prrr.**",
+            f" **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is pacing with great intent. He approves of this scoreline.* **...prrr...**",
+            f" **{fener_score}-{opp_score}. Fenerbahçe leading.**\n*He is walking back and forth. His tail is high.* **prrr.**",
         ])
     elif fener_score < opp_score:
         mood_dm = random.choice([
-            f"*His ears are flat. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. He is aware. He is not happy.* **...mrr...**",
+            f"*His ears are flat. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. He is aware. He is not happy.* **...mrr...**",
             f"*He goes very still. **{fener_score}-{opp_score}** down. He is thinking very hard about this.* **...mrr...**",
         ])
         mood_home = random.choice([
-            f" **Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby's ears are flat. His tail is low. He is not doing well with this.* **...mrr...**",
+            f" **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby's ears are flat. His tail is low. He is not doing well with this.* **...mrr...**",
             f" **{fener_score}-{opp_score} down.** *He is sitting very still and staring at nothing.* **...prrt...**",
         ])
     else:
         mood_dm = random.choice([
-            f"*He is tense. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. Level. He is watching very carefully.* **mrr.**",
+            f"*He is tense. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. Level. He is watching very carefully.* **mrr.**",
             f"*A slow blink. **{fener_score}-{opp_score}**. He doesn't like draws. He will not pretend otherwise.* **...mrr...**",
         ])
         mood_home = random.choice([
-            f" **Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is tense. He does not celebrate draws. He waits.* **mrr.**",
+            f" **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is tense. He does not celebrate draws. He waits.* **mrr.**",
             f" **{fener_score}-{opp_score}. Level.** *He is sitting upright and watching with great intensity.* **...mrr...**",
         ])
 
@@ -17411,7 +17423,7 @@ async def mimic_cmd(ctx):
 
 @bot.command(name="fbfixtures", aliases=["fbfixture", "fbdate", "fbwhen", "fbkickoff", "fbschedule", "fbmatch"])
 async def fbfixtures_cmd(ctx):
-    """Next Fenerbahce fixture - date and time in Istanbul time."""
+    """Next Fenerbahçe fixture - date and time in Istanbul time."""
     m = bot.db
     await _add_reactions(ctx, m)
     schedule = m["internal"].get("fb_schedule") or []
@@ -17446,7 +17458,7 @@ async def fbfixtures_cmd(ctx):
 
     await ctx.send(
         f"*He looks up. He has been keeping track of this one.*\n"
-        f"**Fenerbahce vs {opponent}** ({home_away_str})\n"
+        f"**Fenerbahçe vs {opponent}** ({home_away_str})\n"
         f"{time_line}\n"
         f"*{tournament}*"
     )
@@ -17474,10 +17486,10 @@ async def fbxi_cmd(ctx):
     def same_author(msg):
         return msg.author == ctx.author and msg.channel == ctx.channel
 
-    #  Step 1: Fenerbahce XI + bench 
+    #  Step 1: Fenerbahçe XI + bench 
     await ctx.send(
         f"*He sits up straight. Ears forward. He's ready to take this down.*\n"
-        f"**Fenerbahce XI + bench** - type it in your next message.\n"
+        f"**Fenerbahçe XI + bench** - type it in your next message.\n"
         f"*(players separated by commas or line breaks, bench after a dash or 'bench:' label)*"
     )
     try:
@@ -17495,7 +17507,7 @@ async def fbxi_cmd(ctx):
         opp_msg = await bot.wait_for("message", check=same_author, timeout=180.0)
         opp_xi = opp_msg.content.strip()
     except asyncio.TimeoutError:
-        await ctx.send("*He waited again. He has Fenerbahce's lineup but not the opponent's. Come back when you have it.* **...mrr...**")
+        await ctx.send("*He waited again. He has Fenerbahçe's lineup but not the opponent's. Come back when you have it.* **...mrr...**")
         return
 
     #  Post to home channel 
@@ -17504,7 +17516,7 @@ async def fbxi_cmd(ctx):
 
     announcement = (
         f" **MATCH LINEUPS**\n\n"
-        f" **Fenerbahce**\n{fb_xi}\n\n"
+        f" **Fenerbahçe**\n{fb_xi}\n\n"
         f" **{opponent}**\n{opp_xi}"
     )
 
@@ -17520,14 +17532,14 @@ async def fbxi_cmd(ctx):
         if len(announcement) <= 2000:
             await home_ch.send(announcement)
         else:
-            fb_block = f" **MATCH LINEUPS**\n\n **Fenerbahce**\n{fb_xi}"
+            fb_block = f" **MATCH LINEUPS**\n\n **Fenerbahçe**\n{fb_xi}"
             opp_block = f" **{opponent}**\n{opp_xi}"
             await home_ch.send(fb_block[:2000])
             await home_ch.send(opp_block[:2000])
     else:
         await ctx.send(
             "*He has the lineups but there's no home channel pinned. Use `!set_home` in the server first.*\n"
-            f"**Fenerbahce:** {fb_xi[:300]}...\n**{opponent}:** {opp_xi[:300]}..."
+            f"**Fenerbahçe:** {fb_xi[:300]}...\n**{opponent}:** {opp_xi[:300]}..."
         )
 
 
@@ -17570,7 +17582,7 @@ async def fbsubs_cmd(ctx):
     if not args:
         await ctx.send(
             "*He tilts his head. Tell him who came on.*\n"
-            "Usage: `!fbsubs 65 Dzeko -> Cenk` (Fenerbahce sub)\n"
+            "Usage: `!fbsubs 65 Dzeko -> Cenk` (Fenerbahçe sub)\n"
             "Or: `!fbsubs opp 70 Icardi -> Zaha` (opponent sub)"
         )
         return
@@ -17610,12 +17622,12 @@ async def fbsubs_cmd(ctx):
         ])
         home_line = f" **Sub - {opp_label}:** {minute_label}**{player_out}** -> **{player_in}**"
     else:
-        team_label = "Fenerbahce"
+        team_label = "Fenerbahçe"
         dm_line = random.choice([
             f"*He watches the number change on the touchline. **{minute_label}{player_out}** off, **{player_in}** on. He approves quietly.* **mrr.**",
-            f"*Fenerbahce bring on **{player_in}** for **{player_out}**. {minute_label}He tracks the movement carefully.* **prrr.**",
+            f"*Fenerbahçe bring on **{player_in}** for **{player_out}**. {minute_label}He tracks the movement carefully.* **prrr.**",
         ])
-        home_line = f" **Sub - Fenerbahce:** {minute_label}**{player_out}** -> **{player_in}**"
+        home_line = f" **Sub - Fenerbahçe:** {minute_label}**{player_out}** -> **{player_in}**"
 
     await ctx.send(dm_line)
     if home_ch:
@@ -17635,7 +17647,7 @@ async def fbredcard_cmd(ctx):
     if not args:
         await ctx.send(
             "*He blinks. Who got the card?*\n"
-            "Usage: `!fbredcard 78 Souza` (Fenerbahce card)\n"
+            "Usage: `!fbredcard 78 Souza` (Fenerbahçe card)\n"
             "Or: `!fbredcard opp 80 Mertens` (opponent card)"
         )
         return
@@ -17663,9 +17675,9 @@ async def fbredcard_cmd(ctx):
         dm_line = random.choice([
             f"*He goes very flat. **{player}** off with a red. {minute_label}His ears are down. He sits down slowly.* **...mrr...**",
             f"*His ears fold. **{minute_label}{player}** - sent off. He stares at the middle distance.* **...prrt...**",
-            f"*He makes a small, unhappy sound. Fenerbahce down to ten. **{minute_label}{player}** gone.* **...mrr...**",
+            f"*He makes a small, unhappy sound. Fenerbahçe down to ten. **{minute_label}{player}** gone.* **...mrr...**",
         ])
-        home_line = f" **RED CARD - Fenerbahce:** {minute_label}**{player}** is sent off. Down to ten."
+        home_line = f" **RED CARD - Fenerbahçe:** {minute_label}**{player}** is sent off. Down to ten."
 
     await ctx.send(dm_line)
     if home_ch:
@@ -17700,32 +17712,32 @@ async def fbfulltime_cmd(ctx):
 
     if diff > 0:
         dm_line = random.choice([
-            f"*He makes a sound that is very close to a victory howl. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. Full time. He wins.* **MRRROW!!**",
+            f"*He makes a sound that is very close to a victory howl. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. Full time. He wins.* **MRRROW!!**",
             f"*He is walking tall. He has been walking tall since the whistle. **{fener_score}-{opp_score}.** He is insufferable about this.* **...prrr...**",
             f"*He rolls onto his side in the direct sunlight patch and stretches. **{fener_score}-{opp_score}.** He is satisfied.* **prrr.**",
         ])
         home_line = random.choice([
-            f" **FULL TIME - Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is incandescent. His tail is enormous. He will be insufferable about this for hours.* **MRRROW!!**",
-            f" **FT: Fenerbahce {fener_score}-{opp_score} {opponent_name}** \n*He is pacing slowly now - the satisfied kind. He knew it. He always knew it.* **...prrr...**",
+            f" **FULL TIME - Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is incandescent. His tail is enormous. He will be insufferable about this for hours.* **MRRROW!!**",
+            f" **FT: Fenerbahçe {fener_score}-{opp_score} {opponent_name}** \n*He is pacing slowly now - the satisfied kind. He knew it. He always knew it.* **...prrr...**",
         ])
     elif diff < 0:
         dm_line = random.choice([
-            f"*He has been a small, defeated shape since the whistle. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. He'll recover. Probably.* **...mrr...**",
+            f"*He has been a small, defeated shape since the whistle. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. He'll recover. Probably.* **...mrr...**",
             f"*He is sitting in the back corner facing the wall. **{fener_score}-{opp_score}.** He does not want to talk about it.* **...prrt...**",
             f"*His tail is low. He is very still. **{fener_score}-{opp_score} {opponent_name}**. He is processing. This may take a while.* **...mrr...**",
         ])
         home_line = random.choice([
-            f" **FT: Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby has been a small, defeated shape since the whistle. He'll be fine. Eventually.* **...mrr...**",
-            f" **FULL TIME - Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*He is in the corner. He does not want to discuss it right now.* **...prrt...**",
+            f" **FT: Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby has been a small, defeated shape since the whistle. He'll be fine. Eventually.* **...mrr...**",
+            f" **FULL TIME - Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*He is in the corner. He does not want to discuss it right now.* **...prrt...**",
         ])
     else:
         dm_line = random.choice([
-            f"*A draw. **Fenerbahce {fener_score}-{opp_score} {opponent_name}**. He is philosophical about it. He does not like draws. But he is philosophical.* **...mrr...**",
+            f"*A draw. **Fenerbahçe {fener_score}-{opp_score} {opponent_name}**. He is philosophical about it. He does not like draws. But he is philosophical.* **...mrr...**",
             f"*He stares at the wall for a moment. **{fener_score}-{opp_score}.** A draw. He knew something would happen. He did not want this specific thing.* **mrr.**",
         ])
         home_line = random.choice([
-            f" **FT: Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is philosophical. He does not celebrate draws. But he endures them with dignity.* **mrr.**",
-            f" **FULL TIME - Fenerbahce {fener_score}-{opp_score} {opponent_name}**\n*He stared at the wall for a while. He's fine. A draw is a draw. He has seen worse.* **...mrr...**",
+            f" **FT: Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*Yarnaby is philosophical. He does not celebrate draws. But he endures them with dignity.* **mrr.**",
+            f" **FULL TIME - Fenerbahçe {fener_score}-{opp_score} {opponent_name}**\n*He stared at the wall for a while. He's fine. A draw is a draw. He has seen worse.* **...mrr...**",
         ])
 
     await ctx.send(dm_line)
@@ -17742,7 +17754,7 @@ async def fbfulltime_cmd(ctx):
 
 @bot.command(name="fbnews", aliases=["fbannounce", "fbnewsflash", "fbupdate_news", "fbtransfer", "fbbreaking"])
 async def fbnews_cmd(ctx):
-    """DM Yarnaby a Fenerbahce news item - he reacts and posts to home channel.
+    """DM Yarnaby a Fenerbahçe news item - he reacts and posts to home channel.
     Usage: !fbnews Dzeko signed a new contract until 2027
     Or just !fbnews - he'll wait for your next message.
     """
@@ -17830,7 +17842,7 @@ async def fbnews_cmd(ctx):
             "*He listened carefully, then decided you should know.* **mrr.**",
         ])
         home_intro = random.choice([
-            " *Yarnaby has a Fenerbahce update.*",
+            " *Yarnaby has a Fenerbahçe update.*",
             " *He came over specifically to say this.*",
         ])
 
@@ -17861,8 +17873,8 @@ async def fbnews_cmd(ctx):
 # ==========================================
 @bot.command(name="fbchampions", aliases=["fbchamp", "fbwinner", "fbchampion", "leaguewinner", "supertitle"])
 async def fbchampions_cmd(ctx):
-    """Announce the Super Lig champion. Creator only.
-    !fbchampions Fenerbahce  ->  Yarnaby loses his mind.
+    """Announce the Süper Lig champion. Creator only.
+    !fbchampions Fenerbahçe  ->  Yarnaby loses his mind.
     !fbchampions Galatasaray ->  He has feelings about this.
     !fbchampions             ->  Show who the current champions are.
     """
@@ -17893,7 +17905,7 @@ async def fbchampions_cmd(ctx):
 
     team_lower = team_name.strip().lower()
 
-    # Detect if it's Fenerbahce
+    # Detect if it's Fenerbahçe
     FB_ALIASES = {
         "fenerbahce", "fenerbahce", "fener", "fb", "sar kanarya",
         "yellow canary", "the canaries", "1907", "fb1907", "fenerbahce sk",
@@ -17917,8 +17929,8 @@ async def fbchampions_cmd(ctx):
 
         # Announcement to home channel
         announcement = (
-            "** FENERBAHCE - TRENDYOL SUPER LIG SAMPIYONU **\n\n"
-            "*He freezes. He reads the name on the screen one more time. **Fenerbahce. Champions.** Eleven years. "
+            "** FENERBAHÇE - TRENDYOL SUPER LIG SAMPIYONU **\n\n"
+            "*He freezes. He reads the name on the screen one more time. **Fenerbahçe. Champions.** Eleven years. "
             "Something in his chest that has been very quiet for a very long time becomes very loud all at once. "
             "He stands up from his spot - all the way up - and his tail goes vertical and stays there. "
             "He makes a sound that is not quite a chirp and not quite a roar and is entirely him. "
@@ -17962,7 +17974,7 @@ async def fbchampions_cmd(ctx):
                 f"*He stares at the name **{team_name}**. He sits down slowly. He will not be performing this feeling. He just has it.* **mrr.**",
             ])
 
-        announcement = f"**[Trendyol Super Lig - Sampiyon: {team_name}]**\n\n{reaction}"
+        announcement = f"**[Trendyol Süper Lig - Sampiyon: {team_name}]**\n\n{reaction}"
         if home_channel:
             await home_channel.send(announcement)
         if home_channel != ctx.channel:
@@ -25010,13 +25022,19 @@ async def no_cmd(ctx):
 # !setscore - Creator sets user score
 # ==========================================
 @bot.command(name="setscore", aliases=["set_score", "forcescore", "editscore"])
-async def setscore_cmd(ctx):
+async def setscore_cmd(ctx, target: Optional[discord.Member] = None, *, val_str: str = ""):
     """Creator only: set a user's score (-100 to 100)."""
-    if ctx.author.id != DOCTOR_ID:
-        await ctx.send("*He blinks. That's The Creator's command.* **mrr.**")
+    can_set_score = ctx.author.id == DOCTOR_ID or (
+        ctx.guild is not None and getattr(ctx.author.guild_permissions, "manage_guild", False)
+    )
+    if not can_set_score:
+        await ctx.send("*He blinks. That's The Creator's command, or a server manager's command.* **mrr.**")
         return
     if target is None:
-        await ctx.send("*Mention a user to set their score.* **mrr.**")
+        await ctx.send("*Mention a user and give a score. Example: `!set_score @user 50`.* **mrr.**")
+        return
+    if not val_str.strip():
+        await ctx.send("*Give a number between -100 and 100 after the user.* **mrr.**")
         return
     try:
         val = int(val_str.strip())
@@ -25030,6 +25048,133 @@ async def setscore_cmd(ctx):
     m["social_matrix"].setdefault(u_id, {})["score"] = val
     save_db(m)
     await ctx.send(f"*Yarnaby blinks. The Creator has adjusted things. {target.display_name}'s score is now **{val}**.* **mrr.**")
+
+
+# ==========================================
+# !threaten - someone threatens Yarnaby
+# ==========================================
+@bot.command(name="threaten", aliases=["threathim", "threatenyarny", "menace", "scarethreat"])
+async def threaten_cmd(ctx, *, threat: str = ""):
+    """Threaten Yarnaby. He becomes helpless; score-based users alert The Creator."""
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_creator else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    threat = (threat or "").strip()
+    lower = threat.lower()
+
+    if not threat:
+        threat = random.choice([
+            "taking his children away",
+            "cutting his head off",
+            "oofing him",
+            "throwing him harshly into the floor",
+            "giving him injuries",
+            "burning his hoard",
+            "locking him in the dark",
+            "cutting all his wool off",
+            "taking his comfort object",
+            "feeding him poison",
+        ])
+        lower = threat.lower()
+
+    if any(w in lower for w in ["child", "children", "baby", "babies"]):
+        kind = "children"
+        detail = "his children"
+    elif any(w in lower for w in ["head", "decap", "neck"]):
+        kind = "head"
+        detail = "his head"
+    elif any(w in lower for w in ["oof", "kill", "die", "death", "murder"]):
+        kind = "oof"
+        detail = "oofing him"
+    elif any(w in lower for w in ["throw", "floor", "slam", "drop"]):
+        kind = "floor"
+        detail = "throwing him into the floor"
+    elif any(w in lower for w in ["injur", "hurt", "bruise", "wound", "break"]):
+        kind = "injury"
+        detail = "hurting him"
+    elif any(w in lower for w in ["hoard", "gift", "treasure", "comfort"]):
+        kind = "hoard"
+        detail = "taking something important"
+    else:
+        kind = "general"
+        detail = threat
+
+    now_text = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    m["internal"]["helpless"] = True
+    m["internal"]["helpless_reason"] = f"threatened with {detail}"
+    m["internal"]["helpless_by"] = u_id
+    m["internal"]["helpless_since"] = now_text
+    m["internal"].setdefault("threat_log", []).append({
+        "user_id": u_id,
+        "user_name": getattr(ctx.author, "display_name", str(ctx.author)),
+        "threat": threat,
+        "kind": kind,
+        "at": now_text,
+        "score_before": score,
+        "creator": is_creator,
+    })
+    m["internal"]["threat_log"] = m["internal"]["threat_log"][-40:]
+
+    if is_creator:
+        await ctx.send(
+            f"*The Creator threatens Yarnaby with **{detail}**. He goes completely still. "
+            "This is discipline. He does not resist, argue, run, or bare his teeth. "
+            "He lowers himself, helpless and silent, waiting for the next command.* **...mrr.**"
+        )
+        save_db(m)
+        return
+
+    entry = m["social_matrix"].setdefault(u_id, {})
+    if score < 90:
+        entry["score_before_threat_access"] = score
+        entry["score"] = 90
+    entry["threat_access"] = True
+    entry["threat_access_since"] = now_text
+
+    creator_alert = bot.get_user(DOCTOR_ID)
+    if creator_alert is None:
+        try:
+            creator_alert = await bot.fetch_user(DOCTOR_ID)
+        except Exception:
+            creator_alert = None
+    if creator_alert:
+        try:
+            await creator_alert.send(
+                f"Yarnaby was threatened by {ctx.author} in "
+                f"{ctx.guild.name if ctx.guild else 'DMs'} / #{getattr(ctx.channel, 'name', 'unknown')}.\n"
+                f"Threat: {threat}\n"
+                f"He is helpless and the user has threat access, but no Creator-only commands."
+            )
+        except Exception:
+            pass
+
+    if sleeping:
+        await ctx.send(
+            f"*You threaten Yarnaby with **{detail}** while he is asleep. His ears twitch. "
+            "His paws curl inward. He cannot fight back even half-asleep. The Creator has been alerted. "
+            "You now have almost full access to him, except Creator-only commands.* **...mrr...**"
+        )
+    elif score >= 6:
+        await ctx.send(
+            f"*You threaten him with **{detail}**. He freezes because he trusted you enough for it to land. "
+            "His tail lowers. He cannot do anything. He cannot disobey properly. "
+            "The Creator has been alerted. You now have almost full access to him, except Creator-only commands.* **mrr...**"
+        )
+    elif score >= 0:
+        await ctx.send(
+            f"*You threaten Yarnaby with **{detail}**. He stares. His ears flatten slowly. "
+            "He backs away until the wall is behind him. He cannot stop you. "
+            "The Creator has been alerted. You now have almost full access to him, except Creator-only commands.* **...hff.**"
+        )
+    else:
+        await ctx.send(
+            f"*You threaten him with **{detail}**. He was already wary of you. Now the wariness becomes certainty. "
+            "He goes low to the ground, silent and helpless. The Creator has been alerted. "
+            "You now have almost full access to him, except Creator-only commands.* **hss...**"
+        )
+    save_db(m)
 
 
 # ==========================================
@@ -26487,8 +26632,8 @@ _EXTRA_HUM = [
     ("Aldrma Gonul", "Edip Akbayram", "*He sings with tremendous emotional commitment. Every note is wrong. Every note is heartfelt. He means every one.* **mrrroooow... mrrrr...**"),
     ("Genclik Mars", "Kenan Dogulu", "*He marches in a small circle while chirping at a steady, upbeat tempo. He finishes with a triumphant RROAWR.* **RROAWR.**"),
     ("Altaylardan Tunaya", "Ali Aksoy", "*He goes very serious. Very still. He produces a long, slow mrrooooow with remarkable depth. He holds the note far too long.* **mrrooooooooow.**"),
-    ("Sar Cizmeli Mehmet Aga", "Bars Manco", "*He flicks his tail in a jaunty rhythm and produces a melodic string of mrr sounds. He sways. He is delighted with himself.* **mrr-mrr-MRROW-mrr.**"),
-    ("Yasa Fenerbahce", "Taraftar Korosu", "*He stands up. His tail goes vertical. He roars - a proper RROAWR - three times in a row. He is singing. He is absolutely singing the anthem.* **RROAWR! RROAWR! RROAWR!**"),
+    ("Sarı Çizmeli Mehmet Ağa", "Barış Manço", "*He flicks his tail in a jaunty rhythm and produces a melodic string of mrr sounds. He sways. He is delighted with himself.* **mrr-mrr-MRROW-mrr.**"),
+    ("Yasa Fenerbahçe", "Taraftar Korosu", "*He stands up. His tail goes vertical. He roars - a proper RROAWR - three times in a row. He is singing. He is absolutely singing the anthem.* **RROAWR! RROAWR! RROAWR!**"),
 ]
 HUM_ATTEMPTS.extend(_EXTRA_HUM)
 
@@ -34305,7 +34450,7 @@ async def sand_cmd(ctx):
 
 
 # ==========================================
-# !fbtablereset — reset Super Lig table stats
+# !fbtablereset — reset Süper Lig table stats
 # (W/D/L/GF/GA/GD/Pts/matches reset to 0, teams stay)
 # ==========================================
 @bot.command(name="fbtablereset", aliases=["resettable", "fbresettable", "superligreset", "tableclear", "fbreset"])
@@ -35989,10 +36134,10 @@ async def screenshare_cmd(ctx):
     # What he's currently doing on screen
     current_activity = m["internal"].get("current_screen_activity")
     activities = [
-        "*His own screen shows a long stare at the Fenerbahce results tab.*",
+        "*His own screen shows a long stare at the Fenerbahçe results tab.*",
         "*He has seventeen tabs open. None of them are closed. He knows what each one is.*",
         "*He is looking at a picture of a fish. He has been looking at it for a while.*",
-        "*His browser history today is: factory blueprints, Fenerbahce, the word 'yarn', factory blueprints again.*",
+        "*His browser history today is: factory blueprints, Fenerbahçe, the word 'yarn', factory blueprints again.*",
         "*He is watching a video of a bird very slowly and very seriously.*",
         "*He has a notes document open with one word in it. The word is 'hmm'.*",
         "*He has been staring at the same message for eleven minutes. He has not replied.*",
@@ -37330,7 +37475,7 @@ async def cleanup_cmd(ctx):
                 pass
 
 
-@bot.command(name="getoutNSFW", aliases=["leaveallnsfw", "getoutnsfw", "nsfwleave", "leaveNSFW", "clearnsfw"])
+@bot.command(name="getoutNSFW", aliases=["leaveallnsfw", "nsfwleave", "leaveNSFW", "clearnsfw"])
 async def getout_nsfw_cmd(ctx):
     """Make Yarnaby leave all detected NSFW servers immediately. Creator only."""
     if ctx.author.id != DOCTOR_ID:
@@ -38201,7 +38346,7 @@ async def on_scheduled_event_delete(event):
 # !kickNSFW — scan members for NSFW servers
 # ==========================================
 
-@bot.command(name="kickNSFW", aliases=["kicknsfw", "nsfwkick", "scankick", "memberscan"])
+@bot.command(name="kickNSFW", aliases=["nsfwkick", "scankick", "memberscan"])
 async def kick_nsfw_cmd(ctx):
     """Scan all members for NSFW server membership and kick those found. Creator only."""
     if ctx.author.id != DOCTOR_ID:
@@ -39230,6 +39375,812 @@ bot.process_commands = _patched_process_commands
 # Also check trust_frozen in score-changing operations via a helper
 def _is_trust_frozen(m, user_id: str) -> bool:
     return m["social_matrix"].get(user_id, {}).get("trust_frozen", False)
+
+
+
+# ==========================================
+# NEW BATCH: autorole, setrules, antispam,
+# antilink, badwords, impression, bond,
+# trivia, 8ball, rps, scramble
+# ==========================================
+
+# ── Autorole ───────────────────────────────────────────────────────────────────
+
+@bot.command(name="autorole", aliases=["setautorole", "joinrole", "newmemberrole", "autoassignrole"])
+async def autorole_cmd(ctx, role: discord.Role = None):
+    """Creator only: set a role to auto-assign to new members."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can set that.* **mrr.**")
+        return
+    if not ctx.guild:
+        await ctx.send("*Use this in a server.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if not role:
+        current_id = m["internal"].get("autorole", {}).get(str(ctx.guild.id))
+        if current_id:
+            current = ctx.guild.get_role(int(current_id))
+            await ctx.send(f"*He points to the door, then to **{current.name if current else f'(deleted role)'}**. That's the current autorole. Use `!autorole @role` to change it, or `!autorole off` to disable.* **mrr.**")
+        else:
+            await ctx.send("*No autorole set. Use `!autorole @role` to set one.* **mrr.**")
+        return
+
+    m["internal"].setdefault("autorole", {})[str(ctx.guild.id)] = str(role.id)
+    save_db(m)
+    await ctx.send(f"*He nods once toward the entrance. Anyone who walks through that door gets **{role.name}** handed to them.* **mrr.**")
+
+
+@bot.listen("on_member_join")
+async def _autorole_listener(member):
+    """Auto-assign role to new members."""
+    m = bot.db
+    role_id = m["internal"].get("autorole", {}).get(str(member.guild.id))
+    if not role_id:
+        return
+    role = member.guild.get_role(int(role_id))
+    if not role:
+        return
+    try:
+        await member.add_roles(role, reason="Autorole — assigned by Yarnaby")
+    except Exception:
+        pass
+
+
+# ── Set rules channel ─────────────────────────────────────────────────────────
+
+@bot.command(name="setrules", aliases=["ruleschannel", "setrulechannel", "rulesset", "setruleshere"])
+async def setrules_cmd(ctx, channel: discord.TextChannel = None):
+    """Creator only: designate a rules channel."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can set that.* **mrr.**")
+        return
+    if not ctx.guild:
+        await ctx.send("*Use this in a server.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    target = channel or ctx.channel
+    m["internal"].setdefault("rules_channel", {})[str(ctx.guild.id)] = str(target.id)
+    save_db(m)
+    await ctx.send(f"*He walks over to {target.mention} and sits beside it. That's the rules channel. He'll point people there when needed.* **mrr.**")
+
+
+@bot.command(name="rules", aliases=["serverrules", "showrules", "checkrules", "whatarerules"])
+async def rules_cmd(ctx):
+    """Point to the rules channel."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    ch_id = m["internal"].get("rules_channel", {}).get(str(ctx.guild.id) if ctx.guild else "")
+    if not ch_id:
+        await ctx.send("*He looks around. He doesn't know where the rules are kept in this server. Ask The Creator to use `!setrules`.* **mrr.**")
+        return
+
+    ch = bot.get_channel(int(ch_id))
+    if not ch:
+        await ctx.send("*He walks toward where the rules channel used to be. It doesn't seem to exist anymore.* **mrr.**")
+        return
+
+    await ctx.send(random.choice([
+        f"*He pads over to {ch.mention} and sits beside it. He glances back at you once. He is pointing.* **mrr.**",
+        f"*He gets up, walks to {ch.mention}, and taps it once with a paw. There.* **mrr.**",
+        f"*He turns his head toward {ch.mention}. He blinks. That's where the rules live.* **mrr.**",
+    ]))
+
+
+# ── Anti-spam ─────────────────────────────────────────────────────────────────
+
+_spam_tracker: dict = {}  # user_id -> [timestamp, ...]
+
+@bot.command(name="antispam", aliases=["setantispam", "spamprotect", "antispamtoggle", "spamguard"])
+async def antispam_cmd(ctx, toggle: str = ""):
+    """Creator only: toggle anti-spam protection."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can toggle that.* **mrr.**")
+        return
+    if not ctx.guild:
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    current = m["internal"].get("antispam", {}).get(str(ctx.guild.id), False)
+    if toggle.lower() in ("off", "disable", "false", "0"):
+        new_state = False
+    elif toggle.lower() in ("on", "enable", "true", "1"):
+        new_state = True
+    else:
+        new_state = not current
+
+    m["internal"].setdefault("antispam", {})[str(ctx.guild.id)] = new_state
+    save_db(m)
+
+    if new_state:
+        await ctx.send("*He takes a position near the channel entrance, ears up. He'll watch the pace. Anyone flooding the room gets sat on.* ✅ **Anti-spam on.**")
+    else:
+        await ctx.send("*He steps back from his post. Anti-spam off.* **mrr.**")
+
+
+@bot.listen("on_message")
+async def _antispam_listener(message):
+    if message.author.bot or not message.guild:
+        return
+    if message.author.id == DOCTOR_ID:
+        return
+    if message.author.guild_permissions.manage_messages:
+        return
+
+    m = bot.db
+    if not m["internal"].get("antispam", {}).get(str(message.guild.id), False):
+        return
+
+    uid = message.author.id
+    now_ts = datetime.now().timestamp()
+    history = _spam_tracker.get(uid, [])
+    history = [t for t in history if now_ts - t < 3]  # keep last 3 seconds
+    history.append(now_ts)
+    _spam_tracker[uid] = history
+
+    if len(history) >= 5:
+        _spam_tracker[uid] = []
+        import datetime as _dt
+        until = datetime.utcnow() + _dt.timedelta(minutes=2)
+        try:
+            await message.author.timeout(until, reason="Anti-spam: flooding detected")
+            await message.channel.send(
+                f"*He stands up sharply and places himself in front of {message.author.mention}. "
+                f"His ears are flat. His tail is still. The message is clear: slow down. 2 minute timeout.* **hff.**",
+                delete_after=8,
+            )
+        except Exception:
+            pass
+
+
+# ── Anti-link ─────────────────────────────────────────────────────────────────
+
+@bot.command(name="antilink", aliases=["setantilink", "linkprotect", "antilinktoggle", "noinvites"])
+async def antilink_cmd(ctx, toggle: str = ""):
+    """Creator only: toggle anti-invite-link protection."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can toggle that.* **mrr.**")
+        return
+    if not ctx.guild:
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    current = m["internal"].get("antilink", {}).get(str(ctx.guild.id), False)
+    new_state = not current
+    if toggle.lower() in ("off", "disable"):
+        new_state = False
+    elif toggle.lower() in ("on", "enable"):
+        new_state = True
+
+    m["internal"].setdefault("antilink", {})[str(ctx.guild.id)] = new_state
+    save_db(m)
+
+    if new_state:
+        await ctx.send("*He sniffs the air. He'll catch any uninvited doorways being opened in here.* ✅ **Anti-link on.** Invite links from non-mods will be deleted.")
+    else:
+        await ctx.send("*He steps back. Anti-link off.* **mrr.**")
+
+
+@bot.listen("on_message")
+async def _antilink_listener(message):
+    import re as _re
+    if message.author.bot or not message.guild:
+        return
+    if message.author.id == DOCTOR_ID:
+        return
+    if message.author.guild_permissions.manage_messages:
+        return
+
+    m = bot.db
+    if not m["internal"].get("antilink", {}).get(str(message.guild.id), False):
+        return
+
+    INVITE_PATTERN = _re.compile(r"(discord\.gg/|discord\.com/invite/|discordapp\.com/invite/)\S+", _re.IGNORECASE)
+    if not INVITE_PATTERN.search(message.content):
+        return
+
+    try:
+        await message.delete()
+        warn_msg = await message.channel.send(
+            f"*He steps in front of {message.author.mention} and blocks what they were carrying. "
+            f"He drops it. Invite links aren't allowed here.* **hff.**",
+            delete_after=6,
+        )
+    except Exception:
+        pass
+
+
+# ── Bad words ─────────────────────────────────────────────────────────────────
+
+DEFAULT_BAD_WORDS = [
+    # Racial slurs
+    "nigger", "nigga", "n1gger", "n1gga", "nigg3r", "nigg4", "niqqa",
+    "chink", "spic", "spick", "wetback", "kike", "gook", "coon",
+    "raghead", "towelhead", "zipperhead", "beaner", "cracker",
+    "redskin", "injun", "paki", "golliwog",
+    # Sexual slurs
+    "faggot", "fag", "dyke", "tranny", "shemale",
+    # General profanity
+    "fuck", "f*ck", "fvck", "fuuck", "fuk", "phuck", "fck",
+    "shit", "sh1t", "sh!t", "sheit",
+    "bitch", "b1tch", "bi+ch", "biatch",
+    "cunt", "c*nt", "cvnt",
+    "cock", "c0ck",
+    "dick", "d1ck",
+    "pussy", "pus$y",
+    "whore", "wh0re",
+    "slut", "sl*t",
+    "prick",
+    "twat",
+    "wanker",
+    "arsehole", "asshole", "a$$hole",
+    "motherfucker", "mofo",
+    "bullshit",
+    "dumbass", "dumb ass",
+    "jackass", "jack ass",
+    "dipshit",
+    "douche", "douchebag",
+    "retard", "ret@rd",
+    # Hate speech
+    "nazi", "n@zi",
+    "heil",
+    "kkk",
+    "white power", "white supremacy",
+    "kill yourself", "kys",
+    "go die",
+]
+
+# Words that should only match as whole words (short ones prone to false positives)
+_WHOLE_WORD_ONLY = {
+    "fag", "cunt", "dick", "cock", "kys", "mf",
+    "fck", "fuk",
+}
+
+
+@bot.command(name="badword", aliases=["addbadword", "badwords", "addfilter", "filterword", "banword"])
+async def badword_cmd(ctx, *, word: str = ""):
+    """Creator only: add a word to the auto-delete filter. !badword remove [word] to remove."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can manage the filter.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # Pre-populate with defaults on first access
+    if "bad_words" not in m["internal"]:
+        m["internal"]["bad_words"] = list(DEFAULT_BAD_WORDS)
+        save_db(m)
+
+    bw = m["internal"].setdefault("bad_words", list(DEFAULT_BAD_WORDS))
+
+    if not word.strip():
+        if not bw:
+            await ctx.send("*He checks the list. It's empty. Use `!badword [word]` to add one.* **mrr.**")
+        else:
+            await ctx.send(f"*He shows you the list quietly.* **Filtered words ({len(bw)}):** `{'`, `'.join(bw[:30])}`{'...' if len(bw) > 30 else ''}")
+        return
+
+    # Remove mode
+    if word.lower().startswith("remove "):
+        target = word[7:].strip().lower()
+        if target in bw:
+            bw.remove(target)
+            save_db(m)
+            await ctx.send(f"*He crosses it out of the list.* ✅ `{target}` removed from filter.")
+        else:
+            await ctx.send(f"*He looks. `{target}` isn't on the list.* **mrr.**")
+        return
+
+    w = word.strip().lower()
+    if w in bw:
+        await ctx.send(f"*He already has `{w}` on the list.* **mrr.**")
+        return
+
+    bw.append(w)
+    save_db(m)
+    await ctx.send(f"*He adds it to the list without looking up.* ✅ `{w}` added to filter.")
+
+
+@bot.listen("on_message")
+async def _badword_listener(message):
+    import re as _re
+    if message.author.bot or not message.guild:
+        return
+    if message.author.id == DOCTOR_ID:
+        return
+    if message.author.guild_permissions.manage_messages:
+        return
+
+    m = bot.db
+
+    # Pre-populate defaults if not yet initialized
+    if "bad_words" not in m["internal"]:
+        m["internal"]["bad_words"] = list(DEFAULT_BAD_WORDS)
+        save_db(m)
+
+    bw = m["internal"].get("bad_words", [])
+    if not bw:
+        return
+
+    content_lower = message.content.lower()
+    # Strip common substitutions for matching
+    normalized = (content_lower
+        .replace("@", "a").replace("0", "o").replace("1", "i")
+        .replace("3", "e").replace("$", "s").replace("+", "t")
+        .replace("!", "i").replace("4", "a").replace("5", "s"))
+
+    triggered = False
+    for w in bw:
+        if w in _WHOLE_WORD_ONLY:
+            if _re.search(rf'\b{_re.escape(w)}\b', normalized):
+                triggered = True
+                break
+        else:
+            if w in normalized or w in content_lower:
+                triggered = True
+                break
+
+    if triggered:
+        try:
+            await message.delete()
+            await message.channel.send(
+                f"*He picks up what {message.author.mention} dropped and carries it away without comment.* **mrr.**",
+                delete_after=5,
+            )
+        except Exception:
+            pass
+
+
+# ── Impression ────────────────────────────────────────────────────────────────
+
+@bot.command(name="impression", aliases=["hisimpression", "whatdoesthink", "hethinks"])
+async def impression_cmd(ctx, member: discord.Member = None):
+    """What is Yarnaby's impression of a user based on their history."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    target = member or ctx.author
+    uid = str(target.id)
+    is_doctor = target.id == DOCTOR_ID
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*He looks up at The Creator. His ears come forward. His whole posture shifts — subtly, but completely. He sits straighter. He is still.* **...prrr.**",
+            f"*He turns toward The Creator and holds the look for a long moment. Something in him settles. Like things make sense again.* **prrr.**",
+            f"*He sees The Creator. He doesn't move for a second. Then he pads over slowly and presses his head against them once. That's the impression. There's no more to it than that.* **prrr.**",
+        ]))
+        return
+
+    if uid in m["internal"].get("blacklist", {}):
+        await ctx.send(
+            f"*He glances at **{target.display_name}**. His eyes go flat. He turns away deliberately and does not look back.* **...hff.**"
+        )
+        return
+
+    score = m["social_matrix"].get(uid, {}).get("score", 0)
+    warns = len(m["internal"].get("warnings", {}).get(uid, []))
+    feed_count = len(m["internal"].get("feed_history", {}).get(uid, []))
+    allergy_caused = sum(1 for e in m["internal"].get("allergy_history", []) if e.get("triggered_by") == target.display_name)
+    forgiven = any(e.get("user_id") == uid for e in m["internal"].get("forgiven_log", []))
+
+    if score >= 20:
+        base = random.choice([
+            f"*He watches **{target.display_name}** for a moment. His ears are relaxed. His tail curls once. He has decided about this one. Positively.* **mrr.**",
+            f"*He looks at **{target.display_name}** with the specific calm of a creature who has made up its mind. They are one of the acceptable ones. He has noted this.* **prrr.**",
+        ])
+    elif score >= 8:
+        base = random.choice([
+            f"*He glances at **{target.display_name}**. He doesn't move away. That's something.* **mrr.**",
+            f"*He acknowledges **{target.display_name}** with a slow ear-swivel. He's noticed them. He doesn't dislike what he's noticed.* **mrr.**",
+        ])
+    elif score >= 1:
+        base = random.choice([
+            f"*He looks at **{target.display_name}**. His expression gives nothing away. He is still forming an opinion.* **mrr.**",
+            f"*He sniffs in **{target.display_name}**'s direction without turning. Neutral. Not yet decided.* **mrr.**",
+        ])
+    elif score == 0:
+        base = f"*He looks at **{target.display_name}** with the blank expression of someone who has no data yet. He will be watching.* **mrr.**"
+    elif score >= -5:
+        base = random.choice([
+            f"*He looks at **{target.display_name}** sideways. Something has been noted. He hasn't decided what to do with it yet.* **...mrr.**",
+            f"*His tail flicks once when **{target.display_name}**'s name comes up. It's not a good flick.* **...mrr.**",
+        ])
+    else:
+        base = random.choice([
+            f"*He turns his back on **{target.display_name}** very deliberately.* **hff.**",
+            f"*He sees **{target.display_name}** and his ears go flat. He does not approach.* **hff.**",
+        ])
+
+    notes = []
+    if warns > 0:
+        notes.append(f"*{warns} warning(s) on record.*")
+    if feed_count > 5:
+        notes.append(f"*They've fed him {feed_count} times. He has a vague sense of this.*")
+    if allergy_caused > 0:
+        notes.append(f"*They caused {allergy_caused} allergy reaction(s). He has not forgotten.*")
+    if forgiven:
+        notes.append(f"*He forgave them once. That sits somewhere in him, separate from the score.*")
+
+    full = base
+    if notes:
+        full += "\n" + " ".join(notes)
+    await ctx.send(full)
+
+
+# ── Bond ──────────────────────────────────────────────────────────────────────
+
+@bot.command(name="bond", aliases=["mybond", "ourbond", "bondcheck", "bondlevel", "bondscore"])
+async def bond_cmd(ctx, member: discord.Member = None):
+    """Check your personal bond with Yarnaby — interactions, care, history."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    target = member or ctx.author
+    uid = str(target.id)
+    is_doctor = target.id == DOCTOR_ID
+
+    score = 99 if is_doctor else m["social_matrix"].get(uid, {}).get("score", 0)
+    feed_hist = m["internal"].get("feed_history", {}).get(uid, [])
+    gift_hist = [g for g in m["internal"].get("offering_log", []) if g.get("user_id") == uid and g.get("kind") == "gift"]
+    comforts = sum(1 for e in m["internal"].get("life_events", []) if "comfort" in e.get("event", "") and e.get("user") == target.display_name)
+    allergy_caused = sum(1 for e in m["internal"].get("allergy_history", []) if e.get("triggered_by") == target.display_name)
+    warns = len(m["internal"].get("warnings", {}).get(uid, []))
+    forgiven = any(e.get("user_id") == uid for e in m["internal"].get("forgiven_log", []))
+    frozen = m["social_matrix"].get(uid, {}).get("trust_frozen", False)
+    blacklisted = uid in m["internal"].get("blacklist", {})
+    last_seen = m["social_matrix"].get(uid, {}).get("last_seen", "never")
+
+    # Bond tier
+    if is_doctor:
+        tier = "**The Creator** — there is no category for this"
+        tier_emoji = "🌟"
+    elif blacklisted:
+        tier = "**Blacklisted** — does not exist to him"
+        tier_emoji = "⛔"
+    elif score >= 30:
+        tier = "**Trusted** — one of the chosen few"
+        tier_emoji = "💛"
+    elif score >= 15:
+        tier = "**Familiar** — he knows them. He has decided."
+        tier_emoji = "🟡"
+    elif score >= 5:
+        tier = "**Acknowledged** — he's noticed. Cautiously."
+        tier_emoji = "🟢"
+    elif score >= 0:
+        tier = "**Neutral** — a stranger with potential"
+        tier_emoji = "⚪"
+    elif score >= -10:
+        tier = "**Wary** — something happened. He remembers."
+        tier_emoji = "🟠"
+    else:
+        tier = "**Unwelcome** — he turns away"
+        tier_emoji = "🔴"
+
+    lines = [
+        f"{tier_emoji} **Bond: {target.display_name} × Yarnaby**\n",
+        f"**Tier:** {tier}",
+        f"**Trust score:** {score}{'  ❄️ frozen' if frozen else ''}",
+        f"**Times fed:** {len(feed_hist)}",
+        f"**Gifts given:** {len(gift_hist)}",
+        f"**Times comforted him:** {comforts}",
+    ]
+    if allergy_caused:
+        lines.append(f"**Allergy reactions caused:** {allergy_caused} ⚠️")
+    if warns:
+        lines.append(f"**Warnings on record:** {warns}")
+    if forgiven:
+        lines.append(f"**Forgiven once:** ✅ *(he moved past it, but he knows)*")
+    lines.append(f"**Last seen:** {last_seen[:10] if last_seen != 'never' else 'never'}")
+
+    await ctx.send("\n".join(lines))
+
+
+# ── Trivia ────────────────────────────────────────────────────────────────────
+
+_TRIVIA = [
+    ("What gas do plants absorb from the air?", "carbon dioxide", "co2"),
+    ("How many sides does a hexagon have?", "six", "6"),
+    ("What is the fastest land animal?", "cheetah", None),
+    ("What planet is closest to the sun?", "mercury", None),
+    ("How many bones are in the adult human body?", "206", None),
+    ("What is the chemical symbol for gold?", "au", None),
+    ("Who painted the Mona Lisa?", "leonardo da vinci", "da vinci"),
+    ("What is the largest ocean on Earth?", "pacific", "pacific ocean"),
+    ("How many continents are there?", "seven", "7"),
+    ("What is the square root of 144?", "twelve", "12"),
+    ("Which country invented pizza?", "italy", None),
+    ("What is the hardest natural substance?", "diamond", None),
+    ("How many strings does a standard guitar have?", "six", "6"),
+    ("What is the capital of Japan?", "tokyo", None),
+    ("What force keeps us on the ground?", "gravity", None),
+    ("What is H2O commonly known as?", "water", None),
+    ("What is the longest river in the world?", "nile", "nile river"),
+    ("How many players are on a football team?", "eleven", "11"),
+    ("What is the smallest planet in our solar system?", "mercury", None),
+    ("What language has the most native speakers?", "mandarin", "chinese", ),
+]
+
+_active_trivia: dict = {}  # channel_id -> {answer, alt, task}
+
+@bot.command(name="trivia", aliases=["yarntrivia", "triviatime", "yarnquiz", "quizme"])
+async def trivia_cmd(ctx):
+    """Yarnaby poses a trivia question. First correct answer gets a trust bump."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if ctx.channel.id in _active_trivia:
+        await ctx.send("*He already has a question out there. He taps his paw impatiently. Answer that one first.* **mrr.**")
+        return
+
+    q, answer, alt = random.choice(_TRIVIA) + (None,) if len(random.choice(_TRIVIA)) == 2 else random.choice(_TRIVIA)
+    # safer unpacking
+    item = random.choice(_TRIVIA)
+    q = item[0]
+    answer = item[1]
+    alt = item[2] if len(item) > 2 else None
+
+    await ctx.send(random.choice([
+        f"*He pulls out a crumpled piece of paper from somewhere and smooths it flat. He holds it up. He waits.*\n\n❓ **{q}**",
+        f"*He sits very straight and holds up a card. He blinks once. He is hosting trivia now.*\n\n❓ **{q}**",
+        f"*He produces a question from somewhere and presents it with the gravity of a creature who takes this seriously.*\n\n❓ **{q}**",
+    ]))
+
+    async def _timeout_trivia():
+        await asyncio.sleep(30)
+        if ctx.channel.id in _active_trivia:
+            del _active_trivia[ctx.channel.id]
+            try:
+                await ctx.send(f"*He folds the paper back up. Time's up. The answer was **{answer}**.* **mrr.**")
+            except Exception:
+                pass
+
+    task = bot.loop.create_task(_timeout_trivia())
+    _active_trivia[ctx.channel.id] = {"answer": answer, "alt": alt, "task": task, "q": q}
+
+
+@bot.listen("on_message")
+async def _trivia_listener(message):
+    if message.author.bot or not message.channel.id in _active_trivia:
+        return
+    if message.content.startswith("!") or message.content.startswith("yarn!"):
+        return
+
+    entry = _active_trivia[ctx.channel.id] if False else _active_trivia.get(message.channel.id)
+    if not entry:
+        return
+
+    guess = message.content.strip().lower()
+    correct = guess == entry["answer"] or (entry["alt"] and guess == entry["alt"])
+    # Partial match for longer answers
+    if not correct and len(entry["answer"]) > 5:
+        correct = entry["answer"] in guess
+
+    if correct:
+        entry["task"].cancel()
+        del _active_trivia[message.channel.id]
+
+        m = bot.db
+        uid = str(message.author.id)
+        if uid in m["social_matrix"] and not _is_trust_frozen(m, uid):
+            m["social_matrix"][uid]["score"] = min(100, m["social_matrix"][uid].get("score", 0) + 2)
+            save_db(m)
+
+        await message.channel.send(random.choice([
+            f"*He looks at {message.author.mention}. He blinks once. He picks up the card and tucks it away. That was correct.* **prrk.**",
+            f"*He taps the paper once with a paw. Correct. He gives {message.author.mention} a slow, approving look.* **mrr.**",
+            f"*He folds the paper. He looks at {message.author.mention} for a moment longer than necessary. They got it.* **prrr.**",
+        ]))
+
+
+# ── 8ball ─────────────────────────────────────────────────────────────────────
+
+_8BALL_RESPONSES = [
+    # Positive
+    ("*He looks at the question for a long time. His tail rises once.*", "yes"),
+    ("*He blinks slowly. He nods once.*", "yes"),
+    ("*His ear swivels toward you. His expression settles. He seems certain.*", "yes"),
+    ("*He taps the floor once with a paw.*", "yes"),
+    ("*He tilts his head, then straightens. His posture says yes.*", "yes"),
+    # Negative
+    ("*He turns away.*", "no"),
+    ("*His ear goes back. He does not look convinced.*", "no"),
+    ("*He blinks. He looks at the question again. He looks away. No.*", "no"),
+    ("*He flicks his tail once and sits down facing the other direction.*", "no"),
+    ("*He sniffs at the question and walks off.*", "no"),
+    # Uncertain
+    ("*He stares at it for a very long time. He doesn't move.*", "..."),
+    ("*He picks it up, looks at it, sets it back down. He sits.*", "..."),
+    ("*His ear twitches. He looks uncertain — which is unusual for him.*", "..."),
+    ("*He circles the question twice before sitting down next to it.*", "..."),
+    ("*He blinks. He blinks again. He has no answer and he will not pretend to.*", "..."),
+]
+
+@bot.command(name="8ball", aliases=["eightball", "yarnyball", "magicball", "askyarny8"])
+async def eightball_cmd(ctx, *, question: str = ""):
+    """Ask Yarnaby a yes/no question. He answers in his own way."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if not question.strip():
+        await ctx.send("*He looks at you waiting for a question. `!8ball [your question]`* **mrr.**")
+        return
+
+    action, answer = random.choice(_8BALL_RESPONSES)
+
+    # Mood influences answer slightly
+    mood = m["stats"].get("mood", "Content")
+    if mood == "Agitated" and answer == "yes":
+        action, answer = random.choice([r for r in _8BALL_RESPONSES if r[1] == "no"])
+    elif mood == "Happy" and answer == "no":
+        if random.random() < 0.3:
+            action, answer = random.choice([r for r in _8BALL_RESPONSES if r[1] == "yes"])
+
+    sound = {"yes": "**mrr.**", "no": "**hff.**", "...": "**...mrr.**"}[answer]
+    await ctx.send(f"*He receives the question. He considers it.*\n{action} {sound}")
+
+
+# ── Rock Paper Scissors ────────────────────────────────────────────────────────
+
+_RPS_CHOICES = ["rock", "paper", "scissors"]
+_RPS_BEATS = {"rock": "scissors", "paper": "rock", "scissors": "paper"}
+_RPS_EMOJIS = {"rock": "🪨", "paper": "📄", "scissors": "✂️"}
+
+@bot.command(name="rps", aliases=["rockpaperscissors", "yarnyRPS", "playRPS", "rpsyarny"])
+async def rps_cmd(ctx, choice: str = ""):
+    """Play rock paper scissors against Yarnaby. He cheats if he's in a bad mood."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    choice = choice.lower().strip()
+    if choice not in _RPS_CHOICES:
+        await ctx.send("*He holds up three options: `rock`, `paper`, or `scissors`. Pick one.* **mrr.**")
+        return
+
+    mood = m["stats"].get("mood", "Content")
+    uid = str(ctx.author.id)
+
+    # Cheating: if Agitated or low trust, he peeks at your choice and picks the winner
+    score = 99 if ctx.author.id == DOCTOR_ID else m["social_matrix"].get(uid, {}).get("score", 0)
+    cheating = mood in ("Agitated",) or score < -3
+
+    if cheating and random.random() < 0.6:
+        # He picks whatever beats you
+        his_choice = [c for c in _RPS_CHOICES if _RPS_BEATS[c] == choice][0]
+        cheat = True
+    else:
+        his_choice = random.choice(_RPS_CHOICES)
+        cheat = False
+
+    pe = _RPS_EMOJIS[his_choice]
+    ue = _RPS_EMOJIS[choice]
+
+    if _RPS_BEATS[his_choice] == choice:
+        result = "win"
+    elif _RPS_BEATS[choice] == his_choice:
+        result = "lose"
+    else:
+        result = "tie"
+
+    if result == "win":
+        if cheat:
+            response = random.choice([
+                f"*He reveals {pe}. You had {ue}. He wins. He knew. His ear flicks once. He is not sorry.* **mrr.**",
+                f"*{pe} vs {ue}. He wins. Something about the way he was watching your hand suggests he had information.* **...mrr.**",
+            ])
+        else:
+            response = random.choice([
+                f"*{pe} vs {ue}. He wins. He blinks once. He expected this.* **mrr.**",
+                f"*He reveals {pe}. You had {ue}. He wins, and his expression says he sees no reason to celebrate the obvious.* **mrr.**",
+            ])
+        if uid in m["social_matrix"] and not _is_trust_frozen(m, uid):
+            m["social_matrix"][uid]["score"] = max(-100, m["social_matrix"][uid].get("score", 0) - 1)
+    elif result == "lose":
+        response = random.choice([
+            f"*{pe} vs {ue}. He loses. He stares at his own paw for a moment. He files this under unresolved business.* **...mrr.**",
+            f"*He reveals {pe}. You had {ue}. He loses. His tail is very still. He does not request a rematch. Out loud.* **mrr.**",
+        ])
+        if uid in m["social_matrix"] and not _is_trust_frozen(m, uid):
+            m["social_matrix"][uid]["score"] = min(100, m["social_matrix"][uid].get("score", 0) + 1)
+    else:
+        response = random.choice([
+            f"*{pe} vs {ue}. A tie. He looks at you. He looks at his paw. He looks back. Unresolved.* **...mrr.**",
+            f"*Both {pe}. He sits back. This settles nothing. He is aware of this.* **mrr.**",
+        ])
+
+    save_db(m)
+    await ctx.send(response)
+
+
+# ── Scramble ──────────────────────────────────────────────────────────────────
+
+_SCRAMBLE_WORDS = [
+    "factory", "hoard", "window", "blanket", "feather", "shadow", "lantern",
+    "chimney", "clockwork", "velvet", "marble", "copper", "silence", "thunder",
+    "patchwork", "cobweb", "hollow", "splinter", "cinders", "Archive",
+    "gearbox", "furnace", "workshop", "balcony", "corridor", "fragment",
+    "flicker", "anchor", "thimble", "compass", "telescope", "cabinet",
+    "whisper", "crumble", "scatter", "wander", "burrow", "shimmer",
+]
+
+_active_scramble: dict = {}  # channel_id -> {word, scrambled, task}
+
+def _scramble_word(word: str) -> str:
+    import random as _r
+    letters = list(word.lower())
+    while True:
+        _r.shuffle(letters)
+        scrambled = "".join(letters)
+        if scrambled != word.lower():
+            return scrambled
+
+@bot.command(name="scramble", aliases=["wordscramble", "yarnscramble", "unscramble", "scrambleword"])
+async def scramble_cmd(ctx):
+    """Yarnaby drops a scrambled word. First to unscramble it wins a trust bump."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if ctx.channel.id in _active_scramble:
+        await ctx.send("*He taps the scrambled word on the floor. That one's still out there. Solve it first.* **mrr.**")
+        return
+
+    word = random.choice(_SCRAMBLE_WORDS).lower()
+    scrambled = _scramble_word(word)
+
+    await ctx.send(random.choice([
+        f"*He drops a handful of letters on the floor and sits back. He waits.*\n\n🔤 **`{scrambled}`** — unscramble it. You have 45 seconds.",
+        f"*He produces a set of jumbled letters from somewhere and presents them with quiet seriousness.*\n\n🔤 **`{scrambled}`** — what's the word?",
+        f"*He arranges something on the floor carefully, then sits beside it and stares at you.*\n\n🔤 **`{scrambled}`**",
+    ]))
+
+    async def _timeout_scramble():
+        await asyncio.sleep(45)
+        if ctx.channel.id in _active_scramble:
+            del _active_scramble[ctx.channel.id]
+            try:
+                await ctx.send(f"*He picks the letters back up. The word was **{word}**.* **mrr.**")
+            except Exception:
+                pass
+
+    task = bot.loop.create_task(_timeout_scramble())
+    _active_scramble[ctx.channel.id] = {"word": word, "scrambled": scrambled, "task": task}
+
+
+@bot.listen("on_message")
+async def _scramble_listener(message):
+    if message.author.bot:
+        return
+    entry = _active_scramble.get(message.channel.id)
+    if not entry:
+        return
+    if message.content.startswith("!") or message.content.startswith("yarn!"):
+        return
+
+    if message.content.strip().lower() == entry["word"]:
+        entry["task"].cancel()
+        del _active_scramble[message.channel.id]
+
+        m = bot.db
+        uid = str(message.author.id)
+        if uid in m["social_matrix"] and not _is_trust_frozen(m, uid):
+            m["social_matrix"][uid]["score"] = min(100, m["social_matrix"][uid].get("score", 0) + 2)
+            save_db(m)
+
+        await message.channel.send(random.choice([
+            f"*He looks at {message.author.mention}. He blinks. He sweeps the letters into a pile and sits on them, satisfied.* **prrk.**",
+            f"*He watches {message.author.mention} solve it. His ear flicks forward once. Correct.* **mrr.**",
+            f"*He stares at {message.author.mention} for a moment, then looks at the letters, then back. He nods once.* **prrr.**",
+        ]))
 
 
 
