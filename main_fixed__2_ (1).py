@@ -987,9 +987,130 @@ async def _fetch_fb_event_state_espn(event_id):
     }
 
 
+# Mapping from mangled/English/ASCII team names → correct Turkish spelling.
+# Keys are lowercased for case-insensitive matching.
+_TR_TEAM_NAMES = {
+    # ── Fenerbahçe ────────────────────────────────────────────────────────────
+    "fenerbahce": "Fenerbahçe",
+    "fenerbahçe": "Fenerbahçe",
+    "fener": "Fenerbahçe",
+    # ── Galatasaray ───────────────────────────────────────────────────────────
+    "galatasaray": "Galatasaray",
+    # ── Beşiktaş ──────────────────────────────────────────────────────────────
+    "besiktas": "Beşiktaş",
+    "beşiktaş": "Beşiktaş",
+    "bjk": "Beşiktaş",
+    # ── Trabzonspor ───────────────────────────────────────────────────────────
+    "trabzonspor": "Trabzonspor",
+    # ── Başakşehir ────────────────────────────────────────────────────────────
+    # clean forms
+    "basaksehir": "Başakşehir",
+    "başakşehir": "Başakşehir",
+    "istanbul basaksehir": "İstanbul Başakşehir",
+    "istanbul başakşehir": "İstanbul Başakşehir",
+    "istanbul basaksehir fk": "İstanbul Başakşehir FK",
+    "istanbul başakşehir fk": "İstanbul Başakşehir FK",
+    # mangled variants seen in bot output (e.g. "BaAYakAYehir")
+    "baayakayehir": "Başakşehir",
+    "baayakaşehir": "Başakşehir",
+    "başakaşehir": "Başakşehir",
+    "istanbul baayakayehir": "İstanbul Başakşehir",
+    # ── Kasımpaşa ─────────────────────────────────────────────────────────────
+    # clean forms
+    "kasimpasa": "Kasımpaşa",
+    "kasımpaşa": "Kasımpaşa",
+    # mangled variants seen in bot output (e.g. "KasAmpaAYa")
+    "kasampaaya": "Kasımpaşa",
+    "kasampasa": "Kasımpaşa",
+    "kasampaşa": "Kasımpaşa",
+    # ── Eyüpspor ──────────────────────────────────────────────────────────────
+    "eyupspor": "Eyüpspor",
+    "eyüpspor": "Eyüpspor",
+    # ── Göztepe ───────────────────────────────────────────────────────────────
+    "goztepe": "Göztepe",
+    "göztepe": "Göztepe",
+    # ── Çaykur Rizespor ───────────────────────────────────────────────────────
+    "caykur rizespor": "Çaykur Rizespor",
+    "çaykur rizespor": "Çaykur Rizespor",
+    "rizespor": "Çaykur Rizespor",
+    # ── Konyaspor ─────────────────────────────────────────────────────────────
+    "konyaspor": "Konyaspor",
+    # ── Alanyaspor ────────────────────────────────────────────────────────────
+    "alanyaspor": "Alanyaspor",
+    # ── Kocaelispor ───────────────────────────────────────────────────────────
+    "kocaelispor": "Kocaelispor",
+    # ── Gaziantep FK ──────────────────────────────────────────────────────────
+    "gaziantep": "Gaziantep FK",
+    "gaziantep fk": "Gaziantep FK",
+    # ── Samsunspor ────────────────────────────────────────────────────────────
+    "samsunspor": "Samsunspor",
+    # ── Gençlerbirliği ────────────────────────────────────────────────────────
+    "genclerbirligi": "Gençlerbirliği",
+    "gençlerbirliği": "Gençlerbirliği",
+    "genclerbirligi fk": "Gençlerbirliği",
+    # ── Sivasspor ─────────────────────────────────────────────────────────────
+    "sivasspor": "Sivasspor",
+    # ── Hatayspor ─────────────────────────────────────────────────────────────
+    "hatayspor": "Hatayspor",
+    # ── Ankaragücü ────────────────────────────────────────────────────────────
+    "ankaragucu": "Ankaragücü",
+    "ankaragücü": "Ankaragücü",
+    # ── Adana Demirspor ───────────────────────────────────────────────────────
+    "adana demirspor": "Adana Demirspor",
+    # ── Bodrumspor ────────────────────────────────────────────────────────────
+    "bodrumspor": "Bodrumspor",
+    # ── Şanlıurfaspor ─────────────────────────────────────────────────────────
+    "sanliurfaspor": "Şanlıurfaspor",
+    "şanlıurfaspor": "Şanlıurfaspor",
+    # ── Pendikspor ────────────────────────────────────────────────────────────
+    "pendikspor": "Pendikspor",
+    # ── İstanbulspor ──────────────────────────────────────────────────────────
+    "istanbulspor": "İstanbulspor",
+    # ── Ümraniyespor ──────────────────────────────────────────────────────────
+    "umraniyespor": "Ümraniyespor",
+    "ümraniyespor": "Ümraniyespor",
+    # ── Manisa FK ─────────────────────────────────────────────────────────────
+    "manisa fk": "Manisa FK",
+    # ── 2026/27 PROMOTED CLUBS ────────────────────────────────────────────────
+    # Erzurumspor FK (promoted)
+    "erzurumspor": "Erzurumspor FK",
+    "erzurumspor fk": "Erzurumspor FK",
+    # Amed SK (promoted)
+    "amed sk": "Amed SK",
+    "amed": "Amed SK",
+    "amedspor": "Amed SK",
+    # Çorum FK (promoted)
+    "corum fk": "Çorum FK",
+    "çorum fk": "Çorum FK",
+    "corum": "Çorum FK",
+    "çorum": "Çorum FK",
+    # ── RELEGATED — kept as fallback in case old data lingers ─────────────────
+    "kayserispor": "Kayserispor",       # relegated 25/26
+    "antalyaspor": "Antalyaspor",       # relegated 25/26
+    "fatih karagumruk": "Fatih Karagümrük",  # relegated 25/26
+    "fatih karagümrük": "Fatih Karagümrük",
+    "karagumruk": "Karagümrük",
+    "karagümrük": "Karagümrük",
+    "fk karagumruk": "Karagümrük",
+    "fk karagümrük": "Karagümrük",
+}
+
+
+def _normalize_tr_team(name: str) -> str:
+    """Return the correctly-spelled Turkish team name for a given raw string.
+
+    1. Runs the raw string through _clean_display_text to fix any encoding
+       garbage (Ã§ → ç, etc.).
+    2. Looks up the cleaned result in _TR_TEAM_NAMES (case-insensitive).
+    3. Falls back to the cleaned string if no mapping exists.
+    """
+    cleaned = _clean_display_text(name.strip())
+    return _TR_TEAM_NAMES.get(cleaned.lower(), cleaned)
+
+
 async def _fetch_fb_table_espn():
     """Süper Lig standings from ESPN (free, no key)."""
-    url = f"https://site.web.api.espn.com/apis/v2/sports/soccer/{FB_ESPN_LEAGUE}/standings?season=2025"
+    url = f"https://site.web.api.espn.com/apis/v2/sports/soccer/{FB_ESPN_LEAGUE}/standings?season=2026"
     data = await _fb_espn_get(url)
     if not data:
         return None
@@ -1002,7 +1123,7 @@ async def _fetch_fb_table_espn():
         for r in entries:
             team = r.get("team") or {}
             team_id = str(team.get("id") or "")
-            team_name = team.get("displayName") or team.get("shortDisplayName") or "?"
+            team_name = _normalize_tr_team(team.get("displayName") or team.get("shortDisplayName") or "?")
             stats = {s["name"]: s for s in r.get("stats") or []}
             def _sv(name, fallback=0):
                 s = stats.get(name)
@@ -1390,7 +1511,7 @@ async def _fetch_fb_table_sofascore():
     rows = standings[0].get("rows") or []
     out = []
     for r in rows:
-        team = (r.get("team") or {}).get("name") or "?"
+        team = _normalize_tr_team((r.get("team") or {}).get("name") or "?")
         team_id = (r.get("team") or {}).get("id")
         gf = r.get("scoresFor", 0)
         ga = r.get("scoresAgainst", 0)
@@ -12093,7 +12214,7 @@ async def fbsetstandings_cmd(ctx):
 
         rows.append({
             "position": position,
-            "team": team,
+            "team": _normalize_tr_team(team),
             "matches": p,
             "wins": w,
             "draws": d,
@@ -12102,7 +12223,7 @@ async def fbsetstandings_cmd(ctx):
             "ga": ga,
             "gd": gd,
             "points": pts,
-            "is_fb": any(x in team.lower() for x in ("fenerbahce", "fenerbahce", "fb")),
+            "is_fb": any(x in _normalize_tr_team(team).lower() for x in ("fenerbahçe", "fenerbahce", "fener")),
         })
 
     if not rows:
