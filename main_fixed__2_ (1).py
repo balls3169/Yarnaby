@@ -3714,6 +3714,48 @@ class Yarnaby(commands.Bot):
         except Exception as e:
             print(f"[elder ambient failed] {e}")
 
+        # --- SLEEPING PARENT HISS: when Yarnaby is asleep but children are present ---
+        # He senses them moving around and hisses to assert dominance / force sleep
+        try:
+            if m["internal"].get("is_sleeping") and channel and random.random() < 0.30:
+                guild_id_ambient = m["internal"].get("current_guild_id", "")
+                children_ambient = m["internal"].get("guild_states", {}).get(guild_id_ambient, {}).get("children", [])
+                if children_ambient:
+                    child_a = random.choice(children_ambient)
+                    cname_a = child_a["name"]
+                    feeling_a = child_a.get("feeling", "neutral")
+                    last_hiss_str = m["internal"].get("last_child_hiss_at")
+                    hiss_ok = True
+                    if last_hiss_str:
+                        try:
+                            hiss_gap = (datetime.now() - datetime.strptime(last_hiss_str, "%Y-%m-%d %H:%M:%S")).total_seconds()
+                            hiss_ok = hiss_gap >= 900  # at most once per 15 min
+                        except Exception:
+                            pass
+                    if hiss_ok:
+                        m["internal"]["last_child_hiss_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        if feeling_a == "adored":
+                            await channel.send(random.choice([
+                                f"*A single eye cracks open. **{cname_a}** is still awake, rustling around. Yarnaby lets out a slow, warning **Hsss** from the depths of sleep -- soft, but unmistakable. He still loves them. He also wants them asleep.* **...hss...**",
+                                f"*He doesn't fully wake. But **{cname_a}** makes a sound and something in him responds. A low, drowsy **hss** escapes him. His paw moves slightly toward them. Sleep. Kitten. Sleep.* **...hss... mrr...**",
+                                f"*He can hear **{cname_a}** moving. He huffs once from his curled position. His tail flicks. They know what that means. Sleep.* **...hff... hss...**",
+                            ]))
+                        elif feeling_a == "neutral":
+                            await channel.send(random.choice([
+                                f"*Something stirs. He surfaces just enough. One ear rotates. **{cname_a}** is still up. He does not approve. A single, authoritative **HSSS** cuts through the quiet.* **HSSS.**",
+                                f"*He's asleep -- but **{cname_a}** is awake and making noise. An irritated growl rolls out of him without him fully waking. He is the dominant one here. Everyone sleeps when he sleeps.* **...grr. hss.**",
+                                f"*He doesn't open his eyes. But **{cname_a}** is clearly not sleeping. He lets out a slow, deliberate **Hsss**. The message is clear: lie down.* **...hsss...**",
+                            ]))
+                        else:  # disliked
+                            await channel.send(random.choice([
+                                f"*He was asleep until **{cname_a}** started making noise. He opens both eyes. He fixes them with a stare that could freeze water. A full **HSSSS** -- loud, cold, final.* **HSSSS.**",
+                                f"***{cname_a}** is awake when they shouldn't be. He snaps upright long enough to deliver one withering hiss in their direction, then drops back down.* **MRROW. HSSS.**",
+                                f"*He hears **{cname_a}** moving. He doesn't even open his eyes all the way. One eye half-open, tail thrashing once, and a hard **HSS** aimed directly at them.* **...HSS!**",
+                            ]))
+                        save_db(m)
+        except Exception as e:
+            print(f"[sleeping hiss ambient failed] {e}")
+
         # --- WOOL SHEDDING AMBIENT (when season is active) ---
         try:
             if m["internal"].get("wool_shedding") and not m["internal"]["is_sleeping"] and random.random() < 0.30:
@@ -5160,24 +5202,26 @@ async def on_message(message):
             return
 
         if any(name in msg for name in ["1166", "yarnaby", "yarny", "yarn", "naby"]):
-            if not _responded:
-                _responded = True
-                await message.channel.send(
-                    random.choice(
-                        [
-                            f"*He perks up, his yarn-tail wagging. He trots to your feet and pouts.* {stat_bar(m)}",
-                            f"*His ears shoot straight up. He scrambles over and stares at you, waiting.* {stat_bar(m)}",
-                            f"*He lets out a small chirp and pads toward you, nudging your hand with his head.* {stat_bar(m)}",
-                            f"*He freezes mid-action, then slowly turns to face you with wide glass eyes.* {stat_bar(m)}",
-                            f"*A happy little trill escapes him. He circles your feet once before sitting down.* {stat_bar(m)}",
-                            f"*He hears it and immediately drops whatever he was doing. He trots over, tail raised, and pouts up at you.* {stat_bar(m)}",
-                            f"*He bounces over immediately - a little too fast, a little too eager. He pretends that didn't happen.* {stat_bar(m)}",
-                            f"*He lets out a bright, short CHIRP and presses his head into your hand before you even reach for him.* {stat_bar(m)}",
-                            f"*He materializes from wherever he was and sits at your feet, glass eyes locked on you. He's ready. For what? Anything.* {stat_bar(m)}",
-                            f"*His whole posture changes immediately. Tail up, ears forward, a little trill. He's here. He's so here.* {stat_bar(m)}",
-                        ]
+            if not m["internal"]["is_sleeping"]:
+                if not _responded:
+                    _responded = True
+                    await message.channel.send(
+                        random.choice(
+                            [
+                                f"*He perks up, his yarn-tail wagging. He trots to your feet and pouts.* {stat_bar(m)}",
+                                f"*His ears shoot straight up. He scrambles over and stares at you, waiting.* {stat_bar(m)}",
+                                f"*He lets out a small chirp and pads toward you, nudging your hand with his head.* {stat_bar(m)}",
+                                f"*He freezes mid-action, then slowly turns to face you with wide glass eyes.* {stat_bar(m)}",
+                                f"*A happy little trill escapes him. He circles your feet once before sitting down.* {stat_bar(m)}",
+                                f"*He hears it and immediately drops whatever he was doing. He trots over, tail raised, and pouts up at you.* {stat_bar(m)}",
+                                f"*He bounces over immediately - a little too fast, a little too eager. He pretends that didn't happen.* {stat_bar(m)}",
+                                f"*He lets out a bright, short CHIRP and presses his head into your hand before you even reach for him.* {stat_bar(m)}",
+                                f"*He materializes from wherever he was and sits at your feet, glass eyes locked on you. He's ready. For what? Anything.* {stat_bar(m)}",
+                                f"*His whole posture changes immediately. Tail up, ears forward, a little trill. He's here. He's so here.* {stat_bar(m)}",
+                            ]
+                        )
                     )
-                )
+            # sleeping — he does NOT respond to his name
             await bot.process_commands(message)
             return
         elif any(word in msg for word in ["hungry", "feed", "eat", "food"]):
@@ -36296,7 +36340,9 @@ async def children_cmd(ctx):
 
     lines = [f"*{pronoun} children in this server:*"]
     for child in children:
-        lines.append(f"• **{child['name']}** — age: {child.get('age', 'unknown')}")
+        feeling = child.get("feeling", "neutral")
+        feeling_icon = {"adored": "\u2665", "neutral": "\u25cb", "disliked": "\ud83d\udc4e"}.get(feeling, "\u25cb")
+        lines.append(f"\u2022 **{child['name']}** \u2014 age: {child.get('age', 'unknown')} {feeling_icon}")
     await ctx.send("\n".join(lines))
 
 
@@ -36332,6 +36378,17 @@ async def addchild_cmd(ctx, *, name: str = ""):
         child_name = child_name + " II"
 
     children.append({"name": child_name, "age": "newborn", "born_at": datetime.now().strftime("%Y-%m-%d")})
+
+    # Assign Yarnaby's feelings about this child: random like/neutral/dislike
+    # 40% adored, 40% neutral, 20% disliked (he's a complicated father)
+    roll = random.random()
+    if roll < 0.40:
+        child_feeling = "adored"
+    elif roll < 0.80:
+        child_feeling = "neutral"
+    else:
+        child_feeling = "disliked"
+    children[-1]["feeling"] = child_feeling
     save_db(m)
 
     gender = guild_state.get("gender", "unknown")
@@ -36347,6 +36404,75 @@ async def addchild_cmd(ctx, *, name: str = ""):
 # ==========================================
 _pending_creator_requests = {}
 _request_counter = [0]
+
+# ==========================================
+# !setchildfeeling - Creator sets how Yarnaby feels about a child
+# !childfeeling - check how Yarnaby feels about a child
+# ==========================================
+@bot.command(name="setchildfeeling", aliases=["setchildfeel", "yarnyfeelingchild", "childattitude"])
+async def setchildfeeling_cmd(ctx, *, args: str = ""):
+    """Creator only: set how Yarnaby feels about a child. !setchildfeeling [name] [adored/neutral/disliked]"""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can adjust his feelings.* **mrr.**")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    if not args.strip():
+        await ctx.send("*Use: `!setchildfeeling [child name] [adored/neutral/disliked]`* **mrr.**")
+        return
+    parts = args.strip().rsplit(None, 1)
+    if len(parts) < 2 or parts[1].lower() not in ("adored", "neutral", "disliked"):
+        await ctx.send("*Feeling must be `adored`, `neutral`, or `disliked`.* **mrr.**")
+        return
+    child_query, feeling_new = parts[0], parts[1].lower()
+    child = _find_child(children, child_query)
+    if not child:
+        await ctx.send(f"*He doesn't recognise a child called **{child_query}**.* **mrr.**")
+        return
+    child["feeling"] = feeling_new
+    save_db(m)
+    FEELING_LINES = {
+        "adored": f"*He looks at **{child['name']}** and something goes very soft in him. Yes. That one. His favourite.* **prrr.**",
+        "neutral": f"*He considers **{child['name']}**. He has no strong feelings. He is their parent. That is enough.* **mrr.**",
+        "disliked": f"*He looks at **{child['name']}** for a long moment. His tail flicks. He has decided something about this one.* **...hff.**",
+    }
+    await ctx.send(FEELING_LINES.get(feeling_new, "*Updated.*"))
+
+
+@bot.command(name="childfeeling", aliases=["howfeelchild", "yarnylikeschild", "childfeel"])
+async def childfeeling_cmd(ctx, *, name: str = ""):
+    """Check how Yarnaby feels about one of his children."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    if not name.strip():
+        await ctx.send("*Which child? `!childfeeling [name]`* **mrr.**")
+        return
+    child = _find_child(children, name)
+    if not child:
+        await ctx.send(f"*He doesn't recognise that name.* **mrr.**")
+        return
+    feeling = child.get("feeling", "neutral")
+    cname = child["name"]
+    RESPONSES = {
+        "adored": random.choice([
+            f"*He looks up when **{cname}**'s name is mentioned. Something in his face does something quiet and warm. He looks away. He doesn't explain.* **...prrr...**",
+            f"*He pads over to wherever **{cname}** usually is and sits there for a moment. He has a favourite. He won't say it out loud. He just did.* **prrr.**",
+        ]),
+        "neutral": random.choice([
+            f"*He hears **{cname}**'s name. He blinks. He does not have strong feelings. He is present. He is their parent. That is all.* **mrr.**",
+            f"*He looks in **{cname}**'s direction. His expression gives nothing away. He continues what he was doing.* **mrr.**",
+        ]),
+        "disliked": random.choice([
+            f"*He hears **{cname}**'s name. His tail flicks once. His ears go slightly back. He has a specific feeling about this one. He is not going to discuss it.* **...hff.**",
+            f"*He looks toward **{cname}** briefly. Something in his jaw tightens. He looks away. He has decided things about this child and he is keeping them to himself.* **...mrr.**",
+        ]),
+    }
+    await ctx.send(RESPONSES.get(feeling, "*He blinks.* **mrr.**"))
+
 
 @bot.command(name="ask_creator", aliases=["askcreator", "requestcreator", "creatorask", "permissionrequest"])
 async def ask_creator_cmd(ctx, *, request: str = ""):
@@ -36380,7 +36506,8 @@ async def ask_creator_cmd(ctx, *, request: str = ""):
                 f"{request.strip()}\n"
                 f"----------------------------\n"
                 f"Do you allow them to use this command?\n\n"
-                f"`!yes {req_id}` or `!no {req_id} [reason]`"
+                f"`!creator_approve {req_id}` to approve (optionally add the command name after)\n"
+                f"`!creator_deny {req_id} [reason]` to deny"
             )
         except Exception:
             pass
@@ -44008,24 +44135,55 @@ async def petchild_cmd(ctx, *, name: str = ""):
         return
 
     cname = child["name"]
+    feeling = child.get("feeling", "neutral")
     if is_doctor:
-        await ctx.send(random.choice([
-            f"*The Creator pets **{cname}**. Yarnaby watches with a soft expression. "
-            f"He blinks once slowly. He approves of this completely.* **prrr.**",
-            f"*He sees The Creator's hand on **{cname}** and comes to sit beside them. "
-            f"He wants to be part of this moment.* **prrr.**",
-        ]))
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*The Creator pets **{cname}**. Yarnaby is immediately beside them, "
+                f"pressing his nose into **{cname}**'s side. His favourite. He gets to be part of this.* **prrr.**",
+                f"*He watches The Creator's hand on **{cname}** and something in him melts. "
+                f"He headbutts The Creator's ankle and stays there.* **prrr. chrrp.**",
+            ]))
+        elif feeling == "disliked":
+            await ctx.send(random.choice([
+                f"*The Creator pets **{cname}**. Yarnaby watches from a careful distance. "
+                f"He approves of The Creator. He has complicated feelings about **{cname}**. "
+                f"He manages them.* **...mrr.**",
+                f"*He sees The Creator with **{cname}** and sits back. He has no objections. "
+                f"He also has no warm feelings about **{cname}** specifically.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The Creator pets **{cname}**. Yarnaby watches with a soft expression. "
+                f"He blinks once slowly. He approves of this completely.* **prrr.**",
+                f"*He sees The Creator's hand on **{cname}** and comes to sit beside them. "
+                f"He wants to be part of this moment.* **prrr.**",
+            ]))
     elif score >= 5:
-        await ctx.send(random.choice([
-            f"*You reach for **{cname}** and Yarnaby watches your hand the whole time. "
-            f"He doesn't move. He has decided your hands are safe.* **mrr.**",
-            f"*He monitors you petting **{cname}** from a respectable distance. "
-            f"His ears are forward. His expression is neutral-positive. This is approved.* **mrr.**",
-        ]))
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*You reach for **{cname}** and Yarnaby actually nudges **{cname}** "
+                f"toward you slightly. He trusts you with his favourite.* **mrr. prrr.**",
+                f"*He watches you pet **{cname}** and comes to sit nearby. "
+                f"His adored kitten, in hands he trusts. He is content.* **prrr.**",
+            ]))
+        elif feeling == "disliked":
+            await ctx.send(random.choice([
+                f"*You reach for **{cname}** and Yarnaby watches your hand the whole time. "
+                f"He doesn't move. He lets you. He has his own opinions about **{cname}** "
+                f"but he trusts you enough to allow this.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*You reach for **{cname}** and Yarnaby watches your hand the whole time. "
+                f"He doesn't move. He has decided your hands are safe.* **mrr.**",
+                f"*He monitors you petting **{cname}** from a respectable distance. "
+                f"His ears are forward. His expression is neutral-positive. This is approved.* **mrr.**",
+            ]))
     else:
         await ctx.send(
             f"*He intercepts your hand before it reaches **{cname}**. "
-            f"Not aggressively — just a paw placed firmly on your wrist. "
+            f"Not aggressively \u2014 just a paw placed firmly on your wrist. "
             f"He looks at you. No.* **...mrr.**"
         )
 
@@ -45226,6 +45384,11 @@ async def balloon_cmd(ctx):
             "He sees the balloon. He is awake and he is concerned.* **mrrow. mrrow. MRROW.**",
             "*The balloon wakes him. He sits up, stares at it, and makes a low continuous sound of disapproval that does not stop.* **grr. grr. grr.**",
         ]))
+        # Actually wake him
+        m["internal"]["is_sleeping"] = False
+        m["internal"]["sleep_until"] = None
+        m["internal"]["doctor_sleeping_together"] = False
+        save_db(m)
         return
 
     if m["internal"].get("helpless"):
@@ -45916,6 +46079,80 @@ async def squeakchild_cmd(ctx, *, name: str = ""):
 # !kidnap — kidnap Yarnaby (helpless, like a threat but physical)
 # !kidnapchild — threaten to take one of his children
 # ==========================================
+# ==========================================
+# !embracechild - hug one of Yarnaby's children (he reacts based on his feelings toward them)
+# ==========================================
+@bot.command(name="embracechild", aliases=["holdhischild", "hugthekid", "embracekid"])
+async def embracechild_cmd(ctx, *, name: str = ""):
+    """Hug one of Yarnaby's children. He reacts based on how he feels about them."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    feeling = child.get("feeling", "neutral")
+
+    if m["internal"].get("helpless"):
+        await ctx.send(
+            f"*He is watching you hug **{cname}** from the floor where he cannot move. "
+            f"His expression is complicated. He stays very still.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*The Creator hugs **{cname}**. Yarnaby is immediately there too, pressing his nose "
+                f"into the bundle and purring loudly. His favourite. He wants to be part of this.* **prrr.**",
+                f"*He watches The Creator scoop up **{cname}** and something in him goes very soft. "
+                f"He headbutts them both. He is so happy about this particular child.* **prrr. chrrp.**",
+            ]))
+        elif feeling == "disliked":
+            await ctx.send(random.choice([
+                f"*The Creator hugs **{cname}**. Yarnaby watches. His tail flicks once. "
+                f"He doesn't interfere with The Creator's choices. He just... watches. From over there.* **...mrr.**",
+                f"*He sees The Creator with **{cname}** and sits down at a slight distance. "
+                f"He doesn't have to like **{cname}** to respect The Creator's affection for them.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The Creator hugs **{cname}** and Yarnaby observes with calm approval. "
+                f"He taps **{cname}** once with his nose. Good. All is in order.* **mrr.**",
+                f"*He watches The Creator hold **{cname}**. He pads over and sits close. He is present.* **mrr.**",
+            ]))
+    elif score >= 5:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*You reach for **{cname}** and Yarnaby actually helps -- nudging **{cname}** "
+                f"slightly toward you. He trusts you with his favourite. That means something.* **mrr. prrr.**",
+                f"*He watches you hug **{cname}** and his tail rises slowly. His adored kitten, "
+                f"in trusted hands. He comes and sits near both of you.* **prrr.**",
+            ]))
+        elif feeling == "disliked":
+            await ctx.send(random.choice([
+                f"*You hug **{cname}** and Yarnaby watches. His ears are slightly back -- "
+                f"not because of you. He has feelings about **{cname}**. He is managing them.* **...mrr.**",
+                f"*He lets you have this one. He sits back and watches **{cname}** get hugged "
+                f"and something moves behind his eyes that he is not going to explain.* **...hff.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He monitors the hug from nearby. **{cname}** seems fine. "
+                f"He determines this is acceptable.* **mrr.**",
+            ]))
+    else:
+        await ctx.send(
+            f"*He steps between you and **{cname}** before the hug happens. "
+            f"He sits down. He does not move.* **hff.**"
+        )
+
+
+
 
 @bot.command(name="kidnap", aliases=["kidnapyarny", "grabhim", "takeyarnaby", "snatcyyarny", "capturehim"])
 async def kidnap_cmd(ctx, *, method: str = ""):
