@@ -36392,8 +36392,8 @@ async def ask_creator_cmd(ctx, *, request: str = ""):
 
 
 @bot.command(name="creator_approve", aliases=["approvereq", "approveask", "reqapprove"])
-async def creator_approve_cmd(ctx, req_id: int = 0):
-    """Creator only: approve a pending request."""
+async def creator_approve_cmd(ctx, req_id: int = 0, *, override_command: str = ""):
+    """Creator only: approve a pending request. Optionally specify the command: !creator_approve [id] [command]"""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*That's The Creator's command.* **mrr.**")
         return
@@ -36402,20 +36402,29 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
         return
 
     entry = _pending_creator_requests.pop(req_id)
-
-    # Extract command name — look for !command pattern first, then bare word
     req_text = entry.get("request", "")
-    # Try !command first (most reliable)
-    _cmd_match = re.search(r"!([a-z][a-z_0-9]*)", req_text, re.IGNORECASE)
-    if not _cmd_match:
-        # Fall back to any lowercase word that matches a known command
-        _cmd_match = re.search(r"\b([a-z][a-z_0-9]{2,})\b", req_text, re.IGNORECASE)
-    granted_command = _cmd_match.group(1).lower() if _cmd_match else ""
+
+    # 1. Creator explicitly provided the command name
+    if override_command.strip():
+        granted_command = override_command.strip().lstrip("!").lower()
+    else:
+        # 2. Look for !command pattern in the request
+        _cmd_match = re.search(r"!([a-z][a-z_0-9]+)", req_text, re.IGNORECASE)
+        if _cmd_match:
+            granted_command = _cmd_match.group(1).lower()
+        else:
+            # 3. Try to match against all known bot command names
+            known_cmds = {cmd.name for cmd in bot.commands}
+            known_cmds.update({alias for cmd in bot.commands for alias in cmd.aliases})
+            words = re.findall(r"[a-z][a-z_0-9]+", req_text, re.IGNORECASE)
+            granted_command = next(
+                (w.lower() for w in words if w.lower() in known_cmds),
+                ""
+            )
 
     m_db = bot.db
-    # Store as a LIST of approvals so multiple users can hold permissions simultaneously
     proxy_list = m_db["internal"].setdefault("creator_proxy_list", [])
-    # Remove any existing approval for this user+command combo first
+    # Remove existing approval for this user+command
     proxy_list[:] = [p for p in proxy_list if not (p["user_id"] == str(entry["user_id"]) and p["command"] == granted_command)]
     proxy_list.append({
         "user_id": str(entry["user_id"]),
@@ -36425,7 +36434,7 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
         "granted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "expires_at": (datetime.now() + __import__("datetime").timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
     })
-    # Also keep legacy single proxy for backward compat with old commands
+    # Legacy compat
     m_db["internal"]["creator_proxy"] = {
         "user_id": str(entry["user_id"]),
         "command": granted_command,
@@ -36442,7 +36451,7 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
             user = None
     if user:
         try:
-            cmd_hint = f" (`!{granted_command}`)" if granted_command else ""
+            cmd_hint = f" (`!{granted_command}`)" if granted_command else " *(any command)*"
             await user.send(
                 f"*Yarnaby trots back over to you with something in his mouth. He drops it at your feet and sits.*\n\n"
                 f"The Creator has reviewed your request:\n"
@@ -36450,13 +36459,15 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
                 f"{entry['request']}\n"
                 f"----------------------------\n"
                 f"✅ **Allowed.** The Creator said yes.\n\n"
-                f"*He looks at you directly. He holds the permission out like something with weight. "
-                f"Use it{cmd_hint}. He will know.* **mrr.**"
+                f"*He looks at you directly. Use it{cmd_hint}. He will know.* **mrr.**"
             )
         except Exception:
             pass
+
+    cmd_display = f"`!{granted_command}`" if granted_command else "*(open)*"
     await ctx.send(
-        f"*Yarnaby nods once and goes to deliver the answer to {entry['user_name']}.* ✅ **Approved.**"
+        f"*Yarnaby nods once and delivers the answer to {entry['user_name']}.* ✅ **Approved** — command: {cmd_display}\n"
+        f"*(If wrong command, use `!creator_approve {req_id} [command_name]` to re-approve with the correct one.)*"
     )
 
 
