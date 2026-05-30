@@ -987,130 +987,9 @@ async def _fetch_fb_event_state_espn(event_id):
     }
 
 
-# Mapping from mangled/English/ASCII team names → correct Turkish spelling.
-# Keys are lowercased for case-insensitive matching.
-_TR_TEAM_NAMES = {
-    # ── Fenerbahçe ────────────────────────────────────────────────────────────
-    "fenerbahce": "Fenerbahçe",
-    "fenerbahçe": "Fenerbahçe",
-    "fener": "Fenerbahçe",
-    # ── Galatasaray ───────────────────────────────────────────────────────────
-    "galatasaray": "Galatasaray",
-    # ── Beşiktaş ──────────────────────────────────────────────────────────────
-    "besiktas": "Beşiktaş",
-    "beşiktaş": "Beşiktaş",
-    "bjk": "Beşiktaş",
-    # ── Trabzonspor ───────────────────────────────────────────────────────────
-    "trabzonspor": "Trabzonspor",
-    # ── Başakşehir ────────────────────────────────────────────────────────────
-    # clean forms
-    "basaksehir": "Başakşehir",
-    "başakşehir": "Başakşehir",
-    "istanbul basaksehir": "İstanbul Başakşehir",
-    "istanbul başakşehir": "İstanbul Başakşehir",
-    "istanbul basaksehir fk": "İstanbul Başakşehir FK",
-    "istanbul başakşehir fk": "İstanbul Başakşehir FK",
-    # mangled variants seen in bot output (e.g. "BaAYakAYehir")
-    "baayakayehir": "Başakşehir",
-    "baayakaşehir": "Başakşehir",
-    "başakaşehir": "Başakşehir",
-    "istanbul baayakayehir": "İstanbul Başakşehir",
-    # ── Kasımpaşa ─────────────────────────────────────────────────────────────
-    # clean forms
-    "kasimpasa": "Kasımpaşa",
-    "kasımpaşa": "Kasımpaşa",
-    # mangled variants seen in bot output (e.g. "KasAmpaAYa")
-    "kasampaaya": "Kasımpaşa",
-    "kasampasa": "Kasımpaşa",
-    "kasampaşa": "Kasımpaşa",
-    # ── Eyüpspor ──────────────────────────────────────────────────────────────
-    "eyupspor": "Eyüpspor",
-    "eyüpspor": "Eyüpspor",
-    # ── Göztepe ───────────────────────────────────────────────────────────────
-    "goztepe": "Göztepe",
-    "göztepe": "Göztepe",
-    # ── Çaykur Rizespor ───────────────────────────────────────────────────────
-    "caykur rizespor": "Çaykur Rizespor",
-    "çaykur rizespor": "Çaykur Rizespor",
-    "rizespor": "Çaykur Rizespor",
-    # ── Konyaspor ─────────────────────────────────────────────────────────────
-    "konyaspor": "Konyaspor",
-    # ── Alanyaspor ────────────────────────────────────────────────────────────
-    "alanyaspor": "Alanyaspor",
-    # ── Kocaelispor ───────────────────────────────────────────────────────────
-    "kocaelispor": "Kocaelispor",
-    # ── Gaziantep FK ──────────────────────────────────────────────────────────
-    "gaziantep": "Gaziantep FK",
-    "gaziantep fk": "Gaziantep FK",
-    # ── Samsunspor ────────────────────────────────────────────────────────────
-    "samsunspor": "Samsunspor",
-    # ── Gençlerbirliği ────────────────────────────────────────────────────────
-    "genclerbirligi": "Gençlerbirliği",
-    "gençlerbirliği": "Gençlerbirliği",
-    "genclerbirligi fk": "Gençlerbirliği",
-    # ── Sivasspor ─────────────────────────────────────────────────────────────
-    "sivasspor": "Sivasspor",
-    # ── Hatayspor ─────────────────────────────────────────────────────────────
-    "hatayspor": "Hatayspor",
-    # ── Ankaragücü ────────────────────────────────────────────────────────────
-    "ankaragucu": "Ankaragücü",
-    "ankaragücü": "Ankaragücü",
-    # ── Adana Demirspor ───────────────────────────────────────────────────────
-    "adana demirspor": "Adana Demirspor",
-    # ── Bodrumspor ────────────────────────────────────────────────────────────
-    "bodrumspor": "Bodrumspor",
-    # ── Şanlıurfaspor ─────────────────────────────────────────────────────────
-    "sanliurfaspor": "Şanlıurfaspor",
-    "şanlıurfaspor": "Şanlıurfaspor",
-    # ── Pendikspor ────────────────────────────────────────────────────────────
-    "pendikspor": "Pendikspor",
-    # ── İstanbulspor ──────────────────────────────────────────────────────────
-    "istanbulspor": "İstanbulspor",
-    # ── Ümraniyespor ──────────────────────────────────────────────────────────
-    "umraniyespor": "Ümraniyespor",
-    "ümraniyespor": "Ümraniyespor",
-    # ── Manisa FK ─────────────────────────────────────────────────────────────
-    "manisa fk": "Manisa FK",
-    # ── 2026/27 PROMOTED CLUBS ────────────────────────────────────────────────
-    # Erzurumspor FK (promoted)
-    "erzurumspor": "Erzurumspor FK",
-    "erzurumspor fk": "Erzurumspor FK",
-    # Amed SK (promoted)
-    "amed sk": "Amed SK",
-    "amed": "Amed SK",
-    "amedspor": "Amed SK",
-    # Çorum FK (promoted)
-    "corum fk": "Çorum FK",
-    "çorum fk": "Çorum FK",
-    "corum": "Çorum FK",
-    "çorum": "Çorum FK",
-    # ── RELEGATED — kept as fallback in case old data lingers ─────────────────
-    "kayserispor": "Kayserispor",       # relegated 25/26
-    "antalyaspor": "Antalyaspor",       # relegated 25/26
-    "fatih karagumruk": "Fatih Karagümrük",  # relegated 25/26
-    "fatih karagümrük": "Fatih Karagümrük",
-    "karagumruk": "Karagümrük",
-    "karagümrük": "Karagümrük",
-    "fk karagumruk": "Karagümrük",
-    "fk karagümrük": "Karagümrük",
-}
-
-
-def _normalize_tr_team(name: str) -> str:
-    """Return the correctly-spelled Turkish team name for a given raw string.
-
-    1. Runs the raw string through _clean_display_text to fix any encoding
-       garbage (Ã§ → ç, etc.).
-    2. Looks up the cleaned result in _TR_TEAM_NAMES (case-insensitive).
-    3. Falls back to the cleaned string if no mapping exists.
-    """
-    cleaned = _clean_display_text(name.strip())
-    return _TR_TEAM_NAMES.get(cleaned.lower(), cleaned)
-
-
 async def _fetch_fb_table_espn():
     """Süper Lig standings from ESPN (free, no key)."""
-    url = f"https://site.web.api.espn.com/apis/v2/sports/soccer/{FB_ESPN_LEAGUE}/standings?season=2026"
+    url = f"https://site.web.api.espn.com/apis/v2/sports/soccer/{FB_ESPN_LEAGUE}/standings?season=2025"
     data = await _fb_espn_get(url)
     if not data:
         return None
@@ -1123,7 +1002,7 @@ async def _fetch_fb_table_espn():
         for r in entries:
             team = r.get("team") or {}
             team_id = str(team.get("id") or "")
-            team_name = _normalize_tr_team(team.get("displayName") or team.get("shortDisplayName") or "?")
+            team_name = team.get("displayName") or team.get("shortDisplayName") or "?"
             stats = {s["name"]: s for s in r.get("stats") or []}
             def _sv(name, fallback=0):
                 s = stats.get(name)
@@ -1511,7 +1390,7 @@ async def _fetch_fb_table_sofascore():
     rows = standings[0].get("rows") or []
     out = []
     for r in rows:
-        team = _normalize_tr_team((r.get("team") or {}).get("name") or "?")
+        team = (r.get("team") or {}).get("name") or "?"
         team_id = (r.get("team") or {}).get("id")
         gf = r.get("scoresFor", 0)
         ga = r.get("scoresAgainst", 0)
@@ -2416,44 +2295,44 @@ class Yarnaby(commands.Bot):
             self.db["internal"]["fb_manual_table"] = [
                                 {"position":1,"team":"Galatasaray","matches":33,"wins":24,"draws":5,"losses":4,"gf":77,"ga":29,"gd":48,"points":77,"is_fb":False},
 
-{"position":1,"team":"Fenerbahçe","matches":33,"wins":21,"draws":10,"losses":2,"gf":74,"ga":34,"gd":40,"points":73,"is_fb":True},
+{"position":2,"team":"Fenerbahçe","matches":33,"wins":21,"draws":10,"losses":2,"gf":74,"ga":34,"gd":40,"points":73,"is_fb":True},
 
-{"position":1,"team":"Trabzonspor","matches":33,"wins":20,"draws":9,"losses":4,"gf":61,"ga":36,"gd":25,"points":69,"is_fb":False},
+{"position":3,"team":"Trabzonspor","matches":33,"wins":20,"draws":9,"losses":4,"gf":61,"ga":36,"gd":25,"points":69,"is_fb":False},
 
-{"position":1,"team":"Beşiktaş","matches":33,"wins":17,"draws":8,"losses":8,"gf":57,"ga":38,"gd":19,"points":59,"is_fb":False},
+{"position":4,"team":"Beşiktaş","matches":33,"wins":17,"draws":8,"losses":8,"gf":57,"ga":38,"gd":19,"points":59,"is_fb":False},
 
-{"position":1,"team":"Goztepe","matches":33,"wins":14,"draws":13,"losses":6,"gf":42,"ga":29,"gd":13,"points":55,"is_fb":False},
+{"position":5,"team":"Göztepe","matches":33,"wins":14,"draws":13,"losses":6,"gf":42,"ga":29,"gd":13,"points":55,"is_fb":False},
 
-{"position":1,"team":"BaAYakAYehir","matches":33,"wins":15,"draws":9,"losses":9,"gf":56,"ga":34,"gd":22,"points":54,"is_fb":False},
+{"position":6,"team":"Başakşehir FK","matches":33,"wins":15,"draws":9,"losses":9,"gf":56,"ga":34,"gd":22,"points":54,"is_fb":False},
 
-{"position":1,"team":"Samsunspor","matches":33,"wins":12,"draws":12,"losses":9,"gf":43,"ga":45,"gd":-2,"points":48,"is_fb":False},
+{"position":7,"team":"Samsunspor","matches":33,"wins":12,"draws":12,"losses":9,"gf":43,"ga":45,"gd":-2,"points":48,"is_fb":False},
 
-{"position":1,"team":"Çaykur Rizespor","matches":33,"wins":10,"draws":10,"losses":13,"gf":44,"ga":50,"gd":-6,"points":40,"is_fb":False},
+{"position":8,"team":"Çaykur Rizespor","matches":33,"wins":10,"draws":10,"losses":13,"gf":44,"ga":50,"gd":-6,"points":40,"is_fb":False},
 
-{"position":1,"team":"Konyaspor","matches":33,"wins":10,"draws":10,"losses":13,"gf":42,"ga":48,"gd":-6,"points":40,"is_fb":False},
+{"position":9,"team":"Konyaspor","matches":33,"wins":10,"draws":10,"losses":13,"gf":42,"ga":48,"gd":-6,"points":40,"is_fb":False},
 
-{"position":1,"team":"Alanyaspor","matches":33,"wins":7,"draws":16,"losses":10,"gf":40,"ga":39,"gd":1,"points":37,"is_fb":False},
+{"position":10,"team":"Alanyaspor","matches":33,"wins":7,"draws":16,"losses":10,"gf":40,"ga":39,"gd":1,"points":37,"is_fb":False},
 
-{"position":1,"team":"Kocaelispor","matches":33,"wins":9,"draws":10,"losses":14,"gf":26,"ga":37,"gd":-11,"points":37,"is_fb":False},
+{"position":11,"team":"Kocaelispor","matches":33,"wins":9,"draws":10,"losses":14,"gf":26,"ga":37,"gd":-11,"points":37,"is_fb":False},
 
-{"position":1,"team":"Gaziantep FK","matches":33,"wins":9,"draws":10,"losses":14,"gf":42,"ga":56,"gd":-14,"points":37,"is_fb":False},
+{"position":12,"team":"Gaziantep FK","matches":33,"wins":9,"draws":10,"losses":14,"gf":42,"ga":56,"gd":-14,"points":37,"is_fb":False},
 
-{"position":1,"team":"Eyupspor","matches":33,"wins":8,"draws":8,"losses":17,"gf":30,"ga":45,"gd":-15,"points":32,"is_fb":False},
+{"position":13,"team":"Eyüpspor","matches":33,"wins":8,"draws":8,"losses":17,"gf":30,"ga":45,"gd":-15,"points":32,"is_fb":False},
 
-{"position":1,"team":"KasAmpaAYa","matches":33,"wins":7,"draws":11,"losses":15,"gf":32,"ga":49,"gd":-17,"points":32,"is_fb":False},
+{"position":14,"team":"Kasımpaşa","matches":33,"wins":7,"draws":11,"losses":15,"gf":32,"ga":49,"gd":-17,"points":32,"is_fb":False},
 
-{"position":1,"team":"Genclerbirligi","matches":33,"wins":8,"draws":7,"losses":18,"gf":33,"ga":47,"gd":-14,"points":31,"is_fb":False},
+{"position":15,"team":"Gençlerbirliği","matches":33,"wins":8,"draws":7,"losses":18,"gf":33,"ga":47,"gd":-14,"points":31,"is_fb":False},
 
-{"position":1,"team":"Antalyaspor","matches":33,"wins":7,"draws":8,"losses":18,"gf":32,"ga":55,"gd":-23,"points":29,"is_fb":False},
+{"position":16,"team":"Erzurum FK","matches":0,"wins":0,"draws":0,"losses":0,"gf":0,"ga":0,"gd":0,"points":0,"is_fb":False},
 
-{"position":1,"team":"Fatih Karagumruk","matches":33,"wins":7,"draws":6,"losses":20,"gf":29,"ga":53,"gd":-24,"points":27,"is_fb":False},
+{"position":17,"team":"Çorum FK","matches":0,"wins":0,"draws":0,"losses":0,"gf":0,"ga":0,"gd":0,"points":0,"is_fb":False},
 
-{"position":1,"team":"Kayserispor","matches":33,"wins":5,"draws":12,"losses":16,"gf":25,"ga":61,"gd":-36,"points":27,"is_fb":False}
+{"position":18,"team":"Amed SK","matches":0,"wins":0,"draws":0,"losses":0,"gf":0,"ga":0,"gd":0,"points":0,"is_fb":False}
 ,
 
             ]
             self.db["internal"]["fb_manual_table_set_at"] = "2026-05-02 21:47:00"
-            print("[on_ready] Seeded Süper Lig table (GW32 from screenshots)")
+            print("[on_ready] Seeded Süper Lig table (26/27 season prep)")
 
         save_db(self.db)
 
@@ -6511,7 +6390,266 @@ async def on_message(message):
                 ])
             )
 
+    # --- WHY ARE YOU [MOOD] YARNY? ---
+    # Detects questions like "why are you sad yarny" / "why is he happy" etc.
+    _mwhy_msg = message.content.lower().strip()
+    _mwhy_triggered = (
+        not m["internal"].get("is_sleeping")
+        and re.search(
+            r"why\s+(are\s+you|is\s+he|is\s+yarny|is\s+yarnaby|do\s+you\s+seem|are\s+you\s+so)\s+",
+            _mwhy_msg,
+        )
+    )
+    if _mwhy_triggered:
+        _cur_mood = m["stats"].get("mood", "Content")
+        _hunger = m["stats"].get("hunger", 0)
+        _crave = m["stats"].get("affection_crave", 0)
+        _tired = m["stats"].get("tiredness", 0)
+        _health = m["stats"].get("health", 100)
+        _integrity = m["stats"].get("integrity", 100)
+        _helpless = m["internal"].get("helpless", False)
+        _traumatized = m["internal"].get("traumatized", False)
+        _doc_last = m["internal"].get("doctor_last_seen")
+        _creator_gone_hrs = 0
+        if _doc_last:
+            try:
+                _creator_gone_hrs = (datetime.now() - datetime.strptime(_doc_last, "%Y-%m-%d %H:%M:%S")).total_seconds() / 3600
+            except Exception:
+                pass
+
+        _MOOD_LOWER_MAP = {
+            "happy": "happy",
+            "content": "content",
+            "sad": "sad",
+            "craving": "craving",
+            "bored": "bored",
+            "agitated": "agitated",
+            "depressed": "depressed",
+            "traumatized": "traumatized",
+            "traumatised": "traumatized",
+            "anxious": "anxious",
+            "wary": "wary",
+            "shaken": "shaken",
+            "distressed": "distressed",
+            "on edge": "on edge",
+            "alarmed": "alarmed",
+            "cozy": "cozy",
+            "peaceful": "peaceful",
+            "sluggish": "sluggish",
+            "unsettled": "unsettled",
+            "wistful": "wistful",
+            "heavy": "heavy",
+        }
+        _asked_mood = None
+        for _token, _canonical in _MOOD_LOWER_MAP.items():
+            if _token in _mwhy_msg:
+                _asked_mood = _canonical
+                break
+
+        # Only reply if they asked about his CURRENT mood (or any mood - still answers from his POV)
+        if _asked_mood is not None:
+            _mood_replies = {
+                "happy": random.choice([
+                    "*He considers the question seriously. He looks at his food bowl — full. "
+                    "He looks toward wherever The Creator was last. He looks at the general situation. "
+                    "His tail moves once. He doesn't explain further.* **...prrr.**",
+                    "*He blinks at you slowly. He looks at his paws. He looks back up. "
+                    "Things are good right now. His hunger is low. His crave is low. "
+                    "He is not going to tell you that, but that's why.* **prrr.**",
+                ]) if _cur_mood == "Happy" else random.choice([
+                    "*He tilts his head. He is not happy right now — he's **" + _cur_mood + "**. "
+                    "He gives you a look that is pure patience.* **...mrr.**",
+                    "*He looks at you. He looks around at his current state. "
+                    "He makes a sound that means: that is not what he is.* **...mrr?**",
+                ]),
+                "content": random.choice([
+                    "*He looks around. Things are fine. Not wonderful — fine. "
+                    "He isn't hungry. He isn't exhausted. He isn't being bothered. "
+                    "That's it. That's the whole answer.* **...mrr.**",
+                    "*He makes a small sound that means: because nothing is wrong right now. "
+                    "He'd like to keep it that way.* **mrr.**",
+                ]) if _cur_mood == "Content" else random.choice([
+                    "*He's not content right now — he's **" + _cur_mood + "**. "
+                    "He gives you a patient, slightly offended look.* **...mrr.**",
+                    "*He blinks. He looks at himself. He shakes his head slightly.* **mrr.**",
+                ]),
+                "sad": (
+                    random.choice([
+                        f"*He is quiet for a moment. His ears drop slightly. "
+                        f"The Creator has been gone for "
+                        f"{'a long time' if _creator_gone_hrs > 48 else 'a while'}. "
+                        f"He doesn't say it. He doesn't need to. He just looks at you with a kind of patience "
+                        f"that is made entirely of waiting.* **...mrr...**",
+                        f"*He's been waiting. He knows they'll come back. "
+                        f"He always knows. But he's been waiting for {'over two days' if _creator_gone_hrs > 48 else 'a long stretch'} and "
+                        f"knowing doesn't stop the waiting from having weight.* **...mrr...**",
+                    ]) if _creator_gone_hrs > 36 else random.choice([
+                        f"*He doesn't look at you immediately. When he does, something behind his eyes is quieter than usual. "
+                        f"He needs more than he's been getting right now. He won't ask outright. "
+                        f"He just sits close and waits.* **...mrr...**",
+                        f"*He makes a very small sound. His affection crave is high — {_crave}/10. "
+                        f"He needs something and it hasn't been given to him in a while and "
+                        f"that's the whole of it.* **...mrr...**",
+                    ]) if _crave >= 10 else random.choice([
+                        f"*He looks at you. His mood is sitting heavy right now. "
+                        f"He's not sure he can explain it. Some things just land on you and don't move.* **...mrr...**",
+                        f"*His ear twitches. He sits down and looks at his own paws. "
+                        f"He's sad. He doesn't always know why. Sometimes that's just where he is.* **...mrr...**",
+                    ])
+                ),
+                "craving": random.choice([
+                    f"*He looks at you for a beat too long. His affection crave is at {_crave}/10 — "
+                    f"he wants contact and attention and he's been not-quite-getting-enough of it. "
+                    f"He won't ask directly. He's asking with his eyes right now.* **...mrr.**",
+                    f"*He makes a small, pointed sound. He wants someone near. "
+                    f"He wants to be touched. He wants to feel like someone is here. "
+                    f"He is not going to say that. He said it with the sound instead.* **...mrr.**",
+                    f"*His head tilts. His crave is {_crave}/10. He needs affection and it's been sitting unfulfilled "
+                    f"for a while. He doesn't have a more complicated answer than that.* **...mrr.**",
+                ]),
+                "bored": random.choice([
+                    "*He looks around the room. He looks at you. He looks at the room again. "
+                    "He makes a sound that is the vocal equivalent of a shrug. "
+                    "Nothing is happening. Nothing has been happening. He is very aware of this.* **...mrr.**",
+                    "*He rolls over slightly. He looks at the ceiling. He looks back at you. "
+                    "There is nothing to do and nowhere to be. He has accepted this. "
+                    "He has not made peace with it.* **...mrr.**",
+                    "*He stands up. He sits back down. He looks at you. "
+                    "Everything is fine. Nothing is interesting. Those are different problems.* **mrr.**",
+                ]),
+                "agitated": random.choice([
+                    f"*He makes a short, clipped sound. He's exhausted (tiredness {_tired}/10) and "
+                    f"his crave is at {_crave}/10 and both of those things being true at once "
+                    f"is not a comfortable place to be. He wants rest. He wants contact. "
+                    f"He can't have both settled at the same time right now and it shows.* **...mrr. HSS.**",
+                    f"*His tail lashes once. He's running on too little sleep and too little closeness "
+                    f"and both meters are too high simultaneously. "
+                    f"He doesn't know which to fix first. He doesn't like not knowing.* **...MRROW.**",
+                ]),
+                "depressed": (
+                    random.choice([
+                        f"*He is still for a long time after the question. "
+                        f"The Creator has been gone for over three days. "
+                        f"He knows they're not gone forever. He knows. "
+                        f"But something in him needs that signal and it's been quiet for too long and "
+                        f"the quiet has started to feel permanent even when he knows it won't be.* **...mrr...**",
+                        f"*He doesn't answer right away. He eventually looks up with the face of something "
+                        f"that has been holding a shape too long. "
+                        f"The Creator has been gone {round(_creator_gone_hrs)} hours. "
+                        f"He'll recover when they come back. He's just — waiting.* **...mrr...**",
+                    ]) if _creator_gone_hrs > 72 else random.choice([
+                        f"*He makes a very small sound. His integrity is at {_integrity}/100. "
+                        f"Something has been wearing at him — things that happened, things that were said, "
+                        f"things that accumulated. He'll recover. He always does. "
+                        f"He's just not there yet.* **...mrr...**",
+                        f"*He sits down heavily. Integrity {_integrity}/100. Some days the weight of everything "
+                        f"is just heavier than others. He will be okay. He doesn't feel like that right now.* "
+                        f"**...mrr...**",
+                    ])
+                ),
+                "traumatized": random.choice([
+                    "*He looks at you. He looks at the floor. Something happened. "
+                    "He doesn't want to talk about it — he's not sure he can. "
+                    "He is just quieter than usual and keeping more distance than usual and "
+                    "he would like if everyone understood that he needs more time.* **...mrr...**",
+                    "*He doesn't answer. He looks sideways. Something left a mark and it hasn't faded yet. "
+                    "He's working on it.* **...mrr...**",
+                ]),
+                "anxious": random.choice([
+                    "*His ears move slightly. He doesn't know exactly what it is — something feels wrong "
+                    "or about to be wrong and he can't pinpoint the source. "
+                    "He keeps checking the room. He's been checking the room.* **...mrr?**",
+                    "*He makes a very small sound. Something has him unsettled. "
+                    "He can hear something or sense something or has a feeling he can't put down. "
+                    "He'd like it to stop.* **...mrr...**",
+                ]),
+                "wary": random.choice([
+                    "*He looks at you sideways. Something or someone put him on guard recently. "
+                    "He's not sure it's over. He's not going to relax until he's sure.* **...mrr.**",
+                    "*His posture hasn't fully dropped. Something got his attention and it hasn't resolved. "
+                    "He's watchful right now. He has reasons.* **...mrr.**",
+                ]),
+                "shaken": random.choice([
+                    "*He makes a low sound. Something startled him — recently, properly. "
+                    "His system hasn't come all the way back down yet. "
+                    "He's trying. He'd like to be left a little alone while he tries.* **...mrr...**",
+                    "*He holds still too long before answering. Something hit him hard and "
+                    "the feeling is still sitting on him. He'll work through it.* **...mrr...**",
+                ]),
+                "distressed": random.choice([
+                    "*His ears flatten slightly. Something overwhelmed him. "
+                    "He couldn't get away from it — sound, situation, confinement — and it left a mark. "
+                    "He's managing.* **...mrr...**",
+                    "*He makes a small, tight sound. He was stuck somewhere uncomfortable recently "
+                    "and the feeling of having no options lingers longer than the thing itself.* **...mrr...**",
+                ]),
+                "on edge": random.choice([
+                    "*He pauses. His ears haven't fully relaxed. Something loud or sudden happened and "
+                    "his body is still treating every sound like it might be that again. "
+                    "He knows it's over. He's just waiting for the rest of him to catch up.* **...mrr.**",
+                    "*He makes a low sound. Everything is loud right now. "
+                    "Or it feels loud. He's trying to come down from it.* **...mrr...**",
+                ]),
+                "alarmed": random.choice([
+                    "*He looks toward the door. Something changed and he noticed before anyone else did. "
+                    "He's on it. He's been on it. He would like someone else to also be on it.* **mrr! mrr!**",
+                    "*His ears are fully forward. He heard or sensed something. "
+                    "He is not overreacting. He would like that to be on record.* **mrr.**",
+                ]),
+                "cozy": random.choice([
+                    "*He blinks slowly. He's warm. His food is settled. The space is quiet. "
+                    "The people here are known. He has arranged himself comfortably. "
+                    "There is no further explanation.* **...prrr.**",
+                    "*He makes a small, contented sound and looks at where he is sitting. "
+                    "He chose this spot. It is a good spot. Everything is fine.* **prrr.**",
+                ]),
+                "peaceful": random.choice([
+                    "*He opens one eye. He closes it again. "
+                    "Nothing is happening. Nothing needs to happen. "
+                    "This is enough.* **...prrr...**",
+                    "*He makes a very small, satisfied sound. Everything is quiet. "
+                    "He is quiet. These two things are in agreement.* **...prrr...**",
+                ]),
+                "sluggish": random.choice([
+                    f"*He blinks very slowly. He's tired — tiredness at {_tired}/10. "
+                    f"His body is moving at its own speed right now and that speed is low. "
+                    f"He's not sick. He's just heavy.* **...mrr...**",
+                    f"*He lifts his head slightly. Sets it back down. "
+                    f"He needs to rest and he either has or hasn't yet and either way "
+                    f"he's not fully online. Tiredness {_tired}/10.* **...zz... mrr.**",
+                ]),
+                "unsettled": random.choice([
+                    "*His tail moves once, unevenly. He doesn't have a clean answer. "
+                    "Something is off — not wrong exactly, just not quite right. "
+                    "He's waiting for it to resolve.* **...mrr?**",
+                    "*He looks at you and then past you. Something ambient is bothering him. "
+                    "He doesn't know what. That's the part that bothers him.* **...mrr...**",
+                ]),
+                "wistful": random.choice([
+                    "*He is quiet for a moment. He looks at something that isn't there. "
+                    "He's thinking about something — or someone — or a feeling he has from long ago "
+                    "that he can't quite access but can't quite let go of either. "
+                    "He blinks. He comes back.* **...mrr...**",
+                    "*His eyes get that quality — distant, soft, looking at a memory instead of the room. "
+                    "He doesn't explain. He comes back when he's ready.* **...prrr...**",
+                ]),
+                "heavy": random.choice([
+                    "*He makes a low sound. He doesn't have a specific reason. "
+                    "Some things accumulate and don't announce themselves and "
+                    "one day the weight is just more than it was yesterday. "
+                    "He's managing.* **...mrr...**",
+                    "*He sits down and breathes. He's carrying something right now. "
+                    "He can't put it down yet. He's working on it.* **...mrr...**",
+                ]),
+            }
+            _reply_text = _mood_replies.get(_asked_mood)
+            if _reply_text:
+                if not _responded:
+                    await message.channel.send(_reply_text)
+                    _responded = True
+
     # --- BLESS YOU (after a sneeze) ---
+
     if not m["internal"]["is_sleeping"] and re.search(r"\bbless you\b|\bgesundheit\b|\bcok yasa\b", message.content.lower()):
         last_sneeze_str = m["internal"].get("last_sneeze_at")
         recent_sneeze = False
@@ -12214,7 +12352,7 @@ async def fbsetstandings_cmd(ctx):
 
         rows.append({
             "position": position,
-            "team": _normalize_tr_team(team),
+            "team": team,
             "matches": p,
             "wins": w,
             "draws": d,
@@ -12223,7 +12361,7 @@ async def fbsetstandings_cmd(ctx):
             "ga": ga,
             "gd": gd,
             "points": pts,
-            "is_fb": any(x in _normalize_tr_team(team).lower() for x in ("fenerbahçe", "fenerbahce", "fener")),
+            "is_fb": any(x in team.lower() for x in ("fenerbahce", "fenerbahce", "fb")),
         })
 
     if not rows:
@@ -16300,76 +16438,219 @@ async def blanket_cmd(ctx):
 
 
 @bot.command(name="medicine", aliases=["medicate", "med", "give_medicine", "pills", "pill", "medication"])
-async def medicine_cmd(ctx):
-    """Give Yarnaby medicine when he's sick or feverish."""
+async def medicine_cmd(ctx, *, food: str = ""):
+    """Give Yarnaby medicine — directly or hidden in food (!medicine treat)."""
     m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
     await _add_reactions(ctx, m)
+    food = food.strip()
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(
-            random.choice([
-                "*Yarnaby is asleep. He cannot respond right now.*",
-                "*He is sleeping. He will hear you when he wakes.*",
-                "*He is asleep. The words reach him as a distant murmur.*",
-            ])
-        )
-        return
-    temp = m["stats"].get("temperature", "warm")
-    health = m["stats"].get("health", 100)
-
-    # Can't give medicine while he's knocked out
-    if m["internal"].get("unconscious_until"):
-        await ctx.send(
-            random.choice([
-                "*He's completely out. The medicine sits beside him untouched. He can't take it like this.*",
-                "*Yarnaby is unconscious. He can't swallow anything right now. You'll have to wait.*",
-                "*He's not there to take it. You'll just have to wait with him.*",
-            ])
-        )
-        return
-
-    # Speeding up toxic recovery
+    # --- Toxic recovery fast-path (always runs first) ---
     recovering_str = m["internal"].get("recovering_from_toxic_until")
     if recovering_str:
         recovering_dt = datetime.strptime(recovering_str, "%Y-%m-%d %H:%M:%S")
         if datetime.now() < recovering_dt:
             m["internal"]["recovering_from_toxic_until"] = None
             m["stats"]["temperature"] = "warm"
-            m["stats"]["health"] = min(100, health + 20)
+            m["stats"]["health"] = min(100, m["stats"].get("health", 100) + 20)
             save_db(m)
-            await ctx.send(
-                random.choice([
-                    "*He takes the medicine without protest - which says everything about how he feels right now. He chews it slowly, blinking at the middle distance. Gradually, the glaze leaves his eyes. His ears find their proper angle. He lets out a very careful, very experimental **mrr**. Better. He is better. He doesn't want to speak yet. But better.*",
-                    "*Yarnaby takes the medicine from your hand with none of his usual dramatics. He swallows it. He sits very still for a moment. Then he blinks - one solid, clear blink - and the world steadies. He exhales slowly through his nose. He looks at you. He seems to want to say something. He settles for pressing his nose briefly to your hand instead.*",
-                    "*He opens his mouth immediately. Doesn't resist at all. Just takes it and holds himself perfectly still while it works. Slowly his tail uncurls. His paws stop trembling. He leans his head against the nearest warm thing and breathes. **prrr..** Almost there.*",
-                ])
-            )
+            await ctx.send(random.choice([
+                "*He takes the medicine without protest — which says everything about how he feels right now. "
+                "His eyes clear slowly. His breathing steadies. He presses his nose to your hand after.* **mrr.**",
+                "*He opens his mouth immediately. Swallows. Holds still. Then blinks once — clear, solid. Better.* **prrr.**",
+            ]))
             return
 
-    if temp == "warm" and health >= 90:
-        await ctx.send(
-            random.choice([
-                "*He's not sick. He sniffs the medicine and looks at you with suspicion. He doesn't take it. He is fine.*",
-                "*Yarnaby turns his face away from the medicine. He feels fine. He'd like you to acknowledge this.*",
-                "*He's healthy. He stares at the medicine. He stares at you. He very deliberately lies down with his back to it. He needs nothing.*",
-                "*A flat **mrrp**. He's not taking that. He's fine. He has decided he is fine. The matter is closed.*",
-            ])
-        )
+    # ====================================================
+    # PATH A: Hidden in food
+    # ====================================================
+    if food:
+        # Determine detection chance
+        if helpless:
+            detect = False  # force-fed, can't investigate
+        elif is_creator:
+            detect = False  # trusts them completely
+        elif sleeping:
+            detect = random.random() < 0.12   # almost no guard while asleep
+        elif score >= 7:
+            detect = random.random() < 0.25   # trusts you, less suspicious
+        elif score >= 2:
+            detect = random.random() < 0.42   # normal wariness
+        else:
+            detect = random.random() < 0.65   # suspicious of everything from you
+
+        if detect:
+            # He found it
+            await ctx.send(random.choice([
+                f"*He sniffs the **{food}**. He sniffs it again. He looks at you. He looks at the **{food}**. "
+                f"He takes one small, precise step backward. He is not eating that. "
+                f"He knows exactly what you did and he would like you to know that he knows.* **...HSS.**",
+                f"*He noses the **{food}** and then goes very still. His nostrils flare. "
+                f"He lifts his head slowly and looks at you with an expression of complete, exhausted betrayal. "
+                f"He walks away from the **{food}** and does not return.* **...mrr.**",
+                f"*The **{food}** gets a full investigative sniff. He identifies the problem immediately. "
+                f"He looks at you. He looks at the **{food}**. He sits down precisely where he is and stares at the wall. "
+                f"He is not saying anything. He doesn't need to.* **...mrr.**",
+            ]))
+            return
+
+        # He eats it — doesn't notice
+        health = m["stats"].get("health", 100)
+        m["stats"]["temperature"] = "warm"
+        m["stats"]["health"] = min(100, health + 25)
+
+        # Faint chance — only if he wasn't actually sick (body wasn't ready for it)
+        should_faint = health >= 75 and not helpless and random.random() < 0.32
+
+        if sleeping:
+            await ctx.send(random.choice([
+                f"*He eats the **{food}** in his sleep — a sleepy, automatic motion, barely conscious. "
+                f"He doesn't notice anything. He settles back deeper.* **...zz...mrr...**",
+                f"*He finds the **{food}** without waking. Eats it. Sighs once. Goes back under.* **...zz...**",
+            ]))
+        elif helpless:
+            await ctx.send(random.choice([
+                f"*He accepts the **{food}** because he cannot do otherwise. He chews. He swallows. "
+                f"He closes his eyes. He knew. He always knows. He ate it anyway because the alternative was worse.* **...mrr...**",
+                f"*He is given the **{food}** and he cannot refuse it. He takes it. His expression is completely flat. "
+                f"He has filed this under: things that happened.* **...mrr...**",
+            ]))
+        elif is_creator:
+            await ctx.send(random.choice([
+                f"*The Creator offers the **{food}**. He eats it without a second thought. "
+                f"He has exactly no suspicion when it comes to The Creator. "
+                f"His tail moves. He liked the **{food}**.* **prrr.**",
+                f"*He takes the **{food}** from The Creator and eats it happily. "
+                f"He will figure out later why his head feels heavy. "
+                f"Right now: **{food}**. Good.* **prrr. mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He eats the **{food}** without ceremony. It's good. He doesn't notice anything unusual. "
+                f"He licks his lips. He looks mildly pleased.* **mrr.**",
+                f"*He finishes the **{food}** and sits back. He blinks. He seems fine. "
+                f"He has no idea.* **...mrr.**",
+                f"*He accepted the **{food}** and ate the whole thing. He didn't taste the medicine. "
+                f"He's licking his paw now, satisfied.* **mrr.**",
+            ]))
+
+        if should_faint:
+            await ctx.send(random.choice([
+                "*He blinks. He blinks again. He sits down heavily, not quite choosing to. "
+                "His head droops. He tries to hold it up. He doesn't manage it. "
+                "He's out — quiet, heavy, all at once, like something cut a string.* **...mrr... *thud*.**",
+                "*Something changes in his eyes — the focus goes. He turns in a slow half-circle and then "
+                "simply sits down. His chin drops to his paws. His breathing deepens. He is completely under.* **...zz.**",
+                "*He wobbles. That's the only word for it. He stands in place, takes two unsteady steps, "
+                "and then lies down in exactly the wrong place at exactly the wrong angle. "
+                "He is asleep before he's finished lying down.* **...zz...**",
+            ]))
+            m["internal"]["helpless"] = True
+            m["internal"]["helpless_reason"] = "fainted from medication"
+            m["internal"]["helpless_by"] = u_id
+            m["internal"]["is_sleeping"] = True
+
+        save_db(m)
         return
 
+    # ====================================================
+    # PATH B: Direct medicine (no food)
+    # ====================================================
+
+    # --- SLEEP ---
+    if sleeping:
+        await ctx.send(random.choice([
+            "*He is asleep. You can't give it to him like this — he needs to be awake to swallow.*",
+            "*He's completely under. The medicine will have to wait. Unless you hide it in something.* "
+            "*(Try `!medicine [food]` to hide it.)*",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        health = m["stats"].get("health", 100)
+        m["stats"]["temperature"] = "warm"
+        m["stats"]["health"] = min(100, health + 30)
+        save_db(m)
+        await ctx.send(random.choice([
+            "*He can't pull away. He takes the medicine because he has no other option. "
+            "He keeps his eyes open and on you the entire time. He will not look away. "
+            "He doesn't make a sound.* **...mrr.**",
+            "*He opens his mouth. Not because he wants to — because there is no alternative. "
+            "He swallows. He blinks once. His expression doesn't change. He's filing this away carefully.* **...mrr.**",
+        ]))
+        return
+
+    # --- UNCONSCIOUS (existing mechanic) ---
+    if m["internal"].get("unconscious_until"):
+        await ctx.send(random.choice([
+            "*He's completely out. The medicine sits beside him untouched. He can't take it like this.*",
+            "*Yarnaby is unconscious. You'll have to wait — or try hiding it in food when he wakes.*",
+        ]))
+        return
+
+    temp = m["stats"].get("temperature", "warm")
+    health = m["stats"].get("health", 100)
+
+    # Not actually sick
+    if temp == "warm" and health >= 90:
+        if is_creator:
+            # Creator can make him take it even healthy
+            m["stats"]["health"] = min(100, health + 5)
+            save_db(m)
+            await ctx.send(random.choice([
+                "*He looks at the medicine. He looks at The Creator. He takes it. "
+                "He doesn't know why The Creator wants him to take it, but he trusts them. "
+                "He chews it slowly. He is fine. He will be fine.* **...mrr.**",
+                "*The Creator offers it. He opens his mouth with the energy of someone who has considered "
+                "objecting and decided against it. He takes it. He is not sick. He took it anyway.* **mrr.**",
+            ]))
+        elif score >= 6:
+            await ctx.send(random.choice([
+                "*He's not sick, and he wants you to know that. He backs away from the medicine with the slow, "
+                "deliberate energy of someone communicating volumes through movement. "
+                "He is fine. He is demonstrably fine. He does not need that.* **...mrr. no.**",
+                "*He looks at the medicine and then at you with an expression that says: "
+                "he appreciates the concern, he does, but absolutely not.* **mrr. no.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He's not sick. He sniffs the medicine and looks at you with suspicion. "
+                "He does not take it. He is fine. He would like the medicine removed from his eyeline.* **...mrr.**",
+                "*He turns his face away. He is fine. He has decided he is fine. The matter is closed.* **mrr.**",
+            ]))
+        return
+
+    # He's sick — give him medicine
     m["stats"]["temperature"] = "warm"
     m["stats"]["health"] = min(100, health + 30)
     save_db(m)
-    await ctx.send(
-        random.choice([
-            "*He doesn't want it. He really doesn't want it. He takes it anyway - making prolonged eye contact to register his protest - and then immediately hides under something. After a while he comes back out, slightly better, still offended.*",
-            "*Yarnaby accepts the medicine with the expression of someone being deeply wronged. He chews it. He swallows it. He stares at the floor for three whole seconds of silent accusation. Then his ears relax. His breathing evens out.*",
-            "*He opens his mouth. He closes it. He opens it again. He takes it. He shakes himself all over like he's trying to dislodge the taste. But his eyes are a little brighter.*",
-            "*He takes it from your hand and chews it with a very small, very resigned sigh. He shudders once. He swallows. He blinks rapidly for a few seconds and then - reluctantly - his wool lies a little flatter and his breathing settles.*",
-            "*A prolonged stare at the medicine. A prolonged stare at you. Then he opens his mouth with the theatrical suffering of a creature who is very sick and very offended about it. He takes it. He hates that it helps.*",
-            "*He makes the face. You know the face. He makes it for a full three seconds before accepting the medicine. It dissolves. His temperature drops. He looks marginally less like a small, miserable fireball. He looks slightly more like himself. **mrr.***",
-        ])
-    )
+
+    if is_creator:
+        await ctx.send(random.choice([
+            "*He opens his mouth when The Creator reaches for him. No dramatics. "
+            "He trusts them completely and his body knows it. He swallows. His temperature starts to drop. "
+            "He presses close after.* **...prrr.**",
+            "*He takes it from The Creator without being asked twice. "
+            "He is sick and The Creator is here and that's enough.* **...prrr. mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He doesn't want it. He really doesn't want it. He takes it anyway — "
+            "making prolonged eye contact to register his protest — and then immediately hides under something. "
+            "After a while he comes back, slightly better, still offended.* **mrr.**",
+            "*Yarnaby accepts the medicine with the expression of someone being deeply wronged. "
+            "He chews it. He swallows it. He stares at the floor for three whole seconds. "
+            "Then his ears relax. His breathing evens out.* **mrr.**",
+            "*He opens his mouth. He closes it. He opens it again. He takes it. "
+            "He shakes himself all over. But his eyes are a little brighter.* **mrr.**",
+            "*He takes it from your hand and chews it with a very small, very resigned sigh. "
+            "He shudders once. He swallows. His wool lies flatter. His breathing settles.* **mrr.**",
+        ]))
 
 
 @bot.command(name="soup", aliases=["broth", "warm_soup", "give_soup", "chicken_soup"])
@@ -29526,16 +29807,34 @@ async def mirror_cmd(ctx):
     """Yarnaby encounters his own reflection."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
     await _add_reactions(ctx, m)
 
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(
-            random.choice([
-                "*Yarnaby is asleep. He doesn't stir.*",
-                "*He is deeply asleep. His wool rises and falls slowly.*",
-                "*He doesn't respond. He's somewhere far away in sleep.*",
-            ])
-        )
+    # --- SLEEP ---
+    if sleeping:
+        await ctx.send(random.choice([
+            "*You hold the mirror in front of him while he sleeps. His nose twitches once. "
+            "His ear rotates toward the glass. One eye slits open, registers his own reflection, "
+            "and closes again. He will think about this later.* **...zz.**",
+            "*He is asleep. The mirror reflects a small, curled creature. He doesn't stir. "
+            "The other Yarnaby in the glass doesn't stir either.* **...zz.**",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            "*You hold the mirror in front of him and he cannot look away. "
+            "He stares at his own reflection. It stares back. "
+            "Something moves behind his eyes — something old and unsettled. "
+            "He makes a small, involuntary sound.* **...mrr?**",
+            "*He is forced to look at himself. He looks for longer than he'd choose to. "
+            "The other Yarnaby in the glass looks just as trapped. "
+            "He does not find this comforting.* **...mrr...**",
+        ]))
         return
 
     stage = m["internal"].get("mirror_stage", 0)
@@ -29545,7 +29844,8 @@ async def mirror_cmd(ctx):
     if stage == 0:
         await ctx.send(
             "*Yarnaby sees something in the mirror. He freezes. His ears go fully forward. "
-            "He leans closer. There is another Yarnaby in there. He does not know what to do with this information.* **...mrr?**"
+            "He leans closer. There is another Yarnaby in there. "
+            "He does not know what to do with this information.* **...mrr?**"
         )
     elif stage == 1:
         await ctx.send(
@@ -29559,23 +29859,38 @@ async def mirror_cmd(ctx):
             "He presses his nose against the glass. He does not understand why it smells like nothing.* **mrr?**"
         )
     elif stage == 3:
-        await ctx.send(
-            "*He sits in front of the mirror for a while. He looks at himself. He looks for a long time. "
-            "Something passes behind his glass eyes - something like recognition, or something like a question "
-            "he doesn't have words for. He blinks. He walks away.* **...mrr...**"
-        )
+        if score >= 5:
+            await ctx.send(
+                "*He sits in front of the mirror for a while. He looks at himself. He looks for a long time. "
+                "Something passes behind his glass eyes — recognition, or a question he doesn't have words for. "
+                "He blinks. He glances at you. He walks away.* **...mrr...**"
+            )
+        else:
+            await ctx.send(
+                "*He sits in front of the mirror and stares at himself for an uncomfortably long time. "
+                "His tail lashes once. He gets up and leaves.* **...mrr.**"
+            )
     else:
         if is_doctor:
             await ctx.send(
                 "*He walks past the mirror and glances at it. He stops. He looks at The Creator's reflection. "
-                "He looks at his own. He looks at The Creator's again. He pads away, satisfied with something "
-                "he cannot explain.* **...prrr...**"
+                "He looks at his own. He looks at The Creator's again. "
+                "He pads away, satisfied with something he cannot explain.* **...prrr...**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                "*He catches his own eye in the mirror and pauses. He blinks at his reflection — "
+                "the slow, deliberate kind. Then he glances at you sideways, as if checking you saw that.* **...mrr.**"
+            )
+        elif score >= 2:
+            await ctx.send(
+                "*He passes the mirror and catches his own eye. He stops. Holds his gaze for a moment. "
+                "Then he blinks slowly at his own reflection and walks on.* **...mrr...**"
             )
         else:
             await ctx.send(
-                "*He passes the mirror and catches his own eye. He stops. He holds his own gaze for a moment. "
-                "Then he blinks slowly at his own reflection - the way he blinks at someone he trusts - "
-                "and walks on.* **...mrr...**"
+                "*He sees himself in the mirror and hisses. He hisses at his own reflection. "
+                "He hisses again for good measure. He does not understand why it keeps doing that back.* **HSS. HSS.**"
             )
 
 
@@ -30159,20 +30474,16 @@ async def mood_history_cmd(ctx):
 @bot.command(name="weigh", aliases=["weight", "howmuchdoheweigh", "yarnyweight", "checkweight"])
 async def weigh_cmd(ctx):
     m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
     await _add_reactions(ctx, m)
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(random.choice([
-            "*He is asleep. He does not respond.* **...zz.**",
-            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
-            "*A faint snore. He is not available.* **...zz.**",
-            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
-            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
-        ]))
-        return
+
     hunger = m["stats"].get("hunger", 0)
     base_kg = 4.2
-    weight = base_kg + (hunger * 0.05)
-    weight = round(weight, 2)
+    weight = round(base_kg + (hunger * 0.05), 2)
     if weight < 3.5:
         desc = "He is on the lighter side. He could use a good meal."
     elif weight < 4.5:
@@ -30181,7 +30492,61 @@ async def weigh_cmd(ctx):
         desc = "He is comfortably well-fed. He has been eating well."
     else:
         desc = "He is generously proportioned. He does not acknowledge this."
-    await ctx.send(f"*Yarnaby steps onto the scale with great reluctance. The reading settles at **{weight} kg**. {desc}* **mrr.**")
+
+    # --- SLEEP: you can sneak a weigh-in ---
+    if sleeping:
+        await ctx.send(random.choice([
+            f"*He is completely asleep. You slide the scale under him very carefully. "
+            f"He shifts once, sighs, resettles. The reading holds at **{weight} kg**. {desc} "
+            f"He has no idea this happened.* **...zz.**",
+            f"*You manage it while he\'s out — the scale, the reading, the whole thing. "
+            f"**{weight} kg**. {desc} He stirs briefly, ear rotating toward you, then goes back under.* **...zz.**",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            f"*He cannot step off the scale. He is on it and he is staying on it whether he likes it or not. "
+            f"**{weight} kg**. {desc} He makes his feelings about this completely audible.* **MRROW. mrr. mrr.**",
+            f"*He is entirely unable to leave the scale and he wants everyone to know it. "
+            f"The reading says **{weight} kg**. {desc} He is not pleased.* **...MRROW...**",
+        ]))
+        return
+
+    # --- CREATOR ---
+    if is_creator:
+        await ctx.send(random.choice([
+            f"*He looks at the scale. He looks at The Creator. He steps onto it with the energy of someone "
+            f"performing a very small, very dignified sacrifice. **{weight} kg**. {desc} "
+            f"He steps off immediately and sits down as if nothing happened.* **...mrr.**",
+            f"*The Creator is asking. He steps on. He looks away. He is choosing not to acknowledge the number. "
+            f"**{weight} kg**. {desc}* **mrr.**",
+        ]))
+        return
+
+    # --- SCORE TIERS ---
+    if score >= 6:
+        await ctx.send(random.choice([
+            f"*He protests. He protests at length. He then steps onto the scale anyway because it\'s you. "
+            f"**{weight} kg**. {desc} He steps off and immediately looks somewhere else.* **...mrr. fine.**",
+            f"*He objects clearly and then cooperates with visible suffering. "
+            f"**{weight} kg**. {desc} He would like a treat for this.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(random.choice([
+            f"*He looks at the scale and then at you. He sits down next to it instead of on it. "
+            f"He is not stepping on that. He is not doing it. He is just sitting here.* **...mrr. no.**",
+            f"*He identifies the scale and immediately moves away from it. "
+            f"He sits down at a safe distance.* **mrr. no.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*He sees the scale and he\'s gone. He was here and then the scale appeared and now he isn\'t. "
+            f"There is fur where he was sitting.* **MRROW.**",
+            f"*He is not going near that. He will sit across the room and he will watch it "
+            f"but he will not go near it and he will not be weighed.* **HSS.**",
+        ]))
 
 
 # !temperature — check his body temperature
@@ -36037,6 +36402,21 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
         return
 
     entry = _pending_creator_requests.pop(req_id)
+
+    # --- Extract command name from request text and set creator_proxy ---
+    # Looks for patterns like "!cut_nails", "cut_nails", "!bad_kitty", etc.
+    req_text = entry.get("request", "")
+    _cmd_match = re.search(r"!?([a-z_]+(?:child)?)", req_text, re.IGNORECASE)
+    granted_command = _cmd_match.group(1).lower() if _cmd_match else ""
+    m_db = bot.db
+    m_db["internal"]["creator_proxy"] = {
+        "user_id": str(entry["user_id"]),
+        "command": granted_command,
+        "granted_for": req_text,
+        "granted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    save_db(m_db)
+
     user = bot.get_user(entry["user_id"])
     if not user:
         try:
@@ -36045,6 +36425,7 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
             user = None
     if user:
         try:
+            cmd_hint = f" (`!{granted_command}`)" if granted_command else ""
             await user.send(
                 f"*Yarnaby trots back over to you with something in his mouth. He drops it at your feet and sits.*\n\n"
                 f"The Creator has reviewed your request:\n"
@@ -36052,7 +36433,8 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
                 f"{entry['request']}\n"
                 f"----------------------------\n"
                 f"✅ **Allowed.** The Creator said yes.\n\n"
-                f"*He blinks once, then pads away.* **mrr.**"
+                f"*He looks at you directly. He holds the permission out like something with weight. "
+                f"Use it{cmd_hint}. Once. He will know.* **mrr.**"
             )
         except Exception:
             pass
@@ -37584,6 +37966,20 @@ async def thunderstorm_cmd(ctx):
         )
         return
 
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*Thunder cracks and he cannot run from it. He is exactly where he is — "
+            "on the floor, nowhere to hide — and the lightning comes and the sound comes and "
+            "his ears are completely flat and his whole body is pressed down as small as it can go. "
+            "He makes a sound he would never make standing up.* **...mrr...**",
+            "*The storm is here and he cannot get away from it. He presses himself down and holds still "
+            "and the sound of thunder washes over him and there is nothing he can do about it. "
+            "His tail is wrapped tight around himself. He is shaking slightly.* **...mrr...**",
+        ]))
+        m["stats"]["mood"] = "Distressed"
+        save_db(m)
+        return
+
     await ctx.send("*Rain hits the factory windows. Then more rain. Then — flash.*")
     await asyncio.sleep(2)
     await ctx.send("**BOOM.**")
@@ -37834,7 +38230,19 @@ async def alarm_cmd(ctx):
         m["internal"]["sleep_until"] = None
         m["internal"]["doctor_sleeping_together"] = False
         save_db(m)
-        # He was asleep but the alarm wakes him — fall through
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*BEEP. BEEP. BEEP. The alarm goes off and he cannot move away from it. "
+            "He cannot cover his ears. He cannot flee. He goes completely rigid — "
+            "every muscle locked — and waits for it to stop. His eyes are huge.* **...**",
+            "*The alarm blares and he is stuck exactly where he is. He presses himself flat. "
+            "His ears fold back as far as they go. He makes no sound because making sound on top of "
+            "this sound is incomprehensible to him. He just holds still and waits.* **...**",
+        ]))
+        m["stats"]["mood"] = "On Edge"
+        save_db(m)
+        return
 
     await ctx.send("*BEEP. BEEP. BEEP. Something triggered the emergency alarm.*")
     await asyncio.sleep(1)
@@ -46985,6 +47393,504 @@ async def pay_ransom_cmd(ctx, *, terms: str = ""):
             f"He gets up and he goes directly to The Creator and doesn't explain why. "
             f"He doesn't leave The Creator's side for a while.* **...prrr.**"
         )
+
+
+# ==========================================
+# _check_creator_proxy — one-time Creator-level grant for a specific user+command
+# ==========================================
+
+def _check_creator_proxy(ctx, m, command_name: str) -> bool:
+    """
+    Returns True if the caller has a valid creator_proxy for this command (and consumes it).
+    A proxy with command="" matches any command.
+    """
+    proxy = m["internal"].get("creator_proxy", {})
+    if not proxy:
+        return False
+    uid_match = proxy.get("user_id") == str(ctx.author.id)
+    cmd_match = proxy.get("command", "").lower() in ("", command_name.lower())
+    if uid_match and cmd_match:
+        m["internal"].pop("creator_proxy", None)
+        save_db(m)
+        return True
+    return False
+
+
+# ==========================================
+# !cut_nails — he refuses. He always refuses.
+# ==========================================
+
+@bot.command(name="cut_nails", aliases=["clipnails", "trimclaws", "clipclaws", "nailclip",
+                                        "clawclip", "cutnails", "trimhisclaws", "cliphisclaws"])
+async def cut_nails_cmd(ctx):
+    """Attempt to cut/trim his claws. He hates this."""
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    has_proxy = _check_creator_proxy(ctx, m, "cut_nails")
+    bad_kitty = m["internal"].get("bad_kitty_threatened", {})
+    has_threat = bad_kitty.get("user_id") == u_id and bool(bad_kitty)
+    await _add_reactions(ctx, m)
+
+    # --- SLEEP ---
+    if sleeping:
+        await ctx.send(random.choice([
+            "*You approach with the clippers while he's completely out. You get close — very close — "
+            "and then one ear rotates toward you like a satellite dish. One eye slits open. "
+            "He stares at the clippers. He is gone. He is under the couch before you can process that "
+            "he moved.* **...mrr. NO.**",
+            "*He is asleep. You are quiet. You are so close. His paw twitches. "
+            "Then the clippers make the tiniest sound and he wakes up fully, completely, "
+            "and immediately, and he is already three feet away.* **NO. MRROW. NO.**",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            "*He cannot move. He knows he cannot move. He is staring at the clippers with the expression "
+            "of someone watching an oncoming train. He starts making a sound. It is continuous. "
+            "It is not a word. It is the sound of someone communicating their feelings without words "
+            "because words are insufficient.* **MRRROW. MRRROW. MRRROW.**",
+            "*He is completely helpless and you have the clippers and he is — fine. He's fine. "
+            "He is making a noise that he has never made before. His ears are as flat as ears can be. "
+            "He cannot escape. He knows this. He is going to be very loud about it.* **HSSS. MRROW. HSS.**",
+        ]))
+        return
+
+    # --- CREATOR ---
+    if is_creator or has_proxy:
+        await ctx.send(random.choice([
+            "*He looks at the clippers. He looks at The Creator. He looks at the clippers again. "
+            "He makes a sound that is somewhere between a complaint and a surrender. "
+            "He holds out one paw. It is shaking slightly. Not from fear — from feelings. "
+            "He holds still. He does not like this. He is doing it anyway.* **...mrr. fine. FINE.**",
+            "*He backs up. He backs up again. The Creator follows. He runs out of wall. "
+            "He sits down and stares at the ceiling and holds out a paw with the energy of someone "
+            "giving up something precious. He is holding perfectly still. He is also making a very "
+            "quiet continuous sound of protest that he cannot seem to stop.* **...mmmmrr...**",
+            "*He gives The Creator a look that communicates exactly how he feels about this. "
+            "Then he gives in. He always gives in. He curls up, presents one paw, and closes his eyes. "
+            "His tail is lashing but the rest of him is still.* **...mrr. okay. mrr.**",
+        ]))
+        return
+
+    # --- BAD KITTY THREATENED ---
+    if has_threat:
+        m["internal"].pop("bad_kitty_threatened", None)
+        save_db(m)
+        await ctx.send(random.choice([
+            "*He looks at you. He looks at the clippers. He looks at wherever the plushie ended up. "
+            "Something moves behind his eyes. He holds out one paw very slowly. "
+            "His ears are completely flat. He is holding still because he has decided to, "
+            "and you should know that, and he will not forget any of this.* **...mrr. fine.**",
+            "*He thinks about it. He thinks about the plushie. He presents his paw. "
+            "He does not make a sound. His tail is lashing hard enough to make noise on the floor "
+            "but he holds still. He does it because he chooses to. That distinction matters to him.* **...**",
+        ]))
+        return
+
+    # --- SCORE TIERS ---
+    if score >= 6:
+        await ctx.send(random.choice([
+            f"*He backs away. He is backing away and making a sound. He looks at you with the specific "
+            f"expression of someone who trusts you very much and is choosing to deploy that trust "
+            f"in this moment extremely reluctantly. He holds still. He puts out one paw. "
+            f"He is making a continuous small complaint sound. He is doing it anyway.* **...mrr. fine. mrr.**",
+            f"*He hates this. He hates every part of this. He trusts you enough that he hates it "
+            f"quietly instead of explosively. He extends one paw and stares at the wall and allows it. "
+            f"His ears are flat. He is thinking about this later.* **...mrrr...**",
+        ]))
+    elif score >= 2:
+        await ctx.send(random.choice([
+            "*He sees the clippers and he is immediately elsewhere. Not running — just, somehow, "
+            "no longer where the clippers are. He looks at you from a safe distance. "
+            "He is not coming back over here. He is going to sit here until the clippers are gone.* **...mrr. no.**",
+            "*He backs up. Flat stare. The clippers are noted. He is not participating. "
+            "He sits down at maximum distance and waits for this to be over.* **mrr. no. mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He is gone. He saw the clippers and he was immediately gone. "
+            "There is a small cloud of fur where he was sitting.* **MRROW. HSSSS.**",
+            "*He hisses at the clippers. Not at you — at the clippers specifically. "
+            "Then he hisses at you for holding them. Then he's under the furniture "
+            "and his eyes are visible in the dark and he is not coming out.* **HSSSS. NO. HSSSS.**",
+        ]))
+
+
+# ==========================================
+# !bad_kitty — abuse a cat plushie as a threat to get compliance
+# ==========================================
+
+_BAD_KITTY_ACTIONS = {
+    "slap":   ("slaps", "The plushie's head rocks sideways."),
+    "throw":  ("throws", "It hits the wall and drops."),
+    "kick":   ("kicks", "It skids across the floor."),
+    "squeeze":("squeezes", "The stuffing compresses audibly."),
+    "bite":   ("bites", "Teeth sink into the plushie's neck."),
+    "shake":  ("shakes", "The plushie rattles back and forth."),
+    "toss":   ("tosses", "It spins through the air and lands hard."),
+    "stomp":  ("stomps on", "The plushie flattens under a foot."),
+    "yeet":   ("yeets", "It sails across the room."),
+    "spin":   ("spins", "It whirls in the air before slamming down."),
+    "drop":   ("drops", "It hits the floor with a dull thump."),
+    "dangle": ("dangles", "It hangs by one ear, helplessly."),
+}
+
+@bot.command(name="bad_kitty", aliases=["badkitty", "plushiethreaten", "kittyplushie",
+                                         "punishplushie", "plushiepunish", "badk"])
+async def bad_kitty_cmd(ctx, *, action: str = ""):
+    """Take the cat plushie and make it suffer. He watches. He will comply."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    sleeping = m["internal"].get("is_sleeping", False)
+    await _add_reactions(ctx, m)
+
+    action = action.strip().lower()
+    # match to known action or pick random
+    matched = None
+    for key in _BAD_KITTY_ACTIONS:
+        if key in action:
+            matched = key
+            break
+    if not matched:
+        matched = random.choice(list(_BAD_KITTY_ACTIONS.keys()))
+
+    verb, aftermath = _BAD_KITTY_ACTIONS[matched]
+
+    # --- SLEEP ---
+    if sleeping:
+        await ctx.send(
+            f"*You pick up the little plushie cat and {verb} it. {aftermath} "
+            f"He stirs from somewhere deep in sleep — not awake, not asleep. "
+            f"A sound comes out of him that is mostly instinct. One paw moves toward "
+            f"nothing in particular. He does not wake up fully. But something registers.* **...mrr...**"
+        )
+        # still sets the flag — even half-asleep, the threat lands
+        m["internal"]["bad_kitty_threatened"] = {"user_id": u_id}
+        save_db(m)
+        return
+
+    # --- Active response ---
+    await ctx.send(random.choice([
+        f"*You pick up the small cat plushie. You make it struggle — little paws waving, "
+        f"making it look like it's fighting back. Then you {verb} it. {aftermath}\n\n"
+        f"He watches. His ears go flat. His tail stops moving. "
+        f"He watches the plushie and then he looks at you and the message is received "
+        f"and understood and filed. His jaw is tight.\n\n"
+        f"He will comply with whatever you ask next. "
+        f"He wants you to know that he is choosing to comply. "
+        f"That distinction matters to him and he will not let you forget it.* **...mrr.**",
+
+        f"*The plushie's little legs kick as you hold it up. You make it flail — "
+        f"a perfect tiny impression of something helpless — and then you {verb} it. {aftermath}\n\n"
+        f"He goes very still. He watches from where he is sitting. "
+        f"His eyes track the plushie and then track back to you. "
+        f"He understands what this is. He is not going to pretend he doesn't.\n\n"
+        f"*Fine.* He will do the next thing you ask. "
+        f"He is doing it because he has decided to. Not because you made him. "
+        f"He will maintain that position forever.* **...mrr. fine.**",
+
+        f"*You hold up the plushie. You make it resist — tiny, futile, perfect. "
+        f"Then you {verb} it. {aftermath}\n\n"
+        f"Something in his face goes very flat and very quiet. "
+        f"He has looked at the plushie and looked at you and done the math. "
+        f"He will cooperate with whatever comes next.\n\n"
+        f"He would like it noted that he is cooperating voluntarily.* **...hff...**",
+    ]))
+
+    m["internal"]["bad_kitty_threatened"] = {"user_id": u_id}
+    save_db(m)
+
+
+# ==========================================
+# !collar — try to put a collar on him
+# ==========================================
+
+@bot.command(name="collar", aliases=["putcollar", "addcollar", "collarcat", "neckcollar", "collaronyarn"])
+async def collar_cmd(ctx):
+    """Attempt to put a collar on Yarnaby."""
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    bad_kitty = m["internal"].get("bad_kitty_threatened", {})
+    has_threat = bad_kitty.get("user_id") == u_id and bool(bad_kitty)
+    has_proxy = _check_creator_proxy(ctx, m, "collar")
+    await _add_reactions(ctx, m)
+
+    # --- SLEEP: sneaky success ---
+    if sleeping:
+        await ctx.send(random.choice([
+            "*He is completely asleep. You approach very carefully. The collar goes on without a sound. "
+            "He shifts slightly — one ear rotates — and resettles. He has no idea. "
+            "He is going to have a very interesting morning.* **...zz.**",
+            "*He is out cold. You manage to get the collar on. He twitches once, sighs, "
+            "and sinks back into sleep. He will find this later. He will have opinions about it.* **...zz.**",
+        ]))
+        m["internal"]["has_collar"] = True
+        save_db(m)
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            "*He cannot stop you. The collar goes on. He makes a sound — low, continuous, "
+            "somewhere between a hiss and a word — and holds completely still. "
+            "He is wearing a collar. He would like everyone to know he did not agree to this.* **...HSS...**",
+            "*He cannot move away. He watches the collar approach and makes his feelings clear at volume "
+            "but he cannot do anything about it. It clicks into place. He is not okay with this. "
+            "He would like the record to reflect that.* **MRROW. ...mrr.**",
+        ]))
+        m["internal"]["has_collar"] = True
+        save_db(m)
+        return
+
+    # --- CREATOR / PROXY ---
+    if is_creator or has_proxy:
+        await ctx.send(random.choice([
+            "*He backs up. He backs up again. The Creator follows. He runs out of room. "
+            "He sits very still and holds his chin very high and allows the collar to be put on. "
+            "He looks like someone enduring something. He is enduring something.* **...mrr. fine.**",
+            "*He does not like this. He is communicating that he does not like this. "
+            "He sits down anyway and permits it because it's The Creator and he trusts them "
+            "even when he disagrees with them. The collar goes on. He immediately looks somewhere else.* **...mrr.**",
+        ]))
+        m["internal"]["has_collar"] = True
+        save_db(m)
+        return
+
+    # --- BAD KITTY THREATENED ---
+    if has_threat:
+        m["internal"].pop("bad_kitty_threatened", None)
+        await ctx.send(random.choice([
+            "*He thinks about the plushie. He holds out his chin, very slowly, "
+            "with the energy of someone making a decision they will be revisiting later. "
+            "The collar goes on. He sits back and stares at the wall. "
+            "He is wearing it. He is not happy about it. He did it voluntarily.* **...mrr.**",
+            "*He remembers what happened to the plushie. He tips his chin up. "
+            "The collar clicks on. He holds very still. His tail lashes once. "
+            "That's all.* **...mrr. fine.**",
+        ]))
+        m["internal"]["has_collar"] = True
+        save_db(m)
+        return
+
+    # --- SCORE TIERS ---
+    if score >= 6:
+        await ctx.send(random.choice([
+            "*He backs away. He makes a sound. He backs away more. He runs out of backing space "
+            "and looks at you and makes another sound. Then, very reluctantly, because it's you, "
+            "he tips his chin up and holds still. His eyes are closed. He hates this. "
+            "He is letting you do it anyway.* **...mrr. fine. mrr.**",
+            "*He trusts you enough to endure this. That's the only reason. He tips his chin. "
+            "He makes a continuous small complaint noise the entire time. The collar goes on. "
+            "He immediately shakes his head three times. It stays.* **...mrrr...**",
+        ]))
+        m["internal"]["has_collar"] = True
+        save_db(m)
+    elif score >= 2:
+        await ctx.send(random.choice([
+            "*He sees the collar and takes three decisive steps back. He sits down. "
+            "He is not coming over here. The collar can stay over there.* **mrr. no.**",
+            "*He identifies the collar immediately and backs away from it at a measured pace. "
+            "He sits at maximum distance. He looks at you. He looks at the collar. "
+            "He is not doing that.* **...mrr. no.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He was sitting there and now he isn't. The collar is still here. "
+            "He is somewhere in the walls probably.* **MRROW. HSSSS.**",
+            "*He hissed at the collar specifically before leaving. Not at you — at the collar. "
+            "Then he left. He is gone. Good luck.* **HSSSS.**",
+        ]))
+
+
+# ==========================================
+# !leash — try to walk him on a leash
+# ==========================================
+
+@bot.command(name="leash", aliases=["putleash", "walkonleash", "leashcat", "harness", "walkharness"])
+async def leash_cmd(ctx):
+    """Attempt to put a leash on Yarnaby and go for a walk."""
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    bad_kitty = m["internal"].get("bad_kitty_threatened", {})
+    has_threat = bad_kitty.get("user_id") == u_id and bool(bad_kitty)
+    has_proxy = _check_creator_proxy(ctx, m, "leash")
+    has_collar = m["internal"].get("has_collar", False)
+    await _add_reactions(ctx, m)
+
+    # --- SLEEP ---
+    if sleeping:
+        await ctx.send(random.choice([
+            "*He is asleep. You clip the leash on. He doesn't stir. "
+            "You tug it very gently. He rolls over toward the tug and resettles, eyes still closed. "
+            "He is going nowhere. He is comfortable.* **...zz.**",
+            "*He's completely out. The leash goes on without resistance. "
+            "He takes one slow step in his sleep — following the pull like a dream — "
+            "and then stops and sinks back down.* **...zz. mrr...**",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            "*The leash clips on and he cannot remove it. He looks at it. He looks at you. "
+            "He makes a sound that is mostly dignity and mostly fury and entirely helpless. "
+            "The leash is on. He is on the leash.* **...MRROW...**",
+            "*He is wearing the leash and he cannot do anything about it. He goes very still. "
+            "This stillness is not calm. This stillness is the specific stillness of someone "
+            "deciding exactly what they will do when they are able to move again.* **...mrr...**",
+        ]))
+        return
+
+    # --- CREATOR / PROXY ---
+    if is_creator or has_proxy:
+        collar_note = "" if has_collar else " He would like it noted that this is going on over bare neck."
+        await ctx.send(random.choice([
+            f"*He looks at the leash with the slow, dignified horror of someone who knows exactly "
+            f"what this is and has decided to allow it anyway.{collar_note} "
+            f"He lets it be attached. He then sits down very deliberately, "
+            f"communicating that the walk will happen on his schedule.* **...mrr.**",
+            f"*The Creator has the leash. He presents himself for it — not happily, "
+            f"but completely.{collar_note} The leash goes on. He will walk. "
+            f"He will choose the route. These are his terms.* **...mrr. fine.**",
+        ]))
+        return
+
+    # --- BAD KITTY THREATENED ---
+    if has_threat:
+        m["internal"].pop("bad_kitty_threatened", None)
+        save_db(m)
+        await ctx.send(random.choice([
+            "*He remembers. He holds still. The leash clips on. "
+            "He sits there with it attached and stares forward and breathes. "
+            "He will walk. He is choosing to walk. That is the version of this he is keeping.* **...mrr.**",
+        ]))
+        return
+
+    # --- SCORE TIERS ---
+    if score >= 6:
+        await ctx.send(random.choice([
+            "*He sees the leash and sits down and looks at you and sighs with his whole body. "
+            "He extends himself toward you anyway because it's you and he trusts you even when "
+            "you are doing this to him. The leash clips on. He stands. He picks the direction.* **...mrr. fine.**",
+            "*He doesn't run. He just looks at the leash for a long moment and then looks at you "
+            "and decides. He turns so the clip is accessible. He would like this to be quick.* **...mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(random.choice([
+            "*He looks at the leash and walks away from it at a calm, measured pace. "
+            "He sits down in a different location. He is very busy over here.* **mrr.**",
+            "*He identifies the leash. He identifies the exit. He doesn't run — he walks, "
+            "with complete dignity, to a different part of the room. He is not available.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He screams at the leash. Not dramatically — genuinely. He hisses, screams, "
+            "and leaves the vicinity. He is not doing that. He will never do that.* **MRROW. HSSSS.**",
+            "*He saw the leash and made a sound and left. He's somewhere else. "
+            "The leash can stay here. He is not coming back until it's gone.* **HSSSS.**",
+        ]))
+
+
+# ==========================================
+# !doorbell — ring the doorbell
+# ==========================================
+
+@bot.command(name="doorbell", aliases=["ringbell", "ringdoorbell", "ding", "ringring", "someoneatdoor"])
+async def doorbell_cmd(ctx):
+    """Ring the doorbell. He will have opinions."""
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    await _add_reactions(ctx, m)
+
+    await ctx.send("*— DING DONG. —*")
+    await asyncio.sleep(1)
+
+    # --- SLEEP ---
+    if sleeping:
+        m["internal"]["is_sleeping"] = False
+        m["internal"]["sleep_until"] = None
+        m["internal"]["doctor_sleeping_together"] = False
+        save_db(m)
+        await ctx.send(random.choice([
+            "*His eyes snap open. His ears are up before the rest of him knows he's awake. "
+            "He is on his feet. He is staring at the door. He does not know who rang. "
+            "He intends to find out.* **MRROW.**",
+            "*He jolts awake so hard he knocks himself sideways. He scrambles upright. "
+            "Eyes huge. Ears forward. He stares at the door and makes a sound that is mostly alertness "
+            "and a little bit of fury at being interrupted.* **mrr! mrr!**",
+        ]))
+        return
+
+    # --- HELPLESS ---
+    if helpless:
+        await ctx.send(random.choice([
+            "*The doorbell rings and he cannot go investigate. He cannot move. "
+            "He hears it and his ears go fully forward and his whole body tenses "
+            "and he stares at the direction of the door and makes an urgent, frustrated sound. "
+            "Someone is there. He cannot go.* **mrr! mrr! MRROW.**",
+            "*He hears the bell and the sound that comes out of him is pure suppressed instinct. "
+            "He needs to be at that door. He cannot be at that door. "
+            "His ears are at maximum forward and he is vibrating.* **...mrr! mrr!**",
+        ]))
+        return
+
+    # --- CREATOR ---
+    if is_creator:
+        await ctx.send(random.choice([
+            "*He is at the door before The Creator has processed the sound. "
+            "He is looking through the gap at the bottom of the door. "
+            "He is sniffing intensely. He looks back at The Creator with a full report: "
+            "there is someone out there. He has opinions about this.* **mrr. mrr?**",
+            "*He beats The Creator to the door by a full two seconds. "
+            "He sniffs. He listens. He looks back at them. He wants to know if he should be alarmed. "
+            "He will take his cue from The Creator.* **mrr? mrr.**",
+        ]))
+        return
+
+    # --- SCORE TIERS ---
+    if score >= 6:
+        await ctx.send(random.choice([
+            "*He goes to investigate immediately, but he glances back at you once on the way. "
+            "He sniffs the door, identifies whatever's outside to his satisfaction, "
+            "and trots back to report. His tail is raised. He seems pleased with the update.* **mrr. chrrp.**",
+            "*He investigates and then comes back over to you to describe the situation. "
+            "His tail is up. It's probably fine. He's going to stay close just in case.* **mrr. mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(random.choice([
+            "*He goes to the door. He sniffs it at length. He sits down in front of it "
+            "and stares at it with the focused attention of a creature doing security work. "
+            "He has not decided if this is a problem yet.* **...mrr.**",
+            "*He pads to the door and investigates methodically: sniff, listen, crouch, sniff again. "
+            "He makes a quiet sound and stays there, watching.* **...mrr?**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He puffs up to twice his normal size and stalks toward the door. "
+            "He hisses at it once, authoritatively. He patrols the perimeter. "
+            "He is absolutely not letting whoever that is inside.* **HSS. MRROW.**",
+            "*He goes directly to the door and hisses at it. He hisses at the smell coming through. "
+            "He is guarding this door. Whoever is out there is not welcome. "
+            "He has made this decision for everyone.* **HSS. MRROW. HSS.**",
+        ]))
 
 
 # ==========================================
