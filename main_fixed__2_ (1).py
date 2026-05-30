@@ -36403,12 +36403,29 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
 
     entry = _pending_creator_requests.pop(req_id)
 
-    # --- Extract command name from request text and set creator_proxy ---
-    # Looks for patterns like "!cut_nails", "cut_nails", "!bad_kitty", etc.
+    # Extract command name — look for !command pattern first, then bare word
     req_text = entry.get("request", "")
-    _cmd_match = re.search(r"!?([a-z_]+(?:child)?)", req_text, re.IGNORECASE)
+    # Try !command first (most reliable)
+    _cmd_match = re.search(r"!([a-z][a-z_0-9]*)", req_text, re.IGNORECASE)
+    if not _cmd_match:
+        # Fall back to any lowercase word that matches a known command
+        _cmd_match = re.search(r"\b([a-z][a-z_0-9]{2,})\b", req_text, re.IGNORECASE)
     granted_command = _cmd_match.group(1).lower() if _cmd_match else ""
+
     m_db = bot.db
+    # Store as a LIST of approvals so multiple users can hold permissions simultaneously
+    proxy_list = m_db["internal"].setdefault("creator_proxy_list", [])
+    # Remove any existing approval for this user+command combo first
+    proxy_list[:] = [p for p in proxy_list if not (p["user_id"] == str(entry["user_id"]) and p["command"] == granted_command)]
+    proxy_list.append({
+        "user_id": str(entry["user_id"]),
+        "user_name": entry["user_name"],
+        "command": granted_command,
+        "granted_for": req_text,
+        "granted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "expires_at": (datetime.now() + __import__("datetime").timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    # Also keep legacy single proxy for backward compat with old commands
     m_db["internal"]["creator_proxy"] = {
         "user_id": str(entry["user_id"]),
         "command": granted_command,
@@ -36434,7 +36451,7 @@ async def creator_approve_cmd(ctx, req_id: int = 0):
                 f"----------------------------\n"
                 f"✅ **Allowed.** The Creator said yes.\n\n"
                 f"*He looks at you directly. He holds the permission out like something with weight. "
-                f"Use it{cmd_hint}. Once. He will know.* **mrr.**"
+                f"Use it{cmd_hint}. He will know.* **mrr.**"
             )
         except Exception:
             pass
@@ -36477,6 +36494,69 @@ async def creator_deny_cmd(ctx, req_id: int = 0, *, reason: str = ""):
     await ctx.send(
         f"*Yarnaby dips his head and goes to deliver the answer to {entry['user_name']}.* ❌ **Denied.** Reason: {reason_text}"
     )
+
+
+@bot.command(name="my_permissions", aliases=["mypermissions", "myperms", "whatcanido", "mygrants"])
+async def my_permissions_cmd(ctx):
+    """Check what Creator-approved permissions you currently hold."""
+    m = bot.db
+    uid = str(ctx.author.id)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    proxy_list = m["internal"].get("creator_proxy_list", [])
+    # Clean expired
+    proxy_list[:] = [p for p in proxy_list if p.get("expires_at", "9999") > now_str]
+    m["internal"]["creator_proxy_list"] = proxy_list
+    save_db(m)
+
+    mine = [p for p in proxy_list if p["user_id"] == uid]
+
+    if not mine:
+        await ctx.send(
+            "*He checks the small ledger he keeps of granted permissions. "
+            "Your name isn't in it right now. "
+            "Use `!ask_creator` to request something.* **mrr.**"
+        )
+        return
+
+    lines = ["*He pulls out the permissions ledger and finds your name.*\n"]
+    for p in mine:
+        cmd_str = f"`!{p['command']}`" if p["command"] else "*(any command)*"
+        expires = p.get("expires_at", "?")[:16]
+        lines.append(f"✅ {cmd_str} — *\"{p['granted_for'][:60]}\"* — expires `{expires}`")
+    lines.append("\n*These are single-use. Once you use the command, the permission is consumed.* **mrr.**")
+    await ctx.send("\n".join(lines))
+
+
+@bot.command(name="revoke_permission", aliases=["revokeperm", "removeperm", "revokeaccess", "clearperm"])
+async def revoke_permission_cmd(ctx, member: discord.Member = None):
+    """Creator only: revoke all pending permissions for a user."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can revoke permissions.* **mrr.**")
+        return
+    if not member:
+        await ctx.send("*Who? `!revoke_permission @user`* **mrr.**")
+        return
+
+    m = bot.db
+    uid = str(member.id)
+    proxy_list = m["internal"].get("creator_proxy_list", [])
+    before = len([p for p in proxy_list if p["user_id"] == uid])
+    proxy_list[:] = [p for p in proxy_list if p["user_id"] != uid]
+    m["internal"]["creator_proxy_list"] = proxy_list
+
+    # Also clear legacy
+    if m["internal"].get("creator_proxy", {}).get("user_id") == uid:
+        m["internal"].pop("creator_proxy", None)
+    save_db(m)
+
+    if before == 0:
+        await ctx.send(f"*He checks. **{member.display_name}** had no active permissions to revoke.* **mrr.**")
+    else:
+        await ctx.send(
+            f"*He takes back what he gave. "
+            f"**{member.display_name}**'s {before} permission(s) have been revoked.* **mrr.**"
+        )
 
 
 
@@ -47402,12 +47482,34 @@ async def pay_ransom_cmd(ctx, *, terms: str = ""):
 def _check_creator_proxy(ctx, m, command_name: str) -> bool:
     """
     Returns True if the caller has a valid creator_proxy for this command (and consumes it).
+    Checks the new list-based system first, falls back to legacy single proxy.
     A proxy with command="" matches any command.
     """
+    uid = str(ctx.author.id)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # --- New list-based system ---
+    proxy_list = m["internal"].get("creator_proxy_list", [])
+    # Clean expired entries
+    proxy_list[:] = [p for p in proxy_list if p.get("expires_at", "9999") > now_str]
+
+    for i, proxy in enumerate(proxy_list):
+        uid_match = proxy.get("user_id") == uid
+        cmd_match = proxy.get("command", "").lower() in ("", command_name.lower())
+        if uid_match and cmd_match:
+            proxy_list.pop(i)
+            m["internal"]["creator_proxy_list"] = proxy_list
+            # Also clear legacy proxy if it was for this user
+            if m["internal"].get("creator_proxy", {}).get("user_id") == uid:
+                m["internal"].pop("creator_proxy", None)
+            save_db(m)
+            return True
+
+    # --- Legacy single proxy fallback ---
     proxy = m["internal"].get("creator_proxy", {})
     if not proxy:
         return False
-    uid_match = proxy.get("user_id") == str(ctx.author.id)
+    uid_match = proxy.get("user_id") == uid
     cmd_match = proxy.get("command", "").lower() in ("", command_name.lower())
     if uid_match and cmd_match:
         m["internal"].pop("creator_proxy", None)
