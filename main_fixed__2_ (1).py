@@ -51656,6 +51656,7 @@ async def _torture_activity_listener(message):
 @bot.command(name="torture", aliases=["torturehim", "tortureyarny", "hurt", "hurthim", "hurttheyarncat",
                                       "harming", "harm", "harmyarny"])
 async def torture_cmd(ctx):
+    global _torture_timeout_task
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
@@ -51986,7 +51987,6 @@ async def torture_cmd(ctx):
     save_db(m)
 
     _torturer_last_msg[u_id] = datetime.now().timestamp()
-    global _torture_timeout_task
     if _torture_timeout_task and not _torture_timeout_task.done():
         _torture_timeout_task.cancel()
     _torture_timeout_task = bot.loop.create_task(
