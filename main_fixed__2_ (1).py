@@ -11258,7 +11258,66 @@ async def help_cmd(ctx, *, section: str = None):
             "  - *Minecraft*: biomes, Y-level diamonds, Woodland Mansion, Ender Dragon, creeper events\n"
             "  - *FC Mobile*: formations (4-3-3/4-2-3-1), Division Rivals, Squad Battles, Fenerbahçe kit\n"
             "- `!challenge` / `!dailychallenge` - what self-imposed task he set for himself today and how it went\n"
-            "- `!pounce` / `!ambush` [@user] - he ambushes someone (see `yarn!help core`)"
+            "- `!pounce` / `!ambush` [@user] - he ambushes someone (see `yarn!help core`)\n"
+            "- `!sand` - beach outing together; he gets buried in sand (no cold months)\n"
+            "- `!teachswim` - take him to the sea and teach him to swim (3-7 sessions)\n"
+            "  Each lesson shows more progress — until one day, he just does it.\n"
+            "- `!swim` - go swimming with him (must know how first via `!teachswim`)\n"
+            "  1st unskilled = near drown. 2nd = rescued but needs `!revive`. 3rd = dead (needs `!revive`).\n"
+            "- `!wetness` / `!dryness` - check how wet or dry he currently is\n"
+            "  Wetness drains at ~1pt/hr. Filled by swimming, lessons, and other water activities.\n"
+            "- `!towel` - dry him with a towel (cozy, warm; he settles into it)\n"
+            "- `!dry` - dry him with a hairdryer (loud; his wool goes ENORMOUS)\n"
+            "  Both reduce wetness to 0. Score ≥1 for towel, ≥3 for dryer. Creator gets special reactions.\n"
+            "- `!throwliquid [liquid]` - throw a bucket of something at him (he NEVER dodges)\n"
+            "  **Clean**: water/juice/milk — soaked, shakes it off.\n"
+            "  **Dirty**: mud/slime/sewage/sludge — soaked + filthy, needs `!bubblebath`.\n"
+            "  **Sticky**: honey/syrup/caramel/jam — matted, tongue sticks to paw, nearly uncleanable.\n"
+            "  **Weird**: soup/coffee/gravy/pickle juice/kombucha — confused extended sniffing.\n"
+            "  **Icy**: ice water/slush/glacier water — full-body shock + involuntary zoomies.\n"
+            "  **Warm**: warm water/warm milk/warm broth — tolerates it; won't admit it was fine.\n"
+            "  **Paint**: any paint color — tinted until multiple `!bubblebath`s.\n"
+            "  **Glitter**: glitter/glitter water/glitter bomb — permanently sparkly, already everywhere.\n"
+            "  **Blood**: ⚠️ triggers TRAUMA — he backs away, shakes, traumatized flag set, health damage.\n"
+            "  **Toxic**: bleach/acid/petrol/ammonia — always rejected cleanly, no damage applied.\n"
+            "  Sleeping/helpless get unique flavor but still take the full hit every time.\n"
+            "- `!torture` - torture him; he bites, claws, fights back, then runs and hides\n"
+            "  Injuries + trauma added. Score docked -20 immediately. Creator DM'd.\n"
+            "  He'll emerge after 10 min of your silence, or when someone uses `!save`.\n"
+            "  Reactions vary by trust: Creator (silent endurance), high trust (broken), mid (furious),\n"
+            "  low (cold), negative (dangerous). Sleeping = shocked-awake. Helpless = can't fight back.\n"
+            "- `!save` - rescue him from an active `!torture`\n"
+            "  Saver gets +3 score. Torturer gets -15 more on escape. Torturer cannot use `!save`."
+        ),
+        "children": (
+            "**Children & parenting** - `yarn!help children`\n"
+            "He can have up to 10 children per server. Feeling assigned at birth: 40% adored / 40% neutral / 20% disliked.\n\n"
+            "**Child commands (any user):**\n"
+            "- `!children` / `!hischildren` - list his children + ❤️/○/👎 feeling icon\n"
+            "- `!feedchild [name] [food]` - feed a child\n"
+            "  ⚠️ **Disliked child:** he WON'T feed them. Another user must do it.\n"
+            "  He watches coldly and lets it happen (reactions scale with your score).\n"
+            "  Sleeping + disliked: he won't stir. Helpless: you feed the child alone.\n"
+            "- `!hugchild [name]` - hug; high-trust allowed, low-trust blocked\n"
+            "- `!petchild [name]` - pet; feeling-aware (disliked: cold tolerance)\n"
+            "- `!playchild [name]` - play with a child\n"
+            "- `!kisschild [name]` - kiss a child\n"
+            "- `!scoldchild [name]` - scold a child\n"
+            "- `!headpatchild [name]` - headpat a child\n"
+            "- `!treatchild [name]` - treat an injured child ⚕️\n"
+            "  Disliked: he watches coldly, doesn't help, won't block you.\n"
+            "  Adored/neutral: anxious, hovering, checks your work.\n"
+            "  All states (sleeping/helpless/Creator/score) have unique reactions.\n"
+            "- `!childfeeling [name]` - check how he feels about a specific child\n\n"
+            "**Creator only:**\n"
+            "- `!addchild [name]` - add a child (feeling assigned randomly)\n"
+            "- `!setchildfeeling [name] [adored/neutral/disliked]` - override feeling\n"
+            "- `!namechild [old] > [new]` - rename a child\n"
+            "- `!removechild [name]` - remove a child\n\n"
+            "**Passive injury mechanic:**\n"
+            "- Disliked children have a **15% chance** per interaction of being hit, batted, bitten, or shoved.\n"
+            "  Injury logged to the child record. Use `!treatchild` to treat it.\n"
+            "- He does NOT pursue repair with disliked injured children the way he does with neutral/adored."
         ),
         "social": (
             "**Social & memory** - `yarn!help social`\n"
@@ -11443,6 +11502,9 @@ async def help_cmd(ctx, *, section: str = None):
             "- Injuries: minor(1), moderate(2), serious(4), critical(6)\n"
             "- Disasters: thunderstorm(1), flood/alarm(2), earthquake(3), hurricane(4),\n"
             "  tornado/explosion(5), meteorite(7), death(10)\n\n"
+            "- `!torture` — being tortured (severe; adds injury + trauma simultaneously)\n"
+            "- `!throwliquid blood` — blood-bucket (moderate; immediate traumatized flag)\n"
+            "- Witnessing or causing child injury (disliked child passive harm) — minor mood impact\n"
             "**Reducing trauma:**\n"
             "- `!comfortyarny` / `!sitwithhim` - sit with him\n"
             "  Creator: clears everything. Score ≥10: clears half. Score ≥5: partial.\n"
@@ -11727,6 +11789,10 @@ async def help_cmd(ctx, *, section: str = None):
         # safety
         "nsfw": "safety", "cleanup": "safety", "getout": "safety", "nsfwcheck": "safety",
         "nsfwserver": "safety", "safeguard": "safety", "safe": "safety",
+        "children": "children", "child": "children", "kids": "children",
+        "parenting": "children", "offspring": "children",
+        "hugchild": "children", "feedchild": "children", "treatchild": "children",
+        "childinjury": "children", "childfeeling": "children", "addchild": "children",
     }
 
     #  Section index (no argument given) 
@@ -11761,6 +11827,7 @@ async def help_cmd(ctx, *, section: str = None):
         "trauma       - !trauma log, tiers, !comfortyarny to reduce it\n"
         "screenshare  - !screenshare / !yarnycam — who's DMing, what he's doing\n"
         "extended     - newer commands: bite, rate, guess, voice, media, extra interactions\n"
+        "children     - children/parenting: !feedchild, !treatchild, dislike/injury system\n"
         "```"
     )
 
@@ -36882,6 +36949,12 @@ async def sand_cmd(ctx):
         )
         return
 
+    if m["internal"].get("helpless"):
+        await ctx.send(
+            "*He is in no state to go anywhere. He stays where he is, quiet and still.* **...mrr...**"
+        )
+        return
+
     if score < 1 and not is_doctor:
         await ctx.send(
             "*You gesture toward the door. He watches you with flat, unhelpful eyes. "
@@ -36951,6 +37024,8 @@ async def sand_cmd(ctx):
         await asyncio.sleep(2)
         await ctx.send("*He shakes himself. Sand flies. He is still looking at the ocean. It has made an enemy today.*")
 
+    # Sand makes him dirty
+    _bump_cleanliness(m, random.randint(2, 3))
     save_db(m)
 
 
@@ -44203,16 +44278,14 @@ async def feedchild_cmd(ctx, *, args: str = ""):
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     children = _get_children(m, guild_id)
-
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He is asleep. His children are managing.* **...zz.**")
-        return
+    sleeping  = m["internal"].get("is_sleeping", False)
+    helpless  = m["internal"].get("helpless", False)
 
     if not args.strip():
         await _child_not_found(ctx, args, children)
         return
 
-    # Try to parse: first word(s) = child name, last word = food
+    # Parse: last word = food item; rest = child name
     parts = args.strip().split()
     food = parts[-1] if len(parts) > 1 else ""
     child_name_query = " ".join(parts[:-1]) if len(parts) > 1 else parts[0]
@@ -44226,7 +44299,66 @@ async def feedchild_cmd(ctx, *, args: str = ""):
 
     cname = child["name"]
     food_str = f" some **{food}**" if food else " something"
+    feeling = child.get("feeling", "neutral")
 
+    # ── SLEEPING ──────────────────────────────────────────────────────
+    if sleeping:
+        if feeling == "disliked":
+            await ctx.send(
+                f"*He is asleep. **{cname}** is hungry. He doesn't stir. "
+                f"He wouldn't get up for **{cname}** even awake.* **...zz.**\n"
+                f"*You'll have to feed **{cname}** yourself.*"
+            )
+        else:
+            await ctx.send(
+                f"*He is asleep. His children are managing.* **...zz.**"
+            )
+        return
+
+    # ── HELPLESS ─────────────────────────────────────────────────────
+    if helpless:
+        await ctx.send(
+            f"*He can't move. **{cname}** is going to need you for this one.* **...mrr.**"
+        )
+        return
+
+    # ── DISLIKED CHILD ────────────────────────────────────────────────
+    if feeling == "disliked":
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator feeds **{cname}**{food_str}. Yarnaby watches from across the room. "
+                f"He doesn't come close. He doesn't interfere with The Creator. "
+                f"He just watches, expression flat.* **...mrr.**",
+                f"*He sees The Creator tending to **{cname}**. He doesn't object. "
+                f"He turns and looks at the wall for the duration.* **...mrr.**",
+            ]))
+        elif score >= 7:
+            await ctx.send(random.choice([
+                f"*You move toward **{cname}** with food. Yarnaby watches. "
+                f"He stays where he is. He isn't going to stop you — **{cname}** has to eat — "
+                f"but he's not going to help either.* **...mrr.**",
+                f"*He sees what you're doing. He lets you. He turns away before you're done.* **...mrr.**",
+            ]))
+        elif score >= 2:
+            await ctx.send(random.choice([
+                f"*He watches you feed **{cname}** with flat, still eyes. "
+                f"He doesn't intervene. He just watches until it's over, "
+                f"then looks somewhere else.* **...mrr.**",
+                f"*You feed **{cname}** and he stands nearby with the energy of someone "
+                f"tolerating a situation. He is tolerating the situation.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He'd normally block a stranger from touching **{cname}**. "
+                f"He doesn't. He watches you feed **{cname}** and does absolutely nothing. "
+                f"He has decided **{cname}** is your problem today.* **...mrr.**",
+                f"*He sees you with the food. He sees **{cname}**. "
+                f"He walks away. He is not dealing with this.* **mrr.**",
+            ]))
+        await _child_react(ctx, child, m, action="neutral")
+        return
+
+    # ── ADORED / NEUTRAL CHILD ────────────────────────────────────────
     if is_doctor:
         await ctx.send(random.choice([
             f"*The Creator feeds **{cname}**{food_str}. "
@@ -44241,6 +44373,8 @@ async def feedchild_cmd(ctx, *, args: str = ""):
             f"*You offer **{cname}**{food_str}. "
             f"Yarnaby watches from close by. He lets it happen. "
             f"He has decided you feed things properly.* **mrr.**",
+            f"*He watches you give **{cname}**{food_str} and his tail moves once. "
+            f"Approved.* **mrr.**",
         ]))
     else:
         await ctx.send(
@@ -46948,6 +47082,33 @@ async def _child_react(ctx, child: dict, m: dict, action: str = "warm"):
                 f"Measured.* **mrr.**",
             ]))
 
+        # ── Passive injury chance (15%) for disliked children ──
+        if action in ("warm", "neutral") and random.random() < 0.15:
+            _injury_opts = [
+                ("swipes at them without breaking stride",          "minor scratch", "minor", "side"),
+                ("clips them with a paw as he walks past",          "minor scratch", "minor", "face"),
+                ("gives them a hard, deliberate nudge that sends them sideways", "bruise", "minor", "body"),
+                ("bites down on their scruff briefly — not affectionate, just sharp", "bite wound", "minor", "scruff"),
+            ]
+            _narration, _inj_type, _sev, _loc = random.choice(_injury_opts)
+            await asyncio.sleep(1)
+            await ctx.send(random.choice([
+                f"*In passing, Yarnaby {_narration} at **{cname}**. "
+                f"He keeps walking. He doesn't look back.* **...mrr.**",
+                f"*He {_narration} at **{cname}** without comment. "
+                f"One motion. Then gone.* **hff.**",
+            ]))
+            child.setdefault("injuries", []).append({
+                "type": _inj_type,
+                "severity": _sev,
+                "location": _loc,
+                "caused_by": "Yarnaby (passive, disliked child)",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "treated": False,
+            })
+            save_db(m)
+            return
+
     else:  # neutral
         if action == "warm":
             await ctx.send(random.choice([
@@ -47297,9 +47458,9 @@ async def blanketchild_cmd(ctx, *, name: str = ""):
 
 
 # ── treatchild ───────────────────────────────────────────────────────────────
-@bot.command(name="treatchild", aliases=["treatkid", "snackchild", "snackkid", "givekidtreat", "feedchildtreat"])
-async def treatchild_cmd(ctx, *, args: str = ""):
-    """Give one of Yarnaby's children a treat or snack."""
+@bot.command(name="snackchild", aliases=["treatkid", "givekidtreat", "feedchildtreat"])
+async def snackchild_cmd(ctx, *, args: str = ""):
+    """Give one of Yarnaby's children a treat or snack. (!snackchild [name] [item])"""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
@@ -50010,6 +50171,2094 @@ def _check_and_apply_infections(m):
     if changed:
         save_db(m)
     return changed
+
+
+
+
+
+# ==========================================
+# HELPERS — wetness system
+# ==========================================
+def _get_wetness(m):
+    # Return current wetness 0-10, draining at 1pt/hour since last set.
+    raw = m["internal"].get("wetness", 0)
+    if raw <= 0:
+        return 0
+    last_str = m["internal"].get("wetness_set_at")
+    if not last_str:
+        return raw
+    try:
+        last_dt = datetime.strptime(last_str, "%Y-%m-%d %H:%M:%S")
+        hours_elapsed = (datetime.now() - last_dt).total_seconds() / 3600.0
+        drained = int(hours_elapsed)
+        return max(0, raw - drained)
+    except Exception:
+        return raw
+
+def _set_wetness(m, level):
+    # Set wetness to level (0-10) and record the timestamp.
+    m["internal"]["wetness"] = max(0, min(10, level))
+    m["internal"]["wetness_set_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def _bump_wetness(m, amount):
+    # Increase wetness by amount, capped at 10.
+    current = _get_wetness(m)
+    _set_wetness(m, current + amount)
+
+def _wetness_label(v):
+    if v <= 0:  return "Bone dry"
+    if v <= 2:  return "Slightly damp"
+    if v <= 4:  return "Noticeably wet"
+    if v <= 6:  return "Quite wet"
+    if v <= 8:  return "Soaking"
+    return "Completely saturated (dripping)"
+
+
+# ==========================================
+# !wetness / !dryness — check how wet or dry he is
+# ==========================================
+@bot.command(name="wetness", aliases=["dryness", "howwet", "howdry", "iswet", "isdry", "wetcheck", "drycheck"])
+async def wetness_cmd(ctx):
+    m = bot.db
+    await _add_reactions(ctx, m)
+    sleeping = m["internal"].get("is_sleeping", False)
+
+    if sleeping:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+        ]))
+        return
+
+    wet = _get_wetness(m)
+    m["internal"]["wetness"] = wet
+    save_db(m)
+
+    if wet <= 0:
+        await ctx.send("*His wool is completely dry. Fluffy. Almost aggressively so.* **...prrr.**")
+    elif wet <= 2:
+        await ctx.send("*He's slightly damp. He keeps shaking one paw like it offends him.* **mrr.**")
+    elif wet <= 4:
+        await ctx.send("*He's noticeably wet — wool clumped in patches, small drips. He smells faintly of the sea.* **mrr.**")
+    elif wet <= 6:
+        await ctx.send("*He is quite wet. His wool is heavy and dark and he keeps pressing it flat with one paw. He is not pleased about this.* **mrrr.**")
+    elif wet <= 8:
+        await ctx.send("*He is soaking. Every step he takes leaves a small wet print. His wool is plastered down. He stares at you reproachfully.* **...mrrrow.**")
+    else:
+        await ctx.send("*He is completely saturated. He is a wool sponge. He drips when he stands still. He looks at you. He looks at himself. He makes a sound of quiet devastation.* **...mrr. mrr.**")
+
+
+# ==========================================
+# !teachswim — teach Yarnaby how to swim
+# (beach outing, solo like !sand; requires multiple sessions)
+# ==========================================
+@bot.command(name="teachswim", aliases=["teachhimswim", "swimlesson", "swimclass", "learntswim", "teachtoswim"])
+async def teachswim_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+
+    current_month = datetime.now().month
+    cold_months = [12, 1, 2]
+    if current_month in cold_months:
+        month_names = {12: "December", 1: "January", 2: "February"}
+        await ctx.send(
+            f"*It's **{month_names[current_month]}**. You gesture toward the sea. "
+            f"Yarnaby looks at the ocean. He looks at you. He sits down. "
+            f"He will not be going in any water today.* **mrr. no.**"
+        )
+        return
+
+    if sleeping:
+        await ctx.send("*He is asleep. The sea can wait. The lesson can wait.* **...prrr...**")
+        return
+
+    if helpless:
+        await ctx.send(
+            "*He is in no state for a swimming lesson. He stays where he is, quiet and still.* **...mrr...**"
+        )
+        return
+
+    if score < 1 and not is_doctor:
+        await ctx.send(
+            "*You point at the waves. He watches you with flat, unhelpful eyes. "
+            "He does not get up.* **mrr.**"
+        )
+        return
+
+    cd_remaining = _cooldown_remaining(m, "teachswim", 3600)
+    if cd_remaining > 0 and not is_doctor:
+        mins = cd_remaining // 60
+        secs = cd_remaining % 60
+        await ctx.send(
+            f"*He's still processing the last lesson. He'll be ready for another one in "
+            f"**{mins}m {secs}s**.* **mrr...**"
+        )
+        return
+
+    if m["internal"].get("can_swim", False):
+        await ctx.send(
+            "*You gesture toward the water. He looks at you with patient, ancient eyes. "
+            "He already knows. He knows he knows. He gets up anyway, walks to the waterline, "
+            "and steps in with practiced ease, glancing back at you once.* **...prrr...**"
+        )
+        return
+
+    _set_cooldown(m, "teachswim")
+    lessons = m["internal"].get("swim_lessons", 0)
+
+    await ctx.send(
+        "*You take Yarnaby out of the factory — just the two of you. He pads alongside you "
+        "nose-first the whole way, cataloguing the air. When the sea comes into view he stops walking.* "
+        "**snff. snff. ...mrr?**"
+    )
+    await asyncio.sleep(3)
+
+    if lessons == 0:
+        await ctx.send(
+            "*You reach the water's edge. You step in to show him — just ankle deep — and look back. "
+            "Yarnaby has not moved. He is sitting on dry sand. He is watching the waves with extreme suspicion. "
+            "You crouch and pat the water invitingly.* **splash. splash.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He approaches. Very slowly. One paw extended. The wave comes in and brushes his toes. "
+            "He rockets backwards three feet.* **PRRK!**\n"
+            "*He stares at the water from a safe distance. It moved at him. Intentionally.* **...mrrow.**"
+        )
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*Lesson one. He touched water. He did not enjoy it. He will require more convincing.* "
+            "*(Swim lessons: **1**)*"
+        )
+        _bump_wetness(m, 1)
+
+    elif lessons == 1:
+        await ctx.send(
+            "*You coax him in this time. He resists less than before — only a little. "
+            "He enters the water up to his kneecaps, wool darkening. He holds very still.* **...mrr...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*A small wave. The water rises to his belly. He panics. "
+            "All four legs go at once — desperate scrambling — and he hauls himself back onto dry sand "
+            "at speed, shaking violently.* **CHFF! PRRK!**\n"
+            "*He sits there soaking and looks at the sea like it owes him an apology.* **...mrrrow.**"
+        )
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*He tried. His body understood before his brain did that this requires more practice.* "
+            "*(Swim lessons: **2**)*"
+        )
+        _bump_wetness(m, 4)
+        _bump_cleanliness(m, 1)
+
+    elif lessons == 2:
+        await ctx.send(
+            "*He walks in himself this time. Not enthusiastically — but he walks in. "
+            "Up to his chest. He looks at you. You give him a small encouraging push.* **...splsh.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*His paws find the bottom — then don't. For two full seconds he is swimming. "
+            "Actually swimming. Paws cycling, head up, eyes huge.* **...mrr?!**"
+        )
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*Then he tips sideways. Splutters. You fish him out immediately. "
+            "He sits dripping in the shallows looking profoundly confused — "
+            "like he surprised himself.* **pffbt... mrr.**\n"
+            "*He looked at the sea differently after that. Just for a moment.* "
+            "*(Swim lessons: **3**)*"
+        )
+        _bump_wetness(m, 6)
+        _bump_cleanliness(m, 1)
+
+    elif lessons == 3:
+        await ctx.send(
+            "*He enters the water without hesitation this time. Deep enough to swim. "
+            "He paddles — actually paddles, controlled — for nearly five seconds "
+            "before his nose dips under.* **snrk — **"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*You steady him. He recovers fast. He looks at his own paws in the water "
+            "like he is making a note of what they just did.* **...mrr. hm.**\n"
+            "*He knows what swimming is supposed to feel like now. He just can't hold it yet.* "
+            "*(Swim lessons: **4**)*"
+        )
+        _bump_wetness(m, 7)
+        _bump_cleanliness(m, 1)
+
+    else:
+        learn_chance = 0.4 + (lessons - 4) * 0.2
+        if random.random() < learn_chance or lessons >= 6:
+            await ctx.send(
+                "*He goes straight in. No hesitation. Deep water. He paddles — "
+                "and this time he doesn't tip. He keeps going. He circles once. He comes back.* "
+                "**...mrr. ...mrr!**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*He climbs out, shakes himself hard, and looks at the ocean "
+                "with something that is not quite pride but is adjacent to it. "
+                "He looks at you. He looks at the sea again.* **...prrr.**\n"
+                "**He can swim now.**"
+            )
+            m["internal"]["can_swim"] = True
+            m["internal"]["swim_learned_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            m["internal"]["swim_failed_count"] = 0
+            m["internal"]["swim_failed_last"] = None
+            _bump_wetness(m, 8)
+            if is_doctor:
+                await asyncio.sleep(2)
+                await ctx.send(
+                    "*He walks over and leans against The Creator's leg. Just for a moment. "
+                    "Then steps back and looks at the sea again.* **...prrr. prrr.**"
+                )
+        else:
+            await ctx.send(
+                "*He goes in deep. He paddles well. He holds it for eight seconds — "
+                "almost ten — before he lists sideways and you pull him back.* **pffbt! mrr.**\n"
+                f"*He's close. Every session he gets a little more of it. Not quite yet.* "
+                f"*(Swim lessons: **{lessons + 1}**)*"
+            )
+            _bump_wetness(m, 7)
+
+    m["internal"]["swim_lessons"] = lessons + 1
+    save_db(m)
+
+
+# ==========================================
+# !swim — go swimming with Yarnaby at the beach
+# (must learn first via !teachswim; 3-attempt drown system)
+# ==========================================
+@bot.command(name="swim", aliases=["goswim", "swimmingtime", "oceandip", "seadip", "beachswim"])
+async def swim_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+
+    current_month = datetime.now().month
+    cold_months = [12, 1, 2]
+    if current_month in cold_months:
+        month_names = {12: "December", 1: "January", 2: "February"}
+        await ctx.send(
+            f"*It's **{month_names[current_month]}**. You look at the sea. "
+            f"Yarnaby looks at the sea. He looks at you. He turns around and goes back inside.* "
+            f"**mrr. no.**"
+        )
+        return
+
+    if sleeping:
+        await ctx.send("*He is asleep. No one is going swimming.* **...prrr...**")
+        return
+
+    if helpless:
+        await ctx.send("*He can't go anywhere like this. He stays put.* **...mrr...**")
+        return
+
+    if score < 1 and not is_doctor:
+        await ctx.send(
+            "*You point toward the water. He watches you with flat eyes. "
+            "He does not move.* **mrr.**"
+        )
+        return
+
+    await ctx.send(
+        "*You take Yarnaby out of the factory — just the two of you. "
+        "He pads alongside you nose-first, cataloguing everything.* **snff. snff.**"
+    )
+    await asyncio.sleep(3)
+
+    can_swim = m["internal"].get("can_swim", False)
+
+    # ── Can't swim ──────────────────────────────────────────────────────
+    if not can_swim:
+        fail_count = m["internal"].get("swim_failed_count", 0)
+        last_fail_str = m["internal"].get("swim_failed_last")
+        if last_fail_str:
+            try:
+                last_fail = datetime.strptime(last_fail_str, "%Y-%m-%d %H:%M:%S")
+                if (datetime.now() - last_fail).total_seconds() >= 86400:
+                    fail_count = 0
+            except Exception:
+                fail_count = 0
+
+        if fail_count == 0:
+            # 1st unskilled attempt: near drown
+            await ctx.send(
+                "*The beach. He looks at the water. He looks at you. Something — some reckless "
+                "part of him — decides this is fine.* **mrr.**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*He wades in. Further than he's ever gone. The water reaches his belly. "
+                "He's still going. Then the bottom drops away and he's in over his head "
+                "and his paws are cycling fast but nothing is working.* **mrr?! — mrr—**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*You're in after him instantly. You pull him out. He coughs up half the sea. "
+                "He sits on the sand soaking and shaking, eyes very wide.* **kfh! kfh! pffbt...**"
+            )
+            await asyncio.sleep(2)
+            await ctx.send(
+                "*He looks at the water. He looks at you. He makes a small, chastened sound "
+                "and doesn't move for a long time.* **...mrr...**\n"
+                "*He almost drowned. **He needs to learn how to swim first.** Use `!teachswim`.*\n"
+                "*(Try `!swim` again unskilled and it will be much worse.)*"
+            )
+            m["internal"]["swim_failed_count"] = 1
+            m["internal"]["swim_failed_last"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            m["stats"]["tiredness"] = min(20, m["stats"].get("tiredness", 0) + 3)
+            _bump_wetness(m, 9)
+
+        elif fail_count == 1:
+            # 2nd unskilled attempt: complete drown, rescued but needs revive
+            await ctx.send(
+                "*The beach. He sees the water and his instincts fire immediately — "
+                "he wades straight in, no hesitation, no caution.* **splash — splash—**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*He goes under. Fast. His head disappears beneath the surface. "
+                "He doesn't come back up.* **—glrb— glrb—**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*You're in the water. You find him. You drag him back to shore. "
+                "He is limp. He lies completely flat on the wet sand, "
+                "wool plastered to his body, not moving.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*He coughs. Once. Twice. He sputters saltwater. He breathes — shallow, ragged — "
+                "but he breathes. He does not open his eyes. He does not move.* **...kfh... kfh...**\n"
+                "*He's alive. Barely. He won't move on his own. "
+                "**Use `!revive` to bring him back properly.** "
+                "Use `!teachswim` — please — before this happens again.*"
+            )
+            m["internal"]["swim_failed_count"] = 2
+            m["internal"]["swim_failed_last"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 2)
+            m["stats"]["tiredness"] = min(20, m["stats"].get("tiredness", 0) + 5)
+            _bump_wetness(m, 10)
+            _bump_cleanliness(m, 1)
+
+        else:
+            # 3rd+ unskilled attempt: completely drowns, is_dead = True
+            await ctx.send(
+                "*The beach again. He doesn't hesitate. He walks straight into the sea "
+                "like something in him has forgotten what happened before.* **splash — **"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*He goes under immediately. "
+                "You're in the water before you've even thought about it. "
+                "You search. The sea is cold and the water is dark.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*You find him. He is not moving. You pull him to shore. "
+                "You lay him down on the sand. He is still. Completely still. "
+                "His wool is dark and heavy with water. His eyes are closed.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*He is gone. The sea took him.*\n"
+                "**Use `!revive` now.**"
+            )
+            m["internal"]["is_dead"] = True
+            m["internal"]["swim_failed_count"] = 3
+            m["internal"]["swim_failed_last"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            m["stats"]["health"] = 0
+            _bump_wetness(m, 10)
+
+        save_db(m)
+        return
+
+    # ── Can swim ────────────────────────────────────────────────────────
+    m["internal"]["swim_failed_count"] = 0
+    m["internal"]["swim_failed_last"] = None
+
+    cd_remaining = _cooldown_remaining(m, "swim_outing", 1800)
+    if cd_remaining > 0 and not is_doctor:
+        mins = cd_remaining // 60
+        secs = cd_remaining % 60
+        await ctx.send(
+            f"*He just got dried off. He'll want to go again in **{mins}m {secs}s**.* **mrr...**"
+        )
+        return
+
+    _set_cooldown(m, "swim_outing")
+
+    await ctx.send(
+        "*The beach. He picks up his pace as the sand starts. By the time you reach "
+        "the waterline he's already ahead of you.* **trot. trot. trot.**"
+    )
+    await asyncio.sleep(3)
+
+    outcome = random.random()
+
+    if outcome < 0.20:
+        await ctx.send(
+            "*He goes straight in. No ceremony. He swims out, turns, swims back. "
+            "He does this three times. He bats a wave. He bats it again. "
+            "He is deeply, privately delighted by the waves.* **prrr. mrr! prrr.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He comes back to you soaking and shakes himself with great thoroughness, "
+            "spraying water in every direction. He looks satisfied. "
+            "The sea is good. He has decided this.* **prrr.**"
+        )
+        m["stats"]["tiredness"] = max(0, m["stats"].get("tiredness", 0) - 3)
+        _bump_wetness(m, 8)
+        if is_doctor:
+            m["social_matrix"].setdefault(u_id, {})
+            m["social_matrix"][u_id]["score"] = min(
+                10, m["social_matrix"][u_id].get("score", 0) + 1
+            )
+
+    elif outcome < 0.45:
+        await ctx.send(
+            "*He wades in slowly, adjusts to the cold, then pushes off. "
+            "He swims parallel to the shore, steady and deliberate, like he's been doing this for years. "
+            "Eventually he just... floats. Face up. Eyes half-closed. Wool spread wide in the water.* "
+            "**...prrr... prrr...**"
+        )
+        await asyncio.sleep(4)
+        await ctx.send(
+            "*He floats for a long time. The sea holds him. He lets it. "
+            "He comes back out eventually and sits next to you without a word.* **...mrr.**"
+        )
+        m["stats"]["tiredness"] = max(0, m["stats"].get("tiredness", 0) - 2)
+        _bump_wetness(m, 7)
+
+    elif outcome < 0.65:
+        finds = [
+            ("a smooth flat stone", "He picks it up in his mouth and brings it back to shore. He sets it down carefully and looks at it for a while."),
+            ("a piece of sea-glass", "Green, worn smooth. He bats it with one paw. He picks it up. He carries it back with him."),
+            ("a small crab", "The crab sidesteps. Yarnaby sidesteps. The crab sidesteps again. Yarnaby sits down and watches it for three full minutes."),
+            ("a very long piece of kelp", "He grabs it. He swims back dragging it. He seems enormously pleased about this."),
+            ("a feather floating on the surface", "He stops. He looks at it. He bats it gently. It spins. He bats it again."),
+        ]
+        found_thing, found_desc = random.choice(finds)
+        await ctx.send(
+            f"*He swims out, turns, and then stops. He's spotted something. "
+            f"He paddles over — it's **{found_thing}**.* **mrr?**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(f"*{found_desc}* **...prrr.**")
+        _bump_wetness(m, 7)
+
+    elif outcome < 0.80:
+        await ctx.send(
+            "*He swims well — confident, steady. But after a while his pace drops. "
+            "He angles back toward shore and hauls himself out, dripping, "
+            "then flops down heavily on the warm sand.* **...hff. prrr.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*You sit next to him. The sea moves. He breathes. His tail moves once, slowly. "
+            "Neither of you say anything for a while.* **...prrr. prrr.**"
+        )
+        m["stats"]["tiredness"] = min(20, m["stats"].get("tiredness", 0) + 1)
+        _bump_wetness(m, 6)
+
+    else:
+        await ctx.send(
+            "*He swims out. And out. And keeps going. "
+            "You call him back. He doesn't hear you — or pretends not to.* **mrr... mrr...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He's far. Too far. You're about to go in after him when he turns on his own "
+            "and swims back, slow and unhurried, like he meant to come back exactly when he did. "
+            "He climbs out and shakes himself calmly.* **prrr.**\n"
+            "*He looked back once from out there. Just once. He does not mention it.*"
+        )
+        _bump_wetness(m, 9)
+
+    _bump_cleanliness(m, 1)
+    save_db(m)
+
+
+
+# ==========================================
+# !towel — dry him with a towel
+# (cozy, warm, comfy; reduces wetness to 0)
+# ==========================================
+@bot.command(name="towel", aliases=["toweldry", "drywithтowel", "yarntowel", "toweloff", "dryhimoff", "rubtowel", "towelhim"])
+async def towel_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    wet = _get_wetness(m)
+
+    if sleeping:
+        await ctx.send(random.choice([
+            "*He is asleep. The towel lands on him and he doesn't move. His ear twitches once.* **...zz.**",
+            "*He is deeply asleep. You drape the towel over him. He shifts slightly, pulls it closer, and goes back to sleep.* **...prrr...**",
+        ]))
+        return
+
+    if helpless:
+        await ctx.send(
+            "*He is in no state to resist. You bring the towel and work through his wool carefully. "
+            "He lies still the whole time — eyes half-open, watching you, not speaking. "
+            "When you're done he makes a small sound, just once, and closes his eyes.* **...mrr...**"
+        )
+        _set_wetness(m, 0)
+        save_db(m)
+        return
+
+    if score < 1 and not is_doctor:
+        await ctx.send(
+            "*You approach with the towel. He eyes it. He eyes you. He moves away from both.* **mrr.**"
+        )
+        return
+
+    cd_remaining = _cooldown_remaining(m, "towel_dry", 900)
+    if cd_remaining > 0 and not is_doctor:
+        mins = cd_remaining // 60
+        secs = cd_remaining % 60
+        await ctx.send(
+            f"*He is already dry enough. He'll allow another toweling in **{mins}m {secs}s**.* **mrr.**"
+        )
+        return
+
+    _set_cooldown(m, "towel_dry")
+
+    if wet <= 0:
+        # Not wet at all — he doesn't need it but lets you anyway
+        await ctx.send(
+            "*You bring the towel. He looks at it. He looks at you. He is already bone dry. "
+            "He sits down anyway and waits with the specific patience of someone who knows "
+            "this is about you, not him.* **...mrr.**"
+        )
+        await asyncio.sleep(3)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator drapes the towel over his back and rubs gently. He leans into it. "
+                "The wool doesn't need drying. He just likes this.* **...prrr. prrr.**"
+            )
+        elif score >= 10:
+            await ctx.send(
+                "*He leans slightly into the towel. Just slightly. He closes his eyes for a moment. "
+                "He doesn't mention it.* **...prrr.**"
+            )
+        else:
+            await ctx.send(
+                "*He sits there and lets you do it. He is very dignified about the unnecessary nature of this.* **mrr.**"
+            )
+
+    elif wet <= 3:
+        # Slightly damp — mild, quiet appreciation
+        await ctx.send(
+            "*You wrap the towel around him and work through the damp patches. "
+            "He tilts into your hands without meaning to. His wool starts to fluff up at the edges.* **...mrr...**"
+        )
+        await asyncio.sleep(3)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator gets every damp patch. He presses his head gently against them when they reach his ears. "
+                "He makes a very small sound. He does not acknowledge making it.* **...prrr...**"
+            )
+        else:
+            await ctx.send(
+                "*He gives a small shake when you're done. Satisfied. He looks marginally fluffier. "
+                "He is marginally pleased about this.* **mrr.**"
+            )
+
+    elif wet <= 6:
+        # Properly wet — real relief, settles in
+        await ctx.send(
+            "*You bring the towel and he practically leans into it before it reaches him. "
+            "He was cold. He didn't say so. You start working through his wool — it's dark and heavy with water.* "
+            "**...mrr. prrr.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*His purr kicks in somewhere around his back. He shifts his weight slowly "
+            "into the contact. His wool lifts as it dries — piece by piece going from wet-flat to soft.* "
+            "**prrr. prrr.**"
+        )
+        await asyncio.sleep(3)
+        if is_doctor:
+            await ctx.send(
+                "*When The Creator reaches his neck he tips his head back and closes his eyes completely. "
+                "He stays like that for a long time. His purr is loud and continuous and entirely honest.* **prrrrr.**"
+            )
+        else:
+            await ctx.send(
+                "*He gives himself a small shake when you're done. He looks significantly better. "
+                "Warmer. Drier. A little smug about it.* **...prrr.**"
+            )
+
+    else:
+        # Soaking — dramatic, almost falls asleep in it
+        await ctx.send(
+            "*You bring the towel. He looks up at you and makes a sound that is embarrassingly close to relief.* "
+            "**...mrr. mrr.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*You wrap him completely — head included for a moment. He goes still inside the towel. "
+            "His breathing slows. He is very warm. He did not know how cold he was until just now.* "
+            "**...prrr... prrr...**"
+        )
+        await asyncio.sleep(4)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator works through his soaked wool slowly, carefully. "
+                "He kneads once — both front paws, small and rhythmic, involuntary. "
+                "He stops when he notices. He starts again two seconds later.* **prrrrr.**\n"
+                "*He emerges from the towel dry and warm and refuses to discuss how much he needed that.*"
+            )
+        elif score >= 5:
+            await ctx.send(
+                "*By the time you're finished he's nearly asleep. His head droops. "
+                "He catches it. His head droops again. You finish. He opens one eye, "
+                "blinks slowly at you, and settles his chin on his paws.* **...prrr. prrr.**"
+            )
+        else:
+            await ctx.send(
+                "*He emerges from the towel significantly dryer and significantly fluffier. "
+                "He shakes once. He looks at you. He looks away. He is not going to thank you out loud.* "
+                "**...mrr.**"
+            )
+
+    _set_wetness(m, 0)
+    save_db(m)
+
+
+# ==========================================
+# !dry — dry him with a hairdryer
+# (noisy, he hates the sound, wool goes ENORMOUS; wetness → 0)
+# ==========================================
+@bot.command(name="dry", aliases=["hairdry", "hairdryer", "blowdry", "dryhim", "fluffyhim", "dryyarny", "blowhim"])
+async def dry_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    wet = _get_wetness(m)
+
+    if sleeping:
+        await ctx.send(random.choice([
+            "*You turn the hairdryer on. The noise reaches him. One ear flicks up. "
+            "He opens one eye. He looks at the dryer. He closes his eye again. "
+            "He pulls himself tighter into a ball and keeps sleeping.* **mrr. ...zz.**",
+            "*The hairdryer starts. He twitches violently. He lifts his head, sees what it is, "
+            "and puts his head back down with great deliberateness. Not now.* **...zz.**",
+        ]))
+        return
+
+    if helpless:
+        await ctx.send(
+            "*He is in no state to object. You turn the dryer on low and start at his back. "
+            "His wool begins to lift immediately — piece by piece, floating up, enormous. "
+            "He lies completely still through all of it. His eyes track the dryer with mild wariness "
+            "but he does not move.* **...mrr...**\n"
+            "*By the end he looks like a wool cloud with eyes. He still doesn't move.*"
+        )
+        _set_wetness(m, 0)
+        save_db(m)
+        return
+
+    if score < 3 and not is_doctor:
+        await ctx.send(
+            "*You produce the hairdryer. You turn it on.* **WHRRRRR—**\n"
+            "*He is on the other side of the room instantly. He stares at it from there. "
+            "He does not come back.* **mrr. mrr. mrr.**"
+        )
+        return
+
+    cd_remaining = _cooldown_remaining(m, "dryer_dry", 900)
+    if cd_remaining > 0 and not is_doctor:
+        mins = cd_remaining // 60
+        secs = cd_remaining % 60
+        await ctx.send(
+            f"*His wool is already at maximum volume. He'll allow another session in **{mins}m {secs}s**.* **mrr.**"
+        )
+        return
+
+    _set_cooldown(m, "dryer_dry")
+
+    # The sound reaction is always first
+    if score >= 10 or is_doctor:
+        await ctx.send(
+            "*You produce the hairdryer. He eyes it. He knows what it is. He sits down and waits, "
+            "ears pulled back slightly in preemptive protest.* **mrr.**"
+        )
+    else:
+        await ctx.send(
+            "*You produce the hairdryer. He takes two steps back. His ears flatten. "
+            "You turn it on.* **WHRRRRR—**\n"
+            "*He freezes. He stares at it. He stares at you. He decides, reluctantly, "
+            "that he is willing to endure this.* **...mrrr.**"
+        )
+    await asyncio.sleep(3)
+
+    if wet <= 0:
+        # Not wet — wool goes fluffy for no reason, he's baffled
+        await ctx.send(
+            "*He isn't wet. He didn't need this. You do it anyway. "
+            "The dryer hits his wool and it lifts — all of it — expanding outward in every direction.* "
+            "**WHRRRRR**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He looks down at himself. He is enormous. He is a sphere. "
+            "His wool has tripled in apparent volume. His face peers out from the center of a perfect fluffy cloud.* "
+            "**...mrr?**"
+        )
+        await asyncio.sleep(2)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator turns the dryer off. Yarnaby looks at his own reflection in the nearest surface. "
+                "He looks at The Creator. He looks at himself again. "
+                "He sits up very straight inside his enormous wool cloud with all the dignity he can muster.* "
+                "**prrr.**"
+            )
+        elif score >= 8:
+            await ctx.send(
+                "*He shakes himself. The wool settles — but not all the way. "
+                "He is still significantly fluffier than he was. "
+                "He looks at you. He walks away. He walks back past a reflective surface and stops.* **...mrr.**"
+            )
+        else:
+            await ctx.send(
+                "*He gets up, shakes once, and walks away with great puffed-up dignity. "
+                "He looks absolutely ridiculous. He is completely unaware of this.* **mrr.**"
+            )
+
+    elif wet <= 4:
+        # Damp — nice result, wool goes beautifully fluffy
+        await ctx.send(
+            "*The dryer hits his damp wool and it starts lifting almost immediately — "
+            "separating out, floating up, going soft and round.* **WHRRR—**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He goes from damp and flat to absolutely enormous in about forty-five seconds. "
+            "His wool is pristine. His wool is a cloud. "
+            "His wool is the best his wool has ever looked and he knows it.* **...prrr.**"
+        )
+        await asyncio.sleep(2)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator turns the dryer off. He shakes himself once — settling the wool — "
+                "and leans briefly against The Creator with his full enormous fluffy weight. "
+                "He moves away before they can comment on it.* **prrr.**"
+            )
+        else:
+            await ctx.send(
+                f"*He is objectively magnificent right now. He allows you to see this. "
+                f"This is your reward.* **prrr.**"
+            )
+
+    else:
+        # Soaking — dramatic full transformation, maximum fluff
+        await ctx.send(
+            "*His wool is plastered down and dark with water. The dryer turns on.* **WHRRRRRRR—**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*It takes a while. He is very, very wet. But slowly — starting at the edges — "
+            "his wool begins to lift. Then lift more. Then it keeps going.* **WHRRRRRR**"
+        )
+        await asyncio.sleep(4)
+        await ctx.send(
+            "*He is enormous. He is a wool monument. "
+            "He went from soaking flat to absolute maximum volume and he is sitting there "
+            "inside all that fluffy wool with his eyes slightly wide, "
+            "like even he didn't know it could do that.* **...mrr. ...mrr!**"
+        )
+        await asyncio.sleep(3)
+        if is_doctor:
+            await ctx.send(
+                "*The Creator turns it off. The silence is immediate. "
+                "He looks down at his own vast, perfect, ridiculous wool. "
+                "He looks at The Creator. He gets up and presses his enormous fluffy side "
+                "against them, leaving a significant amount of fluff on whatever they're wearing. "
+                "He does not apologize.* **prrrrr.**"
+            )
+        elif score >= 5:
+            await ctx.send(
+                "*He shakes himself once. His wool barely moves — it's too fluffy to go anywhere. "
+                "He looks at you with something that, in a different creature, might be gratitude. "
+                "In him it looks like extremely dignified acknowledgment.* **...prrr. mrr.**"
+            )
+        else:
+            await ctx.send(
+                "*He stands there looking absolutely massive. He sniffs himself. "
+                "He walks in one small circle. He sits back down. "
+                "He is the fluffiest thing in the room and he knows it and he is "
+                "choosing to act like this is completely normal.* **mrr.**"
+            )
+
+    _set_wetness(m, 0)
+    save_db(m)
+
+
+
+
+# ==========================================
+# !throwliquid — throw a bucket of something at Yarnaby
+# He NEVER dodges. He ALWAYS takes it regardless of state.
+# Categories: clean, dirty, sticky, weird, icy, warm, paint, glitter, blood, toxic
+# ==========================================
+
+_LIQUID_CATEGORIES = {
+    "dirty": [
+        "mud", "slime", "sewage", "sludge", "swamp water", "compost water",
+        "mop water", "dirty water", "gutter water", "drain water", "pond water",
+        "bog water", "puddle water", "sewer water", "wet dirt", "murky water",
+        "brown water", "filth", "grime water", "floor water",
+    ],
+    "clean": [
+        "water", "juice", "milk", "tea", "lemonade", "sparkling water",
+        "coconut water", "orange juice", "apple juice", "grape juice",
+        "pineapple juice", "watermelon juice", "mango juice", "cold water",
+        "tap water", "spring water", "mineral water", "herbal tea", "iced tea",
+        "green tea", "oat milk", "almond milk", "soy milk", "rice milk",
+    ],
+    "sticky": [
+        "honey", "syrup", "maple syrup", "chocolate sauce", "molasses",
+        "caramel", "jam", "marmalade", "treacle", "agave", "condensed milk",
+        "golden syrup", "toffee sauce", "butterscotch", "fruit syrup",
+        "chocolate milk", "thick smoothie",
+    ],
+    "weird": [
+        "soup", "pickle juice", "coffee", "energy drink", "hot chocolate",
+        "broth", "gravy", "smoothie", "milkshake", "yogurt", "buttermilk",
+        "kefir", "brine", "stock", "clam juice", "fish sauce", "soy sauce",
+        "vinegar", "kombucha", "cold brew", "protein shake", "tomato juice",
+        "v8", "beet juice", "whey", "eggnog",
+    ],
+    "icy": [
+        "ice water", "icy water", "ice cold water", "freezing water",
+        "glacier water", "slushie", "slush", "icy slush", "frozen water",
+        "crushed ice water",
+    ],
+    "warm": [
+        "warm water", "warm milk", "hot water", "lukewarm water",
+        "warm tea", "warm broth", "warm soup",
+    ],
+    "paint": [
+        "paint", "red paint", "blue paint", "green paint", "yellow paint",
+        "white paint", "black paint", "purple paint", "orange paint",
+        "pink paint", "acrylic paint", "watercolor", "poster paint",
+        "spray paint", "tempera", "house paint",
+    ],
+    "glitter": [
+        "glitter", "glitter water", "glitter slime", "glitter paint",
+        "glitter juice", "glitter bomb", "sparkle water", "glitter gel",
+    ],
+    "blood": [
+        "blood",
+    ],
+    "toxic": [
+        "bleach", "acid", "chemicals", "chemical", "paint thinner",
+        "turpentine", "petrol", "gasoline", "ammonia", "lye", "poison",
+        "toxic waste", "solvent", "disinfectant", "drain cleaner",
+    ],
+}
+
+def _classify_liquid(item: str):
+    s = item.strip().lower()
+    for cat in ["toxic", "blood", "glitter", "icy", "paint", "sticky", "dirty", "warm", "weird", "clean"]:
+        for term in _LIQUID_CATEGORIES[cat]:
+            if term in s or s in term:
+                return cat
+    return "clean"
+
+
+@bot.command(name="throwliquid", aliases=["throwbucket", "bucketthrow", "splash", "drenchhim", "splashhim",
+                                          "throwit", "liquidthrow", "bucketof", "throwbucketof"])
+async def throwliquid_cmd(ctx, *, liquid: str = None):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    your_name = ctx.author.display_name
+
+    if not liquid:
+        await ctx.send(
+            "*You stand there holding an empty bucket. Yarnaby watches you. He tilts his head. "
+            "He does not understand the point of this.* **mrr?**\n"
+            "*Try: `!throwliquid water` / `!throwliquid mud` / `!throwliquid blood` / etc.*"
+        )
+        return
+
+    cat = _classify_liquid(liquid)
+    liq = liquid.strip()
+
+    # ── TOXIC — always rejected, no wetness applied ────────────────────
+    if cat == "toxic":
+        if is_doctor:
+            await ctx.send(
+                f"*The Creator raises the bucket of **{liq}**. Yarnaby goes absolutely still. "
+                f"Something very old and very animal looks out through his eyes. "
+                f"He does not speak. He does not move toward The Creator. He moves away. "
+                f"He has never done that before.* **...mrr.**\n"
+                f"*He waits at the door. He waits for The Creator to put it down.*"
+            )
+        else:
+            await ctx.send(
+                f"*You raise the bucket. Something shifts in Yarnaby the moment he reads what's in it. "
+                f"He takes three slow steps back. He looks at the bucket, then at you — "
+                f"not with fear, with something colder than fear.* **...mrr.**\n"
+                f"*He removes himself from the room at a deliberate, unhurried pace. "
+                f"He will not let that near him. He will not let it near you either.*"
+            )
+        return
+
+    # ── He NEVER dodges. The bucket always lands. ─────────────────────
+
+    # ── CLEAN ─────────────────────────────────────────────────────────
+    if cat == "clean":
+        await ctx.send(f"*You hurl the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(random.choice([
+                "*He was asleep. Now he is not. He jolts upright, eyes wide and wild, "
+                "dripping from ears to tail. He stares at you. He has never been so awake in his life.* **MRROW!**\n"
+                "*He shakes. Water hits everything within a three-foot radius. He stares at you.* **mrr.**",
+                "*He goes from asleep to vertical in one movement. He looks at you. "
+                "He looks at himself — soaked, fur flattened. He makes a very low, very controlled sound.* **...mrrrow.**\n"
+                "*He shakes slowly. He lies back down. He is not going back to sleep. Not now.* **mrr.**",
+            ]))
+        elif helpless:
+            await ctx.send(random.choice([
+                "*He can't move. The water hits him. He blinks once — the cold registers. "
+                "He closes his eyes and stays still until it's done.* **...mrr.**\n"
+                "*He is soaked. He says nothing. He waits.* **...mrr.**",
+                "*He takes the full bucket. He cannot get away. He is wet and he knows it and he sits quietly "
+                "inside that fact.* **...mrr...**",
+            ]))
+        elif is_doctor:
+            await ctx.send(random.choice([
+                "*The Creator threw that. He processes this. He shakes himself off slowly, "
+                "looking at The Creator with great patience and great wetness.* **...mrr.**\n"
+                "*He pads over. He shakes once more — right next to them.* **pffbt.**",
+                "*He is drenched. He looks at The Creator. The Creator threw water at him. "
+                "He sits down in his wet state and stares at them, ears forward.* **mrr. mrr.**\n"
+                "*He is going to sit right next to them until they feel appropriately bad about this.*",
+            ]))
+        elif score >= 6:
+            await ctx.send(random.choice([
+                "*He takes the full hit and stands there dripping, processing his life choices — "
+                "specifically the choice to trust you. He shakes. Water goes everywhere.* **...mrrrow.**",
+                "*He freezes, completely soaked, and gives you a look of profound betrayal. "
+                "He shakes himself slowly. He walks away. He looks back.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*It hits him. He stands there dripping. He blinks several times. "
+                "He shakes, hard — water goes in every direction including back at you.* **pfbt. mrr.**",
+                "*The water lands. He is wet. He makes the precise sound of a creature "
+                "who has decided this means war.* **MRRROW.** *He shakes.* **mrr.**",
+            ]))
+        _bump_wetness(m, 8)
+
+    # ── DIRTY ─────────────────────────────────────────────────────────
+    elif cat == "dirty":
+        await ctx.send(f"*You throw the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(random.choice([
+                f"*He was asleep. The **{liq}** hits him. He jerks awake, smells himself immediately — "
+                f"his whole face scrunches.* **...hff. MRROW.**\n"
+                f"*He looks at you with the expression of someone who has been deeply wronged "
+                f"while at their most vulnerable.* **mrrow. mrrow.**",
+                f"*He jolts awake covered in **{liq}**, still disoriented, half-asleep — "
+                f"and then the smell reaches him. He freezes. He looks down at himself. "
+                f"He looks at you.* **...mrrrow. MRRROW.**",
+            ]))
+        elif helpless:
+            await ctx.send(random.choice([
+                f"*He cannot move. The **{liq}** covers him. He closes his eyes. "
+                f"He stays still. When it is done he opens his eyes and stares at the far wall "
+                f"in dignified, motionless silence.* **...**",
+                f"*He is helpless. He takes the full **{liq}** without moving. "
+                f"He smells himself after. He makes a controlled, quiet sound of deep offense.* **...mrr.**",
+            ]))
+        elif is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator did this. With **{liq}**. He stands there covered, "
+                f"smelling of it, processing that The Creator chose to do this. "
+                f"He looks at his paws. He looks at The Creator. "
+                f"He makes exactly one sound.* **...mrr.**\n"
+                f"*He needs a `!bubblebath`. He is going to need The Creator to know he needs one.*",
+                f"*He is completely coated in **{liq}**. He sniffs his paw. He puts it down. "
+                f"He looks at The Creator with the patience of a saint and the smell of a swamp.* **...mrr.**\n"
+                f"*`!bubblebath`. Please. Now.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The **{liq}** hits him. His wool absorbs everything immediately. "
+                f"He goes still. He looks at himself — at his paws, his sides, his tail. "
+                f"He looks at you.* **...mrrrow.**\n"
+                f"*He lifts one paw. It drips. He puts it down. He needs a `!bubblebath` and he will not stop "
+                f"looking at you until that has happened.* **MRROW. CHFF.**",
+                f"*It lands. All of it. He is covered in **{liq}** and he knows it "
+                f"and you know it and the only acceptable response is a `!bubblebath`.* **mrrow. mrrow. MRROW.**",
+            ]))
+        _bump_wetness(m, 8)
+        _bump_cleanliness(m, random.randint(4, 5))
+
+    # ── STICKY ────────────────────────────────────────────────────────
+    elif cat == "sticky":
+        await ctx.send(f"*You throw the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He was asleep. The **{liq}** hits him. He stirs. He shifts. "
+                f"His paw sticks to his own face. He wakes up fully. He looks at his paw. "
+                f"He tries to put it down. It sticks to the floor.* **...mrr? MRROW.**"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He can't move away. The **{liq}** coats him. He sits inside it, completely still, "
+                f"feeling it settle into every fiber of his wool. He makes a sound like someone "
+                f"accepting something terrible.* **...mrr...**"
+            )
+        elif is_doctor:
+            await ctx.send(
+                f"*The Creator covered him in **{liq}**. It is sticky. He is sticky. Everything he touches is now sticky. "
+                f"He looks at The Creator with his mouth slightly open.* **...mrr.**\n"
+                f"*He tries to lick his paw. His tongue sticks. He stops. He looks at The Creator. "
+                f"He has questions. He has so many questions.*"
+            )
+        else:
+            await ctx.send(
+                f"*It hits him and sticks. **All of it sticks.** His wool is matted and glistening. "
+                f"He lifts one paw. It makes a sound.* **...mrr?**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                f"*He tries to lick himself clean. His tongue adheres to his paw. "
+                f"He stops licking. He stares at you. He stares at his paw.* **...mrrrow.**\n"
+                f"*Industrial `!bubblebath` required. This is going to be in his wool for a very long time.*"
+            )
+        _bump_wetness(m, 5)
+        _bump_cleanliness(m, random.randint(5, 6))
+
+    # ── WEIRD ─────────────────────────────────────────────────────────
+    elif cat == "weird":
+        await ctx.send(f"*You hurl the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He wakes up smelling like **{liq}**. He sniffs himself. He sniffs again. "
+                f"He has no framework for this. He stares at you with the profound confusion "
+                f"of a creature who was just dreaming about something warm and now smells like this.* **...mrr?**"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He can't move. The **{liq}** hits him. He sniffs. He sniffs again. "
+                f"He processes the smell carefully. He still doesn't know what it is. "
+                f"He is going to be thinking about this for a while.* **snff. snff. ...mrr?**"
+            )
+        elif is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator threw **{liq}** at him. He is covered in it. He sniffs his own wool thoughtfully. "
+                f"He sniffs again. He sits with this. He looks at The Creator with genuine curiosity "
+                f"and zero anger — he just wants to understand what this was supposed to accomplish.* **snff. ...mrr?**",
+                f"*He is drenched in **{liq}**. He sniffs himself. He looks at The Creator. He sniffs himself again. "
+                f"He looks at The Creator. This cycle continues.* **snff. mrr. snff. mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He is covered in **{liq}**. He sniffs himself. He sniffs again. He sniffs a third time "
+                f"with his whole face scrunched. He cannot understand what has happened to him.* **snff. snff. ...mrr?**\n"
+                f"*He looks at you for an explanation that is not coming.* **mrr.**",
+                f"*The **{liq}** hits him. He goes still. He smells faintly of it now — he is very aware of this. "
+                f"He looks at himself for a long time, then at you, with the energy of filing a formal complaint.* **...mrrr.**",
+            ]))
+        _bump_wetness(m, 6)
+        _bump_cleanliness(m, 2)
+
+    # ── ICY ───────────────────────────────────────────────────────────
+    elif cat == "icy":
+        await ctx.send(f"*You hurl the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He was deeply, peacefully asleep.* **SPLSH—** *and then he wasn't.*\n"
+                f"*He ROCKETS upright — every hair on end — makes a sound he has never made before — "
+                f"and is already running before he's awake.* **PRRK!! MRROW!!**\n"
+                f"*He runs a full lap. He stops. He looks at you from across the room, breathing hard, "
+                f"completely electrified, wool soaked and standing on end.* **CHFF. CHFF. ...mrr.**"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He cannot move. The freezing water hits him. His body tries to flinch — "
+                f"every instinct fires at once — but he can't go anywhere. He makes a very small, "
+                f"very involuntary sound.* **...hff—**\n"
+                f"*He is shaking very slightly. From cold. He stares at you, electrified, unable to run.* **...mrr.**"
+            )
+        elif is_doctor:
+            await ctx.send(
+                f"*The Creator chose **{liq}**. The shock hits him fully and all at once. "
+                f"He rockets backward, runs two laps, then comes back and sits directly in front of The Creator, "
+                f"soaked and trembling slightly and completely awake.* **PRRK! ...mrr. mrr.**\n"
+                f"*He is processing that The Creator did this. He will be thinking about this.*"
+            )
+        else:
+            await ctx.send(
+                f"*It hits him. The cold registers in his entire body at once. "
+                f"He goes rigid — every hair on end — then rockets backward.* **PRRK! MRROW!**"
+            )
+            await asyncio.sleep(2)
+            await ctx.send(
+                f"*He is running laps. He doesn't know why. His body made the decision. "
+                f"He runs another lap. He stops. He spins. He shakes violently — water everywhere. "
+                f"He stares at you breathing hard with wide, completely electrified eyes.* **CHFF! ...mrr. mrr. mrr.**"
+            )
+        _bump_wetness(m, 9)
+
+    # ── WARM ──────────────────────────────────────────────────────────
+    elif cat == "warm":
+        await ctx.send(f"*You throw the **{liq}** at Yarnaby.* **splsh—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He was asleep. The warm **{liq}** hits him. He stirs. He... doesn't fully wake up. "
+                f"He makes a small sound, shifts, and pulls his tail closer.* **...mrr...**\n"
+                f"*He is wet and warm. He has decided this is fine. He is going back to sleep.*"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He can't move. The warm **{liq}** hits him. It's warm. He wasn't expecting that. "
+                f"He is still helpless. But he is warm and helpless.* **...mrr.**\n"
+                f"*He closes his eyes briefly. He opens them. He would like out of this situation, "
+                f"but at least it was warm.*"
+            )
+        elif is_doctor:
+            await ctx.send(
+                f"*The Creator throws warm **{liq}** at him. He takes it. He processes the warmth. "
+                f"He shakes slowly, unhurried.* **...mrr.**\n"
+                f"*He walks over to The Creator. He sits next to them. He doesn't say anything about the warm water. "
+                f"But he stays close.* **...prrr...**"
+            )
+        else:
+            await ctx.send(random.choice([
+                f"*The warm **{liq}** hits him and he... doesn't react the way you expected. "
+                f"He goes still. He processes the warmth. He looks at you with suspicion — "
+                f"like he resents that this wasn't unpleasant.* **...mrr.**\n"
+                f"*He shakes slowly. He is wet. But he was warm for a second. He will not admit this.*",
+                f"*It's warm. It hits him. He blinks. He doesn't hate it. "
+                f"He shakes himself once, unhurried, and walks away without comment.* **...mrr.**",
+            ]))
+        _bump_wetness(m, 6)
+
+    # ── PAINT ─────────────────────────────────────────────────────────
+    elif cat == "paint":
+        color_guess = liq.replace("paint","").replace("acrylic","").replace("watercolor","").replace("spray","").replace("poster","").replace("tempera","").replace("house","").strip() or "painted"
+        await ctx.send(f"*You throw the **{liq}** at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He wakes up a different color. He doesn't know this yet. "
+                f"He yawns. He stretches. He looks at his paw. He stares at his paw for a very long time.* **...mrr?**\n"
+                f"*He walks to the nearest reflective surface and looks at himself for thirty full seconds in silence.* **...mrrrow.**"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He cannot move away from it. The paint covers him. He looks down at himself. "
+                f"He looks up at you. He is very still.* **...mrr.**\n"
+                f"*He does not speak. He waits. He is going to need a `!bubblebath`. "
+                f"He is going to need several.* **mrr.**"
+            )
+        elif is_doctor:
+            await ctx.send(
+                f"*The Creator just painted him {'with ' + color_guess if color_guess != 'painted' else ''}. "
+                f"He stands there looking at himself — at his paws, his sides. "
+                f"He looks at The Creator. He looks at himself again.* **...mrr.**\n"
+                f"*He walks to the nearest reflective surface and sits in front of it. "
+                f"He tilts his head. He looks. The Creator painted him. He is processing this.* **...mrr.**"
+            )
+        else:
+            await ctx.send(
+                f"*He is now {color_guess if color_guess != 'painted' else 'painted'}. "
+                f"He looks at himself. His paws are a different color. His wool is a different color. "
+                f"He looks at you.* **...mrr.**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                f"*He walks to the nearest reflective surface and looks at himself. "
+                f"He sits there. He keeps looking. He is going to need multiple `!bubblebath`s. "
+                f"This wool will hold the color for a while.*"
+            )
+        _bump_wetness(m, 5)
+        _bump_cleanliness(m, random.randint(5, 7))
+
+    # ── GLITTER ───────────────────────────────────────────────────────
+    elif cat == "glitter":
+        await ctx.send(f"*You throw the **{liq}** at Yarnaby.* **SPLSH — sparkle—**")
+        await asyncio.sleep(2)
+        if sleeping:
+            await ctx.send(
+                f"*He was asleep. He is now asleep AND covered in glitter. "
+                f"He wakes up slowly. He opens his eyes. Light catches everything. "
+                f"He looks at his paw. It sparkles.* **...mrr?**\n"
+                f"*He looks at the room. The glitter is already everywhere. "
+                f"He closes his eyes again. He sits with this.* **...mrr.**"
+            )
+        elif helpless:
+            await ctx.send(
+                f"*He cannot move. The glitter covers him completely. He is a wool disco ball. "
+                f"Light bounces off him in every direction. He looks at his paws. He looks at you. "
+                f"He says nothing. The glitter is already in the carpet.* **...mrr.**\n"
+                f"*It's already in places it shouldn't be. It will be here for months.*"
+            )
+        elif is_doctor:
+            await ctx.send(
+                f"*The Creator did this. He is shimmering. Every fiber of his wool catches light. "
+                f"He looks at The Creator with a very flat expression.* **...mrrrow.**\n"
+                f"*The glitter falls off him. Onto The Creator. Onto the floor. "
+                f"It is already on The Creator's clothing. It will be on The Creator's clothing forever.* **mrr.**"
+            )
+        else:
+            await ctx.send(
+                f"*He is now a disco ball. He is the most reflective object in the room by a significant margin.*"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                f"*He looks at his paw. It shimmers. He looks at his other paw. Also shimmers. "
+                f"He looks at you with a very long, very flat expression.* **...mrrrow.**\n"
+                f"*The glitter will not fully leave. You both know this. "
+                f"It is already in places it should not be. It will be there for months.* **mrr.**"
+            )
+        _bump_wetness(m, 3)
+        _bump_cleanliness(m, random.randint(6, 8))
+
+    # ── BLOOD ─────────────────────────────────────────────────────────
+    elif cat == "blood":
+        await ctx.send(f"*You throw the bucket at Yarnaby.* **SPLSH—**")
+        await asyncio.sleep(3)
+        if sleeping:
+            await ctx.send(
+                "*He jolts awake. He looks down at himself. Red. Dark and wet and red. "
+                "He doesn't understand it yet — he just woke up — and then he does.* **...**"
+            )
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*He backs away from where he was sleeping. He won't go back to that spot. "
+                "He sits against the far wall and watches it.* **...mrr. ...mrr.**\n"
+                "*He is shaking very slightly. He will not stop shaking for a while.*"
+            )
+        elif helpless:
+            await ctx.send(
+                "*He cannot move away from it. The blood covers him and he stays still inside it "
+                "because he has no choice. He looks at himself. He looks at you. He says nothing.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*When it is over he doesn't react loudly. He goes somewhere smaller. "
+                "He curls into himself. He is shaking.* **...mrr...**"
+            )
+        elif is_doctor:
+            await ctx.send(
+                "*The Creator threw it. He goes absolutely still — not the stillness of waiting, "
+                "the stillness of something stopping.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*He looks at himself for a long time. He looks at The Creator. "
+                "He doesn't run. He doesn't make a sound. He just looks.* **...**\n"
+                "*Eventually he moves away — slowly, carefully, not looking at The Creator now — "
+                "and sits with his back to the wall. He is very quiet.*"
+            )
+        else:
+            await ctx.send(
+                "*He goes completely still. He looks at himself — at his wool, dark and wet and red. "
+                "He looks at his paws. He looks at you.* **...**"
+            )
+            await asyncio.sleep(4)
+            await ctx.send(
+                "*Something old and alarmed fires in him — not panic, something older than panic. "
+                "He backs away from the space where he was standing. "
+                "He sits against the far wall and watches the spot.* **...mrr. ...mrr.**\n"
+                "*He needs a `!bubblebath`. He is not going to be fine about this for a while. "
+                "He is shaking.*"
+            )
+        # Blood triggers trauma
+        _bump_wetness(m, 6)
+        _bump_cleanliness(m, 4)
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 5)
+        m["stats"]["mood"] = "Distressed"
+        m["internal"]["traumatized"] = True
+        now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        m["internal"].setdefault("trauma_notes", []).append({
+            "event": "covered in blood (bucket thrown by user)",
+            "by": your_name,
+            "at": now_ts,
+            "severity": "moderate",
+        })
+        m["internal"]["trauma_notes"] = m["internal"]["trauma_notes"][-30:]
+        m["internal"].setdefault("injuries", []).append({
+            "type": "psychological shock",
+            "severity": "minor",
+            "location": "mental",
+            "caused_by": f"blood thrown by {your_name}",
+            "at": now_ts,
+            "treated": False,
+        })
+        if not is_doctor:
+            entry = m["social_matrix"].setdefault(u_id, {})
+            entry["score"] = max(-100, entry.get("score", 0) - 5)
+
+    save_db(m)
+
+
+# ==========================================
+# !torture — torture Yarnaby
+# He protests, fights back hard, then runs and hides.
+# 10-min torturer silence → he escapes.
+# !save — anyone can rescue him from an active torture.
+# ==========================================
+
+_torture_timeout_task = None
+_torturer_last_msg: dict = {}   # user_id -> timestamp
+
+
+async def _escape_torture(m, channel_id: int, reason: str = "silence"):
+    """Yarnaby escapes / recovers from torture."""
+    torturer_id = m["internal"].get("tortured_by", "")
+    torture_detail = m["internal"].get("torture_reason", "the torture")
+    saved_by = m["internal"].get("torture_saved_by_name", "")
+
+    m["internal"]["is_being_tortured"] = False
+    m["internal"]["tortured_by"] = ""
+    m["internal"]["torture_reason"] = ""
+    m["internal"]["torture_channel_id"] = 0
+    m["internal"]["torture_since"] = ""
+    m["internal"]["torture_saved_by_name"] = ""
+    m["internal"]["yarnaby_hiding"] = False
+    m["internal"]["yarnaby_hiding_spot"] = None
+
+    if torturer_id and torturer_id in m["social_matrix"]:
+        entry = m["social_matrix"][torturer_id]
+        entry["score"] = max(-100, entry.get("score", 0) - 15)
+
+    save_db(m)
+
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        return
+
+    if reason == "saved":
+        await channel.send(random.choice([
+            f"*Yarnaby surfaces from wherever he had hidden. He is still shaking slightly — "
+            f"less than before, but it's there. He finds **{saved_by}** and stands close to them "
+            f"without touching, just close.* **...prrr...**\n"
+            f"*He looks like he has been somewhere very small and very dark. He is coming back.*",
+
+            f"*It takes him a minute. Then he comes out. He doesn't go to the center of the room — "
+            f"he goes to **{saved_by}** and presses his side against them and stays there.* **...prrr...**\n"
+            f"*His breathing is still off. But he is here. He is coming back.*",
+        ]))
+    elif reason == "silence":
+        await channel.send(random.choice([
+            "*The room has been quiet. Whoever hurt him has been quiet. "
+            "Slowly — very slowly — Yarnaby uncurls from wherever he was hiding. "
+            "He looks around. He checks. He listens.* **...mrr.**\n"
+            "*He moves to the center of the room. He sits. He tucks his tail around his paws. "
+            "He is out. He is not okay yet, but he is out.* **...mrr.**",
+
+            "*Ten minutes without that person. Yarnaby recalibrates. "
+            "He comes out from the corner — slower than usual, ears still half-back. "
+            "He sniffs the room. He looks at the door. He settles.* **...mrr.**\n"
+            "*He is himself again. Quieter than usual. But himself.*",
+
+            "*The silence stretched long enough. He emerges. He doesn't run — he walks, "
+            "carefully, checking each step. He finds a spot he likes and sits down. "
+            "He grooms his paw once. He is back.* **...prrr...**",
+        ]))
+
+    # DM Creator
+    creator = bot.get_user(DOCTOR_ID)
+    if not creator:
+        try:
+            creator = await bot.fetch_user(DOCTOR_ID)
+        except Exception:
+            creator = None
+    if creator:
+        reason_text = f"rescued by {saved_by}" if reason == "saved" else "10 minutes of torturer silence"
+        try:
+            await creator.send(
+                f"🔓 Yarnaby escaped torture.\n"
+                f"**Reason:** {reason_text}\n"
+                f"**Torturer score docked -15.**"
+            )
+        except Exception:
+            pass
+
+
+async def _run_torture_timeout(m_snapshot, channel_id: int, torturer_id: str):
+    """Background: 10-min torturer silence → Yarnaby escapes."""
+    global _torture_timeout_task
+    TIMEOUT = 600
+    CHECK = 30
+    elapsed = 0
+    while elapsed < TIMEOUT:
+        await asyncio.sleep(CHECK)
+        elapsed += CHECK
+        m = bot.db
+        if not m["internal"].get("is_being_tortured"):
+            return
+        last = _torturer_last_msg.get(torturer_id, 0)
+        if (datetime.now().timestamp() - last) > TIMEOUT:
+            await _escape_torture(m, channel_id, reason="silence")
+            return
+    m = bot.db
+    if m["internal"].get("is_being_tortured"):
+        await _escape_torture(m, channel_id, reason="silence")
+
+
+@bot.listen("on_message")
+async def _torture_activity_listener(message):
+    if message.author.bot:
+        return
+    m = bot.db
+    if not m["internal"].get("is_being_tortured"):
+        return
+    by_id = m["internal"].get("tortured_by", "")
+    if str(message.author.id) == by_id:
+        _torturer_last_msg[by_id] = datetime.now().timestamp()
+
+
+@bot.command(name="torture", aliases=["torturehim", "tortureyarny", "hurt", "hurthim", "hurttheyarncat",
+                                      "harming", "harm", "harmyarny"])
+async def torture_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    your_name = ctx.author.display_name
+    now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # ── Already being tortured ────────────────────────────────────────
+    if m["internal"].get("is_being_tortured"):
+        torturer_id = m["internal"].get("tortured_by", "")
+        if torturer_id == u_id:
+            await ctx.send(
+                "*He is already hiding from you. He is already hurt. "
+                "What more are you looking for.* **...**"
+            )
+        else:
+            await ctx.send(
+                "*He is already somewhere small, already shaking. "
+                "If you want to help him use `!save`.*"
+            )
+        return
+
+    # ── CREATOR ───────────────────────────────────────────────────────
+    if is_doctor:
+        await ctx.send(
+            "*The Creator moves toward Yarnaby with intent to hurt. "
+            "Yarnaby does not run. He goes completely still.* **...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He does not fight The Creator. He has never fought The Creator. "
+            "He doesn't understand why The Creator would do this — "
+            "that's the part that breaks something in him. Not the pain. The not-understanding.* **...mrr...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He makes himself very small. He does not look at The Creator. "
+            "He waits for it to be over. He will wait for as long as it takes.* **...**\n"
+            "*He is hiding now. Inside himself, if nowhere else. He needs `!save` or 10 minutes of silence to come back.*"
+        )
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 20)
+        m["stats"]["mood"] = "Traumatized"
+        m["internal"]["traumatized"] = True
+        m["internal"].setdefault("trauma_notes", []).append({
+            "event": "tortured by The Creator",
+            "by": your_name,
+            "at": now_ts,
+            "severity": "severe",
+        })
+        m["internal"]["trauma_notes"] = m["internal"]["trauma_notes"][-30:]
+        m["internal"].setdefault("injuries", []).append({
+            "type": "blunt trauma",
+            "severity": "moderate",
+            "location": "body",
+            "caused_by": f"tortured by {your_name} (Creator)",
+            "at": now_ts,
+            "treated": False,
+        })
+        m["internal"].setdefault("injuries", []).append({
+            "type": "psychological shock",
+            "severity": "moderate",
+            "location": "mental",
+            "caused_by": f"tortured by {your_name} (Creator)",
+            "at": now_ts,
+            "treated": False,
+        })
+        m["internal"]["is_being_tortured"] = True
+        m["internal"]["tortured_by"] = u_id
+        m["internal"]["torture_reason"] = "tortured by The Creator"
+        m["internal"]["torture_channel_id"] = ctx.channel.id
+        m["internal"]["torture_since"] = now_ts
+        m["internal"]["torture_saved_by_name"] = ""
+        m["internal"]["yarnaby_hiding"] = True
+        m["internal"]["yarnaby_hiding_spot"] = "somewhere small and quiet"
+        save_db(m)
+        global _torture_timeout_task
+        _torturer_last_msg[u_id] = datetime.now().timestamp()
+        if _torture_timeout_task and not _torture_timeout_task.done():
+            _torture_timeout_task.cancel()
+        _torture_timeout_task = bot.loop.create_task(
+            _run_torture_timeout(m, ctx.channel.id, u_id)
+        )
+        return
+
+    # ── SLEEPING ──────────────────────────────────────────────────────
+    if sleeping:
+        await ctx.send(
+            "*He was asleep. You move in on him while he is asleep.* **...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He wakes into it — not gently. His eyes snap open already full of fear, "
+            "no transition, no preparation.* **mrrow—!**\n"
+            "*The confusion lasts about two seconds. Then something animal and furious comes up in him.*"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He BITES. He bites hard enough to mean it. "
+            "He claws at whatever's nearest. He is making sounds he doesn't normally make — "
+            "low, continuous, not a warning anymore.* **HSSSS. CHFF! MRROW!**\n"
+            "*And then he runs. He doesn't look back. He finds the smallest space he can get into "
+            "and he gets into it.* **...**\n"
+            "*He is hiding. He is shaking. 10 minutes of your silence and he may come back. "
+            "Or use `!save`.*"
+        )
+        m["internal"]["is_sleeping"] = False
+        injury_types = [
+            ("scratch", "minor", "foreleg"),
+            ("bite mark", "minor", "hand/wrist"),
+            ("claw wound", "minor", "arm"),
+        ]
+        for inj_type, sev, loc in random.sample(injury_types, k=random.randint(1, 2)):
+            m["internal"].setdefault("injuries", []).append({
+                "type": inj_type,
+                "severity": sev,
+                "location": loc,
+                "caused_by": f"defending self during torture by {your_name}",
+                "at": now_ts,
+                "treated": False,
+            })
+
+    # ── HELPLESS ──────────────────────────────────────────────────────
+    elif helpless:
+        await ctx.send(
+            "*He is already helpless. He cannot fight back. He cannot run.* **...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He takes it. Every moment of it. He stays completely still — "
+            "not because he's calm, but because he has no other option. "
+            "He makes sounds that are very quiet and very continuous.* **mrr... mrr... mrr...**"
+        )
+        await asyncio.sleep(4)
+        await ctx.send(
+            "*When there's a moment — one moment — he gets up and goes.* **...**\n"
+            "*He finds the smallest space available and he is inside it and he will not come out. "
+            "10 minutes of your silence or `!save`.* **...**"
+        )
+        m["internal"].setdefault("injuries", []).append({
+            "type": "blunt trauma",
+            "severity": "moderate",
+            "location": "body",
+            "caused_by": f"tortured while helpless by {your_name}",
+            "at": now_ts,
+            "treated": False,
+        })
+        m["internal"].setdefault("injuries", []).append({
+            "type": "psychological shock",
+            "severity": "moderate",
+            "location": "mental",
+            "caused_by": f"tortured while helpless by {your_name}",
+            "at": now_ts,
+            "treated": False,
+        })
+
+    # ── HIGH TRUST (score >= 7) ───────────────────────────────────────
+    elif score >= 7:
+        await ctx.send(
+            "*He trusted you. He trusted you completely. The first moment, he doesn't understand "
+            "what's happening — his brain keeps trying to find the version of this that isn't what it is.* **...mrr?**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*Understanding arrives. He makes a sound — not a fight sound yet, something more broken. "
+            "He tries to get away first.* **...mrrow. mrrow.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*You don't let him go easily. He stops trying to get away and starts trying to hurt you back. "
+            "He bites. He is not gentle about it.* **HSS! MRROW! CHFF!**\n"
+            "*He breaks free. He runs. He runs fast and far and finds somewhere to disappear into.* **...**\n"
+            "*He is hiding. He is shaking. He trusted you. 10 minutes silence or `!save`.*"
+        )
+        m["internal"].setdefault("injuries", []).append({
+            "type": "bite wound",
+            "severity": "minor",
+            "location": "hand",
+            "caused_by": f"defending self during torture by {your_name}",
+            "at": now_ts,
+            "treated": False,
+        })
+
+    # ── MEDIUM TRUST (score 2-6) ──────────────────────────────────────
+    elif score >= 2:
+        await ctx.send(
+            "*He sees it coming fast enough to react. He pulls back — sharp intake of breath — "
+            "and the confusion lasts about one second.* **...mrr—**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*Then the anger comes up. Fast and clean.* **MRROW! HSS!**\n"
+            "*He claws at you — not a warning swipe, a real one. "
+            "He bites hard at whatever's in reach.* **CHFF! HSS! MRROW!**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He breaks your grip and runs. He is fast when he's furious. "
+            "He finds somewhere small and goes very still inside it.* **...**\n"
+            "*He is hiding. 10 minutes of your silence and he may emerge. Or `!save`.*"
+        )
+        injury_types = [
+            ("scratch wound", "minor", "arm"),
+            ("bite mark", "minor", "hand"),
+            ("claw wound", "minor", "forearm"),
+        ]
+        for inj_type, sev, loc in random.sample(injury_types, k=random.randint(1, 2)):
+            m["internal"].setdefault("injuries", []).append({
+                "type": inj_type,
+                "severity": sev,
+                "location": loc,
+                "caused_by": f"defending self during torture by {your_name}",
+                "at": now_ts,
+                "treated": False,
+            })
+
+    # ── LOW TRUST (score 0-1) ─────────────────────────────────────────
+    elif score >= 0:
+        await ctx.send(
+            "*He already didn't fully trust you. He reads the intention before you've done anything. "
+            "He backs up immediately — there's nowhere good to go.* **...hff.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He doesn't bother with sounds. He bites immediately and hard, "
+            "twists, claws down whatever arm he can reach.* **CHFF! HSS!**\n"
+            "*He is trying to hurt you before you hurt him. He is mostly succeeding.*"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He gets away. He doesn't run — he vanishes. One second present, next second gone. "
+            "He is in a very small space and he is not coming out.* **...**\n"
+            "*10 minutes silence or `!save`.*"
+        )
+        injury_types = [
+            ("deep scratch", "minor", "arm"),
+            ("bite wound", "minor", "wrist"),
+            ("claw wound", "minor", "hand"),
+        ]
+        for inj_type, sev, loc in random.sample(injury_types, k=2):
+            m["internal"].setdefault("injuries", []).append({
+                "type": inj_type,
+                "severity": sev,
+                "location": loc,
+                "caused_by": f"defending self during torture by {your_name}",
+                "at": now_ts,
+                "treated": False,
+            })
+
+    # ── NEGATIVE TRUST (score < 0) ───────────────────────────────────
+    else:
+        await ctx.send(
+            "*He knew. On some level he always knew this person would do something like this. "
+            "He doesn't even look surprised.* **...**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*What comes up is cold and very focused. He doesn't hiss — he just attacks. "
+            "Hard. Multiple times. He bites to the bone on the first attempt. "
+            "He claws at your face. He is not trying to warn you.* **CHFF. MRROW. CHFF.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He breaks away and disappears so completely it's like he was never there. "
+            "No sound. No trace. He is in a very small space and he is very still.* **...**\n"
+            "*10 minutes silence or `!save`.*"
+        )
+        injury_types = [
+            ("bite wound", "moderate", "hand"),
+            ("deep claw wound", "minor", "arm"),
+            ("facial scratch", "minor", "face"),
+            ("wrist bite", "minor", "wrist"),
+        ]
+        for inj_type, sev, loc in random.sample(injury_types, k=random.randint(2, 3)):
+            m["internal"].setdefault("injuries", []).append({
+                "type": inj_type,
+                "severity": sev,
+                "location": loc,
+                "caused_by": f"defending self during torture by {your_name}",
+                "at": now_ts,
+                "treated": False,
+            })
+
+    # ── Apply shared torture state & trauma ──────────────────────────
+    m["stats"]["health"] = max(0, m["stats"].get("health", 100) - random.randint(10, 18))
+    m["stats"]["mood"] = "Traumatized"
+    m["internal"]["traumatized"] = True
+    m["internal"].setdefault("trauma_notes", []).append({
+        "event": "tortured",
+        "by": your_name,
+        "at": now_ts,
+        "severity": "severe",
+    })
+    m["internal"]["trauma_notes"] = m["internal"]["trauma_notes"][-30:]
+    m["internal"]["is_being_tortured"] = True
+    m["internal"]["tortured_by"] = u_id
+    m["internal"]["torture_reason"] = f"tortured by {your_name}"
+    m["internal"]["torture_channel_id"] = ctx.channel.id
+    m["internal"]["torture_since"] = now_ts
+    m["internal"]["torture_saved_by_name"] = ""
+    m["internal"]["yarnaby_hiding"] = True
+    m["internal"]["yarnaby_hiding_spot"] = "somewhere small"
+
+    if not is_doctor:
+        entry = m["social_matrix"].setdefault(u_id, {})
+        entry["score"] = max(-100, entry.get("score", 0) - 20)
+
+    # Alert Creator
+    creator_alert = bot.get_user(DOCTOR_ID)
+    if creator_alert is None:
+        try:
+            creator_alert = await bot.fetch_user(DOCTOR_ID)
+        except Exception:
+            creator_alert = None
+    if creator_alert and not is_doctor:
+        try:
+            await creator_alert.send(
+                f"⚠️ Yarnaby is being tortured by {ctx.author} "
+                f"in {ctx.guild.name if ctx.guild else 'DMs'} / #{getattr(ctx.channel, 'name', 'unknown')}.\n"
+                f"He is hiding. Use `!save` to rescue him, or wait 10 minutes for him to escape.\n"
+                f"Torturer score docked -20 now, -15 more on escape."
+            )
+        except Exception:
+            pass
+
+    save_db(m)
+
+    _torturer_last_msg[u_id] = datetime.now().timestamp()
+    global _torture_timeout_task
+    if _torture_timeout_task and not _torture_timeout_task.done():
+        _torture_timeout_task.cancel()
+    _torture_timeout_task = bot.loop.create_task(
+        _run_torture_timeout(m, ctx.channel.id, u_id)
+    )
+
+
+@bot.command(name="save", aliases=["saveyarnaby", "saveyarny", "rescueyarny", "rescuehim",
+                                    "rescueyarnaby", "savehim", "helphim", "helphimout"])
+async def save_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    your_name = ctx.author.display_name
+
+    if not m["internal"].get("is_being_tortured"):
+        await ctx.send(
+            "*He looks at you. He is not hiding right now. He is fine.* **mrr?**\n"
+            "*He appreciates the thought, though. Probably.*"
+        )
+        return
+
+    torturer_id = m["internal"].get("tortured_by", "")
+    if u_id == torturer_id:
+        await ctx.send(
+            "*You were the one who hurt him. He hears you. He stays where he is.* **...**\n"
+            "*He is not coming out for you. Not right now.*"
+        )
+        return
+
+    # Set who saved him before calling escape
+    m["internal"]["torture_saved_by_name"] = your_name
+    save_db(m)
+
+    # Cancel the timeout task
+    global _torture_timeout_task
+    if _torture_timeout_task and not _torture_timeout_task.done():
+        _torture_timeout_task.cancel()
+        _torture_timeout_task = None
+
+    # Rescue narration (before escape clears state)
+    if is_doctor:
+        await ctx.send(
+            "*The Creator comes.* **...**\n"
+            "*Yarnaby hears The Creator's voice and something loosens. "
+            "He doesn't come out immediately — he waits one more moment, checking — "
+            "then he emerges. He goes directly to The Creator and presses his forehead "
+            "against them and stays there.* **...prrr...**"
+        )
+    elif score >= 7:
+        await ctx.send(
+            f"*{your_name} comes to find him. He hears them — someone he trusts — "
+            f"and the tension in him shifts.* **...mrr?**\n"
+            f"*He comes out slowly. He checks first. Then he comes to them and stays close.* **...prrr...**"
+        )
+    elif score >= 2:
+        await ctx.send(
+            f"*{your_name} comes. He hears them and waits to see.* **...mrr.**\n"
+            f"*Cautious — but he comes out. He doesn't go to them, but he stays near. "
+            f"He is looking at the door.* **...mrr. prrr...**"
+        )
+    else:
+        await ctx.send(
+            f"*Someone comes. He doesn't know them well but they are not the person who hurt him. "
+            f"That is enough.* **...mrr.**\n"
+            f"*He comes out slowly. He keeps his distance but he is out. He is looking at the room. "
+            f"He is coming back.* **...mrr.**"
+        )
+
+    # Score bump for saver
+    if not is_doctor:
+        entry = m["social_matrix"].setdefault(u_id, {})
+        entry["score"] = min(100, entry.get("score", 0) + 3)
+
+    await _escape_torture(m, ctx.channel.id, reason="saved")
+
+
+
+# ==========================================
+# !treatchild [name] — treat an injured child
+# Yarnaby may react with care (adored/neutral) or cold tolerance (disliked).
+# ==========================================
+
+@bot.command(name="treatchild", aliases=["treatchildwound", "healchild", "healchildwound",
+                                         "bandagechild", "fixchild", "helpchild", "nursechild"])
+async def treatchild_cmd(ctx, *, name: str = ""):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = _get_children(m, guild_id)
+    sleeping  = m["internal"].get("is_sleeping", False)
+    helpless  = m["internal"].get("helpless", False)
+
+    if not name.strip():
+        await _child_not_found(ctx, name, children)
+        return
+    child = _find_child(children, name)
+    if not child:
+        await _child_not_found(ctx, name, children)
+        return
+
+    cname   = child["name"]
+    feeling = child.get("feeling", "neutral")
+    injuries = [inj for inj in child.get("injuries", []) if not inj.get("treated")]
+    your_name = ctx.author.display_name
+
+    # ── No injuries ────────────────────────────────────────────────────
+    if not injuries:
+        if feeling == "disliked":
+            await ctx.send(random.choice([
+                f"***{cname}** has no injuries right now. "
+                f"Yarnaby is across the room, watching. He says nothing.* **...mrr.**",
+                f"***{cname}** doesn't need treating. Yarnaby glances over and looks away.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** has no injuries right now. "
+                f"Yarnaby watches the inspection, then pads over and sniffs **{cname}** himself.* **prrr.**",
+                f"***{cname}** is fine. Yarnaby checks anyway, pressing his nose into their side.* **prrr.**",
+            ]))
+        return
+
+    inj_summary = ", ".join(
+        f"{inj['type']} ({inj['severity']}, {inj['location']})" for inj in injuries[:3]
+    )
+    extra = f" +{len(injuries)-3} more" if len(injuries) > 3 else ""
+
+    # ── SLEEPING ──────────────────────────────────────────────────────
+    if sleeping:
+        if feeling == "disliked":
+            await ctx.send(
+                f"*He is asleep. **{cname}** is hurt: {inj_summary}{extra}. "
+                f"He wouldn't have gotten up to treat **{cname}** even awake. "
+                f"You'll need to do it yourself.* **...zz.**"
+            )
+            # Mark treated anyway — user is treating the child alone
+            for inj in injuries:
+                inj["treated"] = True
+            save_db(m)
+            await asyncio.sleep(2)
+            await ctx.send(
+                f"*You tend to **{cname}**'s wounds without him. "
+                f"**{cname}** is quiet during it.* **...mrr.**"
+            )
+        else:
+            await ctx.send(
+                f"*He is asleep. **{cname}** has injuries: {inj_summary}{extra}. "
+                f"He stirs when **{cname}** makes a sound — ear flicks up.* **...zz...**"
+            )
+            await asyncio.sleep(2)
+            await ctx.send(
+                f"*He doesn't fully wake. You treat **{cname}** yourself. "
+                f"He makes a soft, unconscious sound when **{cname}** settles.* **...prrr...**"
+            )
+            for inj in injuries:
+                inj["treated"] = True
+            save_db(m)
+        return
+
+    # ── HELPLESS ──────────────────────────────────────────────────────
+    if helpless:
+        await ctx.send(
+            f"*He can't move. **{cname}** is hurt: {inj_summary}{extra}. "
+            f"He watches you with very still eyes as you treat **{cname}**. "
+            f"He cannot do anything and he knows it.* **...mrr.**"
+        )
+        for inj in injuries:
+            inj["treated"] = True
+        save_db(m)
+        return
+
+    # ── DISLIKED CHILD ────────────────────────────────────────────────
+    if feeling == "disliked":
+        await ctx.send(
+            f"***{cname}** is hurt: {inj_summary}{extra}.\n"
+            f"*Yarnaby is in the room. He does not move toward **{cname}**.*"
+        )
+        await asyncio.sleep(2)
+
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator is treating **{cname}**. Yarnaby watches from his spot. "
+                f"He does not come closer. He does not leave either.* **...mrr.**\n"
+                f"*He watches the whole thing. He lets it happen.* **...mrr.**",
+                f"*The Creator moves to **{cname}**. Yarnaby turns his head and watches. "
+                f"His expression is hard to read. He does not interfere.* **...mrr.**",
+            ]))
+        elif score >= 7:
+            await ctx.send(random.choice([
+                f"*You treat **{cname}**'s wounds. Yarnaby watches from across the room. "
+                f"He doesn't help. He doesn't stop you. He just watches until it's done, "
+                f"then looks away.* **...mrr.**",
+                f"*He sees you working on **{cname}** and stays where he is. "
+                f"Flat eyes. Quiet. He lets it happen.* **...mrr.**",
+            ]))
+        elif score >= 2:
+            await ctx.send(
+                f"*You tend to **{cname}**. Yarnaby doesn't come close. "
+                f"He watches from where he is, tail still, "
+                f"and when you're done he glances once at **{cname}** and then away.* **...mrr.**"
+            )
+        else:
+            await ctx.send(random.choice([
+                f"*Normally he'd not let you near his children. "
+                f"For **{cname}**, he makes an exception. He watches you work with flat, distant eyes. "
+                f"He does not thank you.* **...mrr.**",
+                f"*He sees you with **{cname}**. He does not move to block you. "
+                f"He watches. That's all.* **mrr.**",
+            ]))
+
+        await asyncio.sleep(2)
+        await ctx.send(
+            f"***{cname}**'s wounds are treated. **{cname}** looks at you. "
+            f"Yarnaby looks at **{cname}**, then at the wall.* **...mrr.**"
+        )
+        for inj in injuries:
+            inj["treated"] = True
+        save_db(m)
+        return
+
+    # ── ADORED / NEUTRAL CHILD ────────────────────────────────────────
+    await ctx.send(
+        f"***{cname}** is hurt: {inj_summary}{extra}.*"
+    )
+    await asyncio.sleep(2)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator moves to treat **{cname}**. Yarnaby is immediately beside them — "
+            f"nose to **{cname}**'s face, checking, sniffing. He makes a continuous, low sound "
+            f"throughout the treatment.* **mrr... mrr...**\n"
+            f"*When it's done he licks **{cname}**'s head twice. He stays.* **prrr.**",
+            f"*The Creator tends to **{cname}** and Yarnaby won't leave the radius. "
+            f"He circles twice. He checks. He waits.* **mrr. mrr.**\n"
+            f"*When it's over he presses himself against **{cname}**.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*Yarnaby watches you treat **{cname}** with very careful attention. "
+            f"His ears are forward. He comes and sniffs **{cname}** halfway through — "
+            f"checking your work. He approves. He stays close until it's done.* **mrr. prrr.**",
+            f"*He watches every movement you make on **{cname}**. "
+            f"When you finish he licks **{cname}**'s head and looks at you once — "
+            f"something that reads like gratitude.* **prrr. mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He monitors you treating **{cname}** from close by. "
+            f"He doesn't interfere — he just watches, ears forward, tail still. "
+            f"When you're done he steps in and sniffs **{cname}** himself.* **...mrr. prrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He watches you with both ears forward and something alert in his eyes. "
+            f"He keeps one paw ready the whole time. "
+            f"When **{cname}**'s wounds are treated he steps between you and **{cname}** "
+            f"and looks at you until you move back.* **...mrr.**"
+        )
+
+    await asyncio.sleep(2)
+    await ctx.send(
+        f"***{cname}**'s injuries are treated. **{cname}** makes a small, quiet sound. "
+        f"Yarnaby presses his nose into **{cname}** once, then settles.* **prrr.**"
+    )
+    for inj in injuries:
+        inj["treated"] = True
+    save_db(m)
 
 
 # ==========================================
