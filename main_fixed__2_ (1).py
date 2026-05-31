@@ -51994,8 +51994,8 @@ async def torture_cmd(ctx):
     )
 
 
-@bot.command(name="save", aliases=["saveyarnaby", "saveyarny", "rescueyarny", "rescuehim",
-                                    "rescueyarnaby", "savehim", "helphim", "helphimout"])
+@bot.command(name="save", aliases=["saveyarnaby", "saveyarny", "rescueyarn", "rescuehim",
+                                    "rescueyarnaby", "savekitty", "helphim", "helphimout"])
 async def save_cmd(ctx):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
