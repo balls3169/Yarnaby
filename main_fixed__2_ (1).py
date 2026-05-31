@@ -4491,7 +4491,7 @@ async def on_message(message):
     # Commands still work (so !unlock can end it), but passive chat gets silence.
     if m["internal"].get("lockdown"):
         content_lower = message.content.lower().strip()
-        is_command = content_lower.startswith(bot.command_prefix)
+        is_command = content_lower.startswith(tuple(["yarn!", "!", "**"]))
         if not is_command:
             # Rare ambient acknowledgement — 10% chance of a tiny sound
             if random.random() < 0.10:
@@ -37224,6 +37224,9 @@ async def _natural_ambient_tick():
             await _maybe_dream_twitching(ch, m)
         # small chance to mention a child regardless of main roll
         await _maybe_mention_child(m, ch)
+        # child play/hide ambients — independent rolls
+        await _maybe_child_wants_play(m, ch)
+        await _maybe_child_hiding(m, ch)
     except Exception as e:
         print(f"[natural ambient tick] {e}")
 
@@ -44109,6 +44112,7 @@ async def hugchild_cmd(ctx, *, name: str = ""):
             f"*He was across the room. He is now between you and **{cname}**. "
             f"He got there fast for someone who moves so calmly.* **...hff.**",
         ]))
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="petchild", aliases=["petyarnchild", "petkid", "childpet"])
@@ -44186,6 +44190,7 @@ async def petchild_cmd(ctx, *, name: str = ""):
             f"Not aggressively \u2014 just a paw placed firmly on your wrist. "
             f"He looks at you. No.* **...mrr.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="feedchild", aliases=["feedyarnchild", "feedkid", "childfeed"])
@@ -44242,6 +44247,7 @@ async def feedchild_cmd(ctx, *, args: str = ""):
             f"*He steps in front of **{cname}** the moment he sees what you're doing. "
             f"He blocks the feeding entirely. He doesn't trust you with this.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="neutral")
 
 
 @bot.command(name="playchild", aliases=["playyarnchild", "playwithkid", "childplay"])
@@ -44289,6 +44295,7 @@ async def playchild_cmd(ctx, *, name: str = ""):
             f"and positions himself between you both. "
             f"He sits down. The play does not happen.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="kisschild", aliases=["kissyarnchild", "kisskid", "childkiss"])
@@ -44335,6 +44342,7 @@ async def kisschild_cmd(ctx, *, name: str = ""):
             f"He doesn't hiss. He just looks at you with complete steadiness "
             f"and does not move.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="scoldchild", aliases=["scoldyarnchild", "scoldkid", "childscold"])
@@ -44370,6 +44378,7 @@ async def scoldchild_cmd(ctx, *, name: str = ""):
         f"He stays out of it — The Creator's authority is The Creator's authority. "
         f"But when it's over he bumps **{cname}** once with his nose.* **mrr.**",
     ]))
+    await _child_react(ctx, child, m, action="scold")
 
 
 @bot.command(name="namechild", aliases=["renamechild", "renamechildto", "givekidname"])
@@ -44466,6 +44475,356 @@ async def _maybe_mention_child(m, ch):
         f"Yarnaby's ear swivels toward it. He keeps it there for a moment. "
         f"He goes back to what he was doing.* **mrr.**",
     ]))
+
+
+async def _maybe_child_wants_play(m, ch):
+    """
+    ~5% chance per tick: a child initiates a 'catch me if you can' chase game.
+    The child paws/bats at Yarnaby and bolts — this is the invitation.
+    The chase plays out in stages: initiation → pursuit → back-and-forth → outcome.
+    Yarnaby's reaction and the outcome depend on feeling, child_score, pursuing flag.
+    """
+    if random.random() > 0.05:
+        return
+    guild_id = str(ch.guild.id) if ch.guild else "dm"
+    children = _get_children(m, guild_id)
+    if not children:
+        return
+
+    child = random.choice(children)
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+    child_score = child.get("child_score", 0)
+    pursuing = child.get("pursuing", False)
+
+    # ── STAGE 1: THE INVITATION — child tags him and runs ─────────────────
+    await ch.send(random.choice([
+        f"***{cname}** trots up to Yarnaby, paws at his side once — deliberate, "
+        f"intentional — makes eye contact, and bolts.* **prrk!**",
+        f"***{cname}** sneaks up behind him and bats his tail. "
+        f"The moment he turns around, **{cname}** is already running.* **prrk!**",
+        f"***{cname}** headbutts his leg, looks up at him for exactly one second "
+        f"with an expression that says *catch me*, and sprints away.* **chrrp!**",
+        f"***{cname}** swipes his ear — quick, precise — then crouches low "
+        f"across the room, tail lashing, staring right at him. Waiting.* **prrk.**",
+        f"***{cname}** runs a full lap around him, tags his paw on the way past, "
+        f"and skids to a stop at the far end of the room. They look back. "
+        f"The invitation is clear.* **chrrp! prrk!**",
+        f"***{cname}** taps his nose with one tiny paw and immediately reverses "
+        f"at full speed in the opposite direction.* **prrk!**",
+    ]))
+    await asyncio.sleep(1.5)
+
+    # ── BRANCH: PURSUING / CHILD WITHDRAWING ──────────────────────────────
+    if pursuing or child_score <= -3:
+        await ch.send(random.choice([
+            f"*He's on his feet before **{cname}** reaches the far wall. "
+            f"He hasn't moved this fast toward **{cname}** in days. "
+            f"He is not going to overthink this.* **prrr!**",
+            f"*He stands. He drops low. He goes. "
+            f"**{cname}** invited him and he is not missing it.* **prrr!**",
+            f"*He launches himself after **{cname}** without a single hesitation. "
+            f"Something unclenches in him.* **prrr.**",
+        ]))
+        await asyncio.sleep(1.5)
+
+        # the chase — back and forth
+        await ch.send(random.choice([
+            f"***{cname}** dodges left. He cuts right to intercept. "
+            f"**{cname}** reverses — he was expecting that, he mirrors it. "
+            f"**{cname}** is fast. He is faster, but he is also letting them have ground. "
+            f"He hasn't admitted this yet.* **prrr. prrr.**",
+            f"***{cname}** sprints. He chases. **{cname}** cuts behind the furniture — "
+            f"he goes around, they come out the other side and nearly collide with him. "
+            f"**{cname}** squeaks and reverses. He is right behind them.* **prrr!**",
+        ]))
+        await asyncio.sleep(2.0)
+
+        # outcome — he catches them, they tumble together
+        await ch.send(random.choice([
+            f"*He catches **{cname}** — a gentle wrap of his front paws — "
+            f"and they both go down in a heap. **{cname}** squirms. "
+            f"He holds them loosely. He is panting. He doesn't let go immediately. "
+            f"He has missed this.* **prrr.**",
+            f"***{cname}** finally runs out of room. He closes the last gap "
+            f"and pins them lightly with one paw. **{cname}** flops over dramatically. "
+            f"He lies down right next to them. Both of them breathe.* **...prrr.**",
+            f"***{cname}** collapses on purpose — flopping flat — and he stops "
+            f"right over them, panting. **{cname}** looks up at him. "
+            f"He looks down. He licks the top of their head once. Game over.* **prrr.**",
+        ]))
+        child["child_score"] = min(10, child_score + 1)
+        if child["child_score"] >= 0:
+            child["pursuing"] = False
+        save_db(m)
+
+    # ── BRANCH: ADORED ────────────────────────────────────────────────────
+    elif feeling == "adored":
+        await ch.send(random.choice([
+            f"*He is already moving. He does not need a moment to decide. "
+            f"He drops low and goes after **{cname}** in the slow predatory stalk "
+            f"that both of them know is not actually slow.* **prrr.**",
+            f"*He launches after **{cname}** with more noise than dignity. "
+            f"His wool flies. A chair gets involved. He does not care.* **prrr!**",
+            f"*His whole posture shifts the moment **{cname}** runs — "
+            f"lower, faster, locked on. He is entirely in this.* **PRRK!**",
+        ]))
+        await asyncio.sleep(1.5)
+
+        # the back-and-forth — roles flip
+        await ch.send(random.choice([
+            f"***{cname}** cuts left, ducks right, reverses — he mirrors every move. "
+            f"At some point **{cname}** doubles back and chases *him* for three seconds "
+            f"before reversing again. He turns immediately and gives chase.* **prrr! prrk!**",
+            f"***{cname}** is faster than expected. They dodge around the furniture, "
+            f"under the table, over his tail — he doubles back to cut them off. "
+            f"**{cname}** sees the trap, runs straight at him, ducks under, and keeps going. "
+            f"He spins around. He is delighted.* **prrr.**",
+            f"*They are both running now. **{cname}** looks back to check he's chasing — "
+            f"he is — and **{cname}** makes a sound that is pure joy and goes faster.* **chrrp! prrr!**",
+        ]))
+        await asyncio.sleep(2.0)
+
+        # outcome — various endings
+        await ch.send(random.choice([
+            f"*He catches **{cname}** — barely, they nearly made it — "
+            f"and they both collapse in a heap. **{cname}** squirms happily. "
+            f"He pins them with one paw and grooms their head while they wiggle. "
+            f"He is winning. He was always going to win.* **prrr.**",
+            f"***{cname}** dives under something. He sits in front of it. "
+            f"He does not move. He has all the time in the world. "
+            f"**{cname}** peeks out. He blinks slowly. "
+            f"**{cname}** inches forward. He waits. "
+            f"**{cname}** bolts again. He goes.* **prrr!**",
+            f"***{cname}** flops over dramatically — done, tired, surrendering. "
+            f"He sniffs them once, licks their ear, and lies down next to them. "
+            f"Game over. He also needed that.* **prrr.**",
+            f"*Somehow **{cname}** gets behind him and tags his tail. "
+            f"He freezes. Turns around slowly. "
+            f"**{cname}** has already run. Now he is the one being chased. "
+            f"He runs anyway. This is the whole game.* **prrr!**",
+        ]))
+        child["child_score"] = min(10, child_score + 1)
+        save_db(m)
+
+    # ── BRANCH: NEUTRAL ───────────────────────────────────────────────────
+    elif feeling == "neutral":
+        if random.random() < 0.6:
+            await ch.send(random.choice([
+                f"*He watches **{cname}** for a beat. Then he stands, stretches, "
+                f"and pads after them. He is joining on his own schedule.* **mrr.**",
+                f"*His ear swivels. He blinks. He gets up. "
+                f"He doesn't announce this. He is simply now chasing **{cname}**.* **mrr.**",
+                f"*He drops into a low crouch and begins the slow deliberate stalk. "
+                f"**{cname}** sees him coming and bolts harder. Good.* **mrr.**",
+            ]))
+            await asyncio.sleep(1.5)
+
+            await ch.send(random.choice([
+                f"***{cname}** cuts, he cuts with them. "
+                f"**{cname}** reverses, he gives them a half-second head start and then follows. "
+                f"It is a proper chase. He is not rushing it.* **mrr.**",
+                f"***{cname}** is surprisingly quick. He keeps pace easily but doesn't close the gap "
+                f"right away — he lets the game last a little.* **mrr.**",
+            ]))
+            await asyncio.sleep(2.0)
+
+            await ch.send(random.choice([
+                f"*He catches **{cname}** eventually — he was always going to — "
+                f"noses them once, and walks back to his spot. "
+                f"**{cname}** watches him go, then runs past him one more time just to see. "
+                f"He does not react. He is done.* **mrr.**",
+                f"*He corners **{cname}** and taps them with one paw. Tagged. "
+                f"He turns around and sits down with an air of total finality. "
+                f"Game over. He has decided.* **mrr.**",
+                f"***{cname}** runs out of steam and flops. "
+                f"He sits beside them. He begins grooming his paw. "
+                f"This is his version of a cool-down.* **mrr.**",
+            ]))
+            child["child_score"] = min(10, child_score + 1)
+            save_db(m)
+        else:
+            # Chooses not to play
+            await ch.send(random.choice([
+                f"*He watches **{cname}** bolt across the room and wait. "
+                f"He does not follow. He blinks once and lies back down.* **...mrr.**",
+                f"*He looks at **{cname}** crouching across the room, staring at him. "
+                f"He looks at his spot. He looks at **{cname}**. "
+                f"He lies back down. Maybe next time.* **...mrr.**",
+            ]))
+
+    # ── BRANCH: DISLIKED ─────────────────────────────────────────────────
+    else:
+        if child_score <= -2:
+            # Child who usually avoids him just tagged him — he's caught off guard
+            await ch.send(random.choice([
+                f"*He goes completely still. **{cname}** — who has been avoiding him — "
+                f"just tagged him and ran. He stares at the space where they were. "
+                f"He doesn't follow. He doesn't know what to do with this.* **...mrr.**",
+                f"*He watched **{cname}** tag him and run. "
+                f"He watched them go. He is still watching where they went. "
+                f"His ears are pointed toward them and haven't moved.* **...mrr.**",
+                f"*He doesn't chase. But something in him clearly wants to. "
+                f"His weight shifts forward slightly, then stops. "
+                f"He watches **{cname}** from across the room until they give up waiting.* **...mrr.**",
+            ]))
+        else:
+            await ch.send(random.choice([
+                f"*He watches **{cname}** run and makes no move to follow. "
+                f"He doesn't dislike the game. He dislikes this particular invitation.* **...mrr.**",
+                f"*He looks at **{cname}** waiting across the room. He looks away. "
+                f"He does not chase.* **...mrr.**",
+            ]))
+
+
+async def _maybe_child_hiding(m, ch):
+    """
+    ~4% chance per tick: a child hides behind something, then jumps out at Yarnaby.
+    Yarnaby's reaction depends on feeling and child_score.
+    Always two messages — the hide, then the reveal.
+    """
+    if random.random() > 0.04:
+        return
+    guild_id = str(ch.guild.id) if ch.guild else "dm"
+    children = _get_children(m, guild_id)
+    if not children:
+        return
+
+    child = random.choice(children)
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+    child_score = child.get("child_score", 0)
+    pursuing = child.get("pursuing", False)
+
+    hide_spot = random.choice([
+        "behind the couch",
+        "under a shelf",
+        "behind the door",
+        "behind a large box",
+        "under the table",
+        "behind a stack of crates",
+        "inside a cardboard box with a hole in it",
+        "behind his own tail, technically",
+        "behind a curtain with their feet visible",
+        "under his blanket pile",
+    ])
+
+    # ── HIDE MESSAGE ──────────────────────────────────────────────────────
+    await ch.send(random.choice([
+        f"***{cname}** has disappeared. "
+        f"Yarnaby is in the room but **{cname}** is not visible. "
+        f"There is a small shape {hide_spot} that is definitely not **{cname}**.* **...**",
+
+        f"***{cname}** slipped {hide_spot} a moment ago. "
+        f"Yarnaby hasn't noticed yet. "
+        f"A tiny tail tip is visible at the edge.* **...**",
+
+        f"*There is a suspicious stillness coming from {hide_spot}. "
+        f"**{cname}** is in there. It is not a very good hiding spot. "
+        f"Yarnaby hasn't looked yet.* **...**",
+
+        f"***{cname}** has wedged themselves {hide_spot} with clear intent. "
+        f"Yarnaby is sitting nearby, oblivious. "
+        f"**{cname}** is vibrating slightly with the effort of staying still.* **...**",
+    ]))
+    await asyncio.sleep(random.uniform(2.0, 3.5))
+
+    # ── REVEAL — child jumps out ───────────────────────────────────────────
+    jump_line = random.choice([
+        f"***{cname}** bursts out from {hide_spot} at full speed directly toward Yarnaby.* **PRRK!**",
+        f"***{cname}** explodes out of {hide_spot} with a tiny battle-cry and launches at him.* **chrrp! PRRK!**",
+        f"***{cname}** leaps from {hide_spot} — completely airborne — directly into his side.* **prrk!**",
+        f"***{cname}** shoots out from {hide_spot} and skids to a stop right in front of him, back arched, fur up, triumphant.* **CHRRP!**",
+    ])
+    await ch.send(jump_line)
+    await asyncio.sleep(1.0)
+
+    # ── YARNABY'S REACTION ─────────────────────────────────────────────────
+
+    if pursuing or child_score <= -3:
+        # He was NOT expecting this from a child he's been chasing.
+        # It startles him — then melts him.
+        await ch.send(random.choice([
+            f"*He startles — genuinely — ears shooting up, one step back. "
+            f"Then he realises it's **{cname}**. "
+            f"He goes completely still. Something shifts in his expression. "
+            f"He reaches out and touches **{cname}**'s head very gently with his nose.* **...prrr.**",
+            f"*He jolts. His whole body reacts before his brain does. "
+            f"Then: **{cname}**. He stares at them. He hasn't had **{cname}** jump at him in a long time. "
+            f"He doesn't chase. He just... stays. Very close.* **...prrr.**",
+            f"*He flinches back, then freezes. **{cname}** is sitting in front of him looking pleased. "
+            f"He looks at them for a long moment. "
+            f"Then he lies down right where he is, close enough that **{cname}** could crawl onto him if they wanted.* **...mrr. prrr.**",
+        ]))
+        child["child_score"] = min(10, child_score + 2)  # big jump — this is breakthrough
+        if child["child_score"] >= 0:
+            child["pursuing"] = False
+        save_db(m)
+
+    elif feeling == "adored":
+        # He absolutely knew. He let it happen anyway.
+        await ch.send(random.choice([
+            f"*He knew. He absolutely knew. "
+            f"His ear has been pointed at {hide_spot} for the last thirty seconds. "
+            f"He let **{cname}** do it anyway and pretends to be startled "
+            f"because **{cname}**'s reaction when they think they got him is worth it.* **prrr.**",
+            f"*He saw the tail. He saw the whole thing. "
+            f"He let **{cname}** have the jump. "
+            f"He rolls with it, pins them lightly, grooms their head twice, releases them. "
+            f"**{cname}** immediately runs back to hide again.* **prrr!**",
+            f"*He actually jumps this time — he was not expecting **{cname}** to be that fast. "
+            f"He recovers in under a second, bats **{cname}** gently, and crouches. "
+            f"Now they are both playing.* **PRRK! prrr.**",
+            f"*He feigns total surprise. His performance is not convincing. "
+            f"**{cname}** doesn't care. "
+            f"They are already celebrating.* **prrr.**",
+        ]))
+        child["child_score"] = min(10, child_score + 1)
+        save_db(m)
+
+    elif feeling == "neutral":
+        # Moderate surprise, mild engagement
+        await ch.send(random.choice([
+            f"*His ears shoot up. He did not see that coming. "
+            f"He looks at **{cname}**. He looks at where they came from. "
+            f"He bats them once — not hard — and goes back to his spot.* **mrr.**",
+            f"*He startles more than he would prefer. "
+            f"He stares at **{cname}** for a moment, then nudges them with his nose "
+            f"and lies back down.* **mrr.**",
+            f"*He flinches, catches himself, and then sits very still "
+            f"pretending that didn't happen. **{cname}** looks extremely pleased. "
+            f"He pretends not to notice that either.* **...mrr.**",
+        ]))
+        child["child_score"] = min(10, child_score + 1)
+        save_db(m)
+
+    else:  # disliked
+        if child_score <= -2:
+            # Very surprising — he's not used to this child being playful with him
+            await ch.send(random.choice([
+                f"*He startles hard — ears flat, one sharp step back. "
+                f"Then he sees it's **{cname}**. "
+                f"He straightens slowly. He looks at them. "
+                f"**{cname}** is crouched in front of him, unsure if they made a mistake. "
+                f"He doesn't move toward them. He doesn't move away. "
+                f"He just stands there.* **...mrr.**",
+                f"*He jumps. He actually jumps. "
+                f"He looks at **{cname}** and something unreadable moves across his expression. "
+                f"He sits down. He doesn't chase them. "
+                f"He watches them for a long time after.* **...mrr.**",
+            ]))
+            # Even a small play moment from a resistant child is meaningful
+            child["child_score"] = min(10, child_score + 1)
+            save_db(m)
+        else:
+            await ch.send(random.choice([
+                f"*He startles, turns, sees it's **{cname}**, "
+                f"and his expression closes off. He steps around them and moves away.* **...mrr.**",
+                f"*He flinches back from the jump, "
+                f"then looks at **{cname}** with an expression that is not warm. "
+                f"He turns and walks to another part of the room. "
+                f"**{cname}** watches him go.* **...hff.**",
+            ]))
 
 
 
@@ -45635,6 +45994,7 @@ async def bellyrubchild_cmd(ctx, *, name: str = ""):
             f"*He picks **{cname}** up and moves them behind himself in one smooth motion. "
             f"He stares at you. He has not blinked. He will wait.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="cuddlechild", aliases=["cuddlekid", "holdchild", "holdkid", "snugglekid", "snugglechild"])
@@ -45690,6 +46050,7 @@ async def cuddlechild_cmd(ctx, *, name: str = ""):
             f"*He collects **{cname}** and backs away slowly, keeping his eyes on you the whole time. "
             f"He does not make a sound. He does not need to.* **...hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="ticklechild", aliases=["ticklekid", "tickleyarnchild", "gigglechild", "ticklethekid"])
@@ -45743,6 +46104,7 @@ async def ticklechild_cmd(ctx, *, name: str = ""):
         await ctx.send(
             f"*The look he gives you could curdle milk. He gathers **{cname}** up and takes them to the furthest corner available.* **hss.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="scritchchild", aliases=["scratchchild", "scratchkid", "scritchkid", "headscratchchild"])
@@ -45797,6 +46159,7 @@ async def scritchchild_cmd(ctx, *, name: str = ""):
             f"*He physically relocates **{cname}** to another part of the room before you can get close. "
             f"He does not look back at you. You know what you did.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="rockchild", aliases=["rockkid", "rocktosleepchild", "sleepkid", "swingtokid", "lullabychild"])
@@ -45852,6 +46215,7 @@ async def rockchild_cmd(ctx, *, name: str = ""):
             f"*He is holding **{cname}** and backing away from you in the same motion. "
             f"He does not need your help. He does not want your help. He would like you to leave.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="comfortchild", aliases=["consolechild", "calmkid", "comfortkid", "cheerkid", "calmchild"])
@@ -45907,6 +46271,7 @@ async def comfortchild_cmd(ctx, *, name: str = ""):
             f"*He covers **{cname}** with himself — physically — and stares at you over the top of the small bundle of child. "
             f"This is not your area.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="bathchild", aliases=["washchild", "bathkid", "washkid", "cleanchild", "cleankid"])
@@ -45962,6 +46327,7 @@ async def bathchild_cmd(ctx, *, name: str = ""):
             f"*He takes **{cname}** and the water away from you in one efficient movement. "
             f"You are not authorised. He begins the process himself without comment.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="neutral")
 
 
 @bot.command(name="cheekchild", aliases=["boopkid", "touchcheekchild", "cheekpokechild", "nosekid", "cheekofchild"])
@@ -46017,6 +46383,7 @@ async def cheekchild_cmd(ctx, *, name: str = ""):
             f"*He physically moves **{cname}** to his other side and steps in front. "
             f"His expression is flat and absolute. No.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 @bot.command(name="squeakchild", aliases=["startlechild", "scarechilda", "frightenchilda", "squeakkid"])
@@ -46073,6 +46440,7 @@ async def squeakchild_cmd(ctx, *, name: str = ""):
     if score > -5 and not is_doctor:
         m["social_matrix"].setdefault(u_id, {})["score"] = score - 3
         save_db(m)
+    await _child_react(ctx, child, m, action="startle")
 
 
 # ==========================================
@@ -46081,10 +46449,11 @@ async def squeakchild_cmd(ctx, *, name: str = ""):
 # ==========================================
 # ==========================================
 # !embracechild - hug one of Yarnaby's children (he reacts based on his feelings toward them)
+# the child ALSO reacts back via _child_react
 # ==========================================
 @bot.command(name="embracechild", aliases=["holdhischild", "hugthekid", "embracekid"])
 async def embracechild_cmd(ctx, *, name: str = ""):
-    """Hug one of Yarnaby's children. He reacts based on how he feels about them."""
+    """Hug one of Yarnaby's children. He reacts based on how he feels about them — and so does the child."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
@@ -46128,14 +46497,14 @@ async def embracechild_cmd(ctx, *, name: str = ""):
     elif score >= 5:
         if feeling == "adored":
             await ctx.send(random.choice([
-                f"*You reach for **{cname}** and Yarnaby actually helps -- nudging **{cname}** "
+                f"*You reach for **{cname}** and Yarnaby actually helps — nudging **{cname}** "
                 f"slightly toward you. He trusts you with his favourite. That means something.* **mrr. prrr.**",
                 f"*He watches you hug **{cname}** and his tail rises slowly. His adored kitten, "
                 f"in trusted hands. He comes and sits near both of you.* **prrr.**",
             ]))
         elif feeling == "disliked":
             await ctx.send(random.choice([
-                f"*You hug **{cname}** and Yarnaby watches. His ears are slightly back -- "
+                f"*You hug **{cname}** and Yarnaby watches. His ears are slightly back — "
                 f"not because of you. He has feelings about **{cname}**. He is managing them.* **...mrr.**",
                 f"*He lets you have this one. He sits back and watches **{cname}** get hugged "
                 f"and something moves behind his eyes that he is not going to explain.* **...hff.**",
@@ -46144,12 +46513,15 @@ async def embracechild_cmd(ctx, *, name: str = ""):
             await ctx.send(random.choice([
                 f"*He monitors the hug from nearby. **{cname}** seems fine. "
                 f"He determines this is acceptable.* **mrr.**",
+                f"*He watches you hold **{cname}** from a comfortable distance. "
+                f"He does not interfere. He does not look away.* **mrr.**",
             ]))
     else:
         await ctx.send(
             f"*He steps between you and **{cname}** before the hug happens. "
             f"He sits down. He does not move.* **hff.**"
         )
+    await _child_react(ctx, child, m, action="warm")
 
 
 
@@ -46394,6 +46766,205 @@ async def _child_guard(ctx, name: str, m: dict, guild_id: str):
         await _child_not_found(ctx, name, children)
         return None, None
     return child, child["name"]
+
+
+async def _child_react(ctx, child: dict, m: dict, action: str = "warm"):
+    """
+    Send the child's reaction to a Yarnaby interaction, then adjust child_score.
+    Also handles the "pursuing" state -- when child_score hits -3 or below,
+    Yarnaby ignores his own feeling and tries to win the child back.
+
+    action:
+        "warm"    -- affectionate action (hug, pet, cuddle, kiss, rock, scritch...)
+        "neutral" -- present but not especially warm (watching, feeding, bathing)
+        "startle" -- scared/startled the child
+        "scold"   -- disciplined the child
+    """
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+    child_score = child.get("child_score", 0)
+    pursuing = child.get("pursuing", False)
+
+    def _set_score(delta):
+        new_score = max(-10, min(10, child_score + delta))
+        child["child_score"] = new_score
+        if new_score <= -3 and not child.get("pursuing"):
+            child["pursuing"] = True
+        if new_score >= 0 and child.get("pursuing"):
+            child["pursuing"] = False
+        save_db(m)
+        return new_score
+
+    await asyncio.sleep(1)
+
+    # ── STARTLE ───────────────────────────────────────────────────────────────
+    if action == "startle":
+        await ctx.send(random.choice([
+            f"***{cname}** freezes, then makes a high, unhappy sound. "
+            f"They press themselves flat and don't look at him for a long moment.* **eep!**",
+            f"***{cname}** jumps and scrambles backward. Their fur is up. "
+            f"They stare at whoever startled them with wide, betrayed eyes.* **mrr!**",
+            f"***{cname}** lets out a sharp, frightened squeak and bolts behind Yarnaby. "
+            f"They peek out from behind his tail, breathing fast.* **eep. eep.**",
+        ]))
+        new = _set_score(-1)
+        if new <= -3:
+            await asyncio.sleep(1)
+            m["stats"]["mood"] = "Sad"
+            save_db(m)
+            await ctx.send(random.choice([
+                f"*He pulls **{cname}** against him. He says nothing. His ears are down.* **...mrr...**",
+                f"*He covers **{cname}** with himself and doesn't move. His mood has shifted.* **...hff...**",
+            ]))
+        return
+
+    # ── SCOLD ─────────────────────────────────────────────────────────────────
+    if action == "scold":
+        await ctx.send(random.choice([
+            f"***{cname}** goes very still. Their ears drop. "
+            f"They look at the floor and make a small, low sound.* **...mrr.**",
+            f"***{cname}** flattens completely and stays absolutely quiet. "
+            f"They understand something happened. They are not sure they like it.* **...**",
+            f"***{cname}** pins their ears back and makes a single, chastened sound. "
+            f"They don't run. They just... deflate.* **...mrr.**",
+        ]))
+        _set_score(-1)
+        return
+
+    # ── PURSUING MODE -- child_score <= -3, Yarnaby trying to win them back ──
+    if pursuing or child_score <= -3:
+        await ctx.send(random.choice([
+            f"*He stays close to **{cname}**, closer than usual. "
+            f"He is not demanding anything. He is just... present. Waiting.* **...mrr.**",
+            f"*He nudges **{cname}** very gently. He pulls back immediately when **{cname}** tenses. "
+            f"He tries again, softer.* **...mrr.**",
+            f"*He settles himself next to **{cname}** and doesn't move. "
+            f"He is not pretending this is normal. He is doing it anyway.* **...mrr...**",
+            f"*He keeps finding excuses to be near **{cname}**. Near the food bowl. "
+            f"Near the sleeping spot. Near. Just near.* **...mrr.**",
+        ]))
+        await asyncio.sleep(1)
+        if child_score <= -5:
+            await ctx.send(random.choice([
+                f"***{cname}** turns away from him. Again. The same small, deliberate movement. "
+                f"He watches them do it.* **...hss.**",
+                f"***{cname}** makes a short, flat sound and moves to the other side of the space. "
+                f"He doesn't follow. He just watches.* **...mrr.**",
+                f"***{cname}** hisses -- quiet, reflexive -- and then seems almost surprised they did it. "
+                f"He goes very still.* **hss.**",
+            ]))
+            _set_score(-1)
+            await asyncio.sleep(1)
+            m["stats"]["mood"] = "Sad"
+            save_db(m)
+            await ctx.send(random.choice([
+                f"*He lies down where **{cname}** can still see him. He doesn't go away. "
+                f"He just stays.* **...mrr...**",
+                f"*He doesn't react to the hiss. He tucks his paws under himself and waits. "
+                f"He has decided to wait.* **...mrr...**",
+                f"*His ears drop. He makes no sound. He stays in the same room anyway.* **...hff...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** doesn't move away this time. They just watch him from where they are. "
+                f"Ears back. Not hissing. Watching.* **...mrr?**",
+                f"***{cname}** lets him get a little closer before they tense up. "
+                f"A little closer than before.* **...mrr.**",
+                f"***{cname}** makes a small sound -- not warm, not hostile. Just... present. "
+                f"Letting him be near.* **...mrr.**",
+            ]))
+            new = _set_score(+1)
+            if new >= 0:
+                await asyncio.sleep(1)
+                await ctx.send(random.choice([
+                    f"***{cname}** takes one small step toward him. He goes completely still, "
+                    f"not wanting to startle them. He lets them come.* **...prrr.**",
+                    f"*He presses his nose gently to **{cname}**. **{cname}** doesn't pull away. "
+                    f"Something in him unclenches.* **prrr.**",
+                    f"***{cname}** looks at him -- stays looking. His tail lifts, just a little.* **mrr. prrr.**",
+                ]))
+        return
+
+    # ── NORMAL REACTIONS: feeling x action ───────────────────────────────────
+
+    if feeling == "adored":
+        if action == "warm":
+            await ctx.send(random.choice([
+                f"***{cname}** immediately leans into him, purring before contact is even made. "
+                f"They know him. They want him.* **chrrp!**",
+                f"***{cname}** curls toward him the moment he is close, eyes soft. "
+                f"Safe. Known. Wanted.* **prrr...**",
+                f"***{cname}** bats at his ear with a tiny paw and then presses their whole face into him.* **prrr.**",
+                f"***{cname}** reaches for him even before the gesture completes. "
+                f"They have been waiting for this.* **chrrp. prrr.**",
+            ]))
+            _set_score(+1)
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** watches him calmly. He is there. That is enough. "
+                f"They make a small, content sound.* **mrr.**",
+                f"***{cname}** glances at him, then back at whatever they were doing. Settled.* **mrr.**",
+            ]))
+            _set_score(+1)
+
+    elif feeling == "disliked":
+        if child_score <= -1:
+            await ctx.send(random.choice([
+                f"***{cname}** spots him and their ears flatten. "
+                f"They make a short, flat sound. Not a greeting.* **hss.**",
+                f"***{cname}** turns deliberately away from him, presenting their back. "
+                f"Small. Pointed. Decided.* **...mrr.**",
+                f"***{cname}** wiggles free and puts distance between themselves and him, "
+                f"then sits with their back toward him and begins grooming.* **...hff.**",
+                f"***{cname}** makes a quiet, irritable sound when he comes close "
+                f"and scoots sideways without meeting his eyes.* **...hss.**",
+            ]))
+            new = _set_score(-1)
+            await asyncio.sleep(1)
+            m["stats"]["mood"] = "Sad"
+            save_db(m)
+            await ctx.send(random.choice([
+                f"*He watches **{cname}** turn away. Something in him goes very quiet. "
+                f"He just sits there.* **...mrr...**",
+                f"*His ears drop. He makes no sound. "
+                f"He walks to another part of the room and lies down facing away.* **...mrr...**",
+                f"*He observed every part of that. His tail wraps around himself. "
+                f"He is very still.* **...hff...**",
+            ]))
+            if new <= -3:
+                await asyncio.sleep(1)
+                await ctx.send(random.choice([
+                    f"*After a long moment he gets up quietly and moves to where **{cname}** is sitting. "
+                    f"He lies down nearby. He doesn't touch them. He just stays.* **...mrr...**",
+                    f"*He pads to where **{cname}** has settled and sits down at a careful distance. "
+                    f"Not crowding. Just there.* **...mrr.**",
+                ]))
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** is quiet, watching him from a distance. Not hostile yet. "
+                f"Unreadable. Learning.* **...mrr?**",
+                f"***{cname}** glances at him and then looks away. Haven't decided yet.* **...**",
+                f"***{cname}** accepts the interaction but doesn't lean in. "
+                f"Measured.* **mrr.**",
+            ]))
+
+    else:  # neutral
+        if action == "warm":
+            await ctx.send(random.choice([
+                f"***{cname}** watches him with calm eyes. They make a small, experimental sound. "
+                f"He is just there. That seems okay.* **mrr.**",
+                f"***{cname}** settles into it. Not reaching back, but not pulling away. "
+                f"Comfortable.* **mrr.**",
+                f"***{cname}** blinks at him once, slowly, and then closes their eyes. "
+                f"They accept this.* **mrr.**",
+            ]))
+            _set_score(+1)
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** observes him. Unhurried. Unbothered.* **mrr.**",
+                f"***{cname}** makes a small sound and resettles. He is nearby. Fine.* **...mrr.**",
+            ]))
+            _set_score(+1)
 
 # ── headpatchild ─────────────────────────────────────────────────────────────
 @bot.command(name="headpatchild", aliases=["headpatkid", "patkid", "patchildhead", "headpatofchild"])
@@ -48241,6 +48812,1204 @@ async def doorbell_cmd(ctx):
             "He is guarding this door. Whoever is out there is not welcome. "
             "He has made this decision for everyone.* **HSS. MRROW. HSS.**",
         ]))
+
+
+# ==========================================
+# !irlgame — play a real-world sport with Yarnaby
+# Win odds vary by sport difficulty for him:
+#   Easy-ish (50/50): football (soccer), basketball, volleyball,
+#                     american football, swimming, track/sprinting,
+#                     tug of war, wrestling
+#   Hard for him (~25% win): tennis (racket in mouth),
+#                     table tennis, badminton, baseball/cricket (bat grip),
+#                     golf (club in mouth), gymnastics (no hands),
+#                     cycling (no thumbs), archery (can't draw bow cleanly)
+# ==========================================
+
+_IRL_GAME_WIN_ODDS = {
+    # 50/50 — his body works fine for these
+    "football":        0.50,
+    "soccer":          0.50,
+    "basketball":      0.50,
+    "volleyball":      0.50,
+    "american football": 0.50,
+    "swimming":        0.52,  # slight edge — good in water
+    "running":         0.50,
+    "sprinting":       0.50,
+    "track":           0.50,
+    "wrestling":       0.52,
+    "tug of war":      0.55,  # strong jaw
+    "tugofwar":        0.55,
+    "sumo":            0.50,
+    "dodgeball":       0.50,
+    "rugby":           0.50,
+    "hockey":          0.48,
+    "ice hockey":      0.40,  # skates are a problem
+    "polo":            0.48,
+    "handball":        0.50,
+    "waterpolo":       0.50,
+    "water polo":      0.50,
+    "fencing":         0.45,
+    "boxing":          0.50,
+    "kickboxing":      0.50,
+    "martial arts":    0.50,
+    "karate":          0.50,
+    "judo":            0.50,
+    # Hard — racket/club/bat grip issues, or requires hands
+    "tennis":          0.22,
+    "table tennis":    0.20,
+    "ping pong":       0.20,
+    "badminton":       0.22,
+    "baseball":        0.20,
+    "cricket":         0.20,
+    "golf":            0.18,
+    "gymnastics":      0.20,
+    "cycling":         0.25,
+    "archery":         0.22,
+    "javelin":         0.25,
+    "shot put":        0.35,  # can manage with mouth/paw
+    "discus":          0.30,
+    "skateboarding":   0.28,
+    "snowboarding":    0.30,
+    "skiing":          0.25,
+}
+
+_IRL_GAME_START = {
+    "football": [
+        "*He trots onto the pitch, ears forward, tail raised. He has already chosen a position. He chose striker. Nobody asked. He is striker.* **prrr.**",
+        "*He studies the formation from the sideline. He picks his lane. He enters the field like he was always going to.* **mrr.**",
+    ],
+    "soccer": [
+        "*He takes the pitch as striker, no discussion. He dribbles low to the ground, fast changes of direction, and the ball seems to follow him like he has it on a string.* **prrr.**",
+    ],
+    "basketball": [
+        "*He is shorter than everyone on the court. He has considered this. He has decided it is not relevant.* **mrr.**",
+        "*He doesn't dunk. He doesn't need to. He reads the court, finds the open player, moves into space.* **prrr.**",
+    ],
+    "volleyball": [
+        "*He approaches the net with the expression of someone who has already calculated every trajectory. He sets up in the back row and waits.* **mrr.**",
+        "*He crouches, ready. His paws are solid on the floor. He will dig everything.* **prrr.**",
+    ],
+    "american football": [
+        "*He lines up as a running back without being told. He is compact, fast, and low to the ground. He likes this.* **mrr.**",
+        "*He picks linebacker. He reads the snap immediately, reacts before the ball is even thrown.* **prrr.**",
+    ],
+    "swimming": [
+        "*He enters the water with the expression of someone who has accepted an unfortunate truth. He is, in fact, a good swimmer. He is also extremely unhappy about needing to be one right now.* **...mrr.**",
+        "*He hits the water and transforms. His strokes are strong and clean. His wool is ruined. He will deal with that later.* **mrr.**",
+    ],
+    "tennis": [
+        "*He picks up the racket. In his mouth. He looks at it. He looks at the net. He looks at you. He holds it in his mouth anyway and takes the baseline.* **...mrr.**",
+        "*He grips the racket handle between his teeth and bounces slightly on his paws. This is fine. He has decided this is fine.* **...hff.**",
+    ],
+    "table tennis": [
+        "*The paddle is almost as big as his face. He holds it in his mouth anyway, tilts his head to the correct angle, and taps the ball back experimentally.* **...mrr.**",
+    ],
+    "badminton": [
+        "*He grips the racket in his mouth and tracks the shuttlecock with absolute focus. The grip is technically valid. The backswing is not. He commits anyway.* **...mrr.**",
+    ],
+    "baseball": [
+        "*He holds the bat between his teeth and gets into his stance. His eyes track the ball with precision. His stance is impeccable. His grip is not.* **...mrr.**",
+    ],
+    "cricket": [
+        "*He picks up the bat in his mouth, sets his back paws in the crease, and stares down the bowler. He has the form. He does not have the wrists.* **...mrr.**",
+    ],
+    "golf": [
+        "*He addresses the ball carefully. He holds the club in his mouth. He adjusts the angle three times. He has calculated the swing. He is not entirely sure how it will go.* **...mrr.**",
+    ],
+    "gymnastics": [
+        "*He approaches the apparatus with the confidence of a creature built low and flexible. He has no hands. The routine will have to be adapted. He begins adapting it.* **...mrr.**",
+        "*He sizes up the balance beam with serious eyes. He has four paws. The beam is narrow. He is not afraid. He is also not fully prepared.* **...hff.**",
+    ],
+    "cycling": [
+        "*He stares at the bicycle. He stares at the pedals. He sits on the seat. His paws don't reach the pedals comfortably. He works around this.* **...mrr.**",
+    ],
+    "wrestling": [
+        "*He drops into a low stance immediately. He is built for this — low center of gravity, strong core, fast. He watches the opponent move.* **mrr.**",
+    ],
+    "running": [
+        "*He looks at you. He looks at the open space. One ear swivels back. Then he bolts — no warning, no countdown, just gone.* **prrk!**",
+        "*He crouches low, tail lashing once, glances back to make sure you're watching, then takes off.* **prrr.**",
+        "*He does a short fake-left, cuts right, and runs. Full speed. Catch him if you can.* **prrk!**",
+    ],
+    "sprinting": [
+        "*He crouches low, tail lashing once, glances back to make sure you're watching, then takes off.* **prrr.**",
+        "*He looks at you. He bolts. He is already a wool-coloured blur.* **prrk!**",
+    ],
+    "tug of war": [
+        "*He grabs the rope in his teeth and plants his back paws in the dirt. He has never lost a tug. He is not planning to start.* **mrr.**",
+    ],
+    "rugby": [
+        "*He takes position as a flanker. He is low, quick, and interested in getting to the ball by whatever route is available.* **mrr.**",
+    ],
+    "dodgeball": [
+        "*He stands at the back of his side, reading the throwers. He is low and fast and he intends to use both of those things.* **mrr.**",
+    ],
+    "archery": [
+        "*He examines the bow. He cannot draw it with paws cleanly. He tries using both front paws. He adjusts. He takes aim. This is an unconventional form.* **...mrr.**",
+    ],
+    "skateboarding": [
+        "*He places his paws on the board and pushes off experimentally. He has no ankles to turn. He compensates with his whole body weight.* **...mrr.**",
+    ],
+}
+
+_IRL_GAME_WIN = {
+    "football": [
+        "*He cuts inside from the left channel, lets the ball run across his paw to kill the pace, and slots it low into the bottom corner. He was always going to score. He trots back without looking at anyone.* **prrr.**",
+        "*He wins a header — a head-butt, really — at the back post and diverts the ball into the net. He is satisfied with this.* **mrr.**",
+        "*He plays the full 90 as striker. Two goals, one assist. He jogs off at full time with the expression of someone who never doubted the outcome.* **prrr.**",
+    ],
+    "soccer": [
+        "*He dribbles past two defenders with quick, tight footwork and finishes calmly. He doesn't celebrate. He was always scoring.* **prrr.**",
+    ],
+    "basketball": [
+        "*He steals the ball near half-court, drives the paint, and lays it up off the glass with his snout. The court goes quiet. He trots back to defense.* **mrr.**",
+        "*He doesn't score the most points. He sets the screen, makes the right pass, and gets back on defense every single time. His team wins. He expected this.* **prrr.**",
+    ],
+    "volleyball": [
+        "*He digs an impossible ball, sets it perfectly, and his teammate spikes it away. He doesn't need the final touch. He was the reason it worked.* **prrr.**",
+        "*He serves a jump serve that clips the line. Ace. He returns to the back row as if nothing happened.* **mrr.**",
+    ],
+    "american football": [
+        "*He takes the handoff, reads the gap, cuts through it, and is gone. 40 yards, untouched. His wool streams behind him.* **prrr.**",
+        "*He reads the quarterback's eyes and breaks on the route before the ball is thrown. Interception. He runs it back 22 yards before going down.* **mrr.**",
+    ],
+    "swimming": [
+        "*He is first out of the water. His wool is destroyed. He does not care. He won.* **prrr.**",
+        "*He finds his rhythm in the water after the first 25 metres and holds it. Clean turns, strong kick. He touches the wall first.* **mrr.**",
+    ],
+    "tennis": [
+        "*He wins. He doesn't know how. The racket is still in his mouth. His neck is sore. He won. He stares at the scoreboard with an expression of grudging disbelief.* **...prrr?**",
+        "*His serve has no spin and limited power — jaw mechanics — but his footwork is impeccable and he returns everything. He wins by not missing. Slowly. Stubbornly.* **...mrr. prrr.**",
+    ],
+    "table tennis": [
+        "*He wins a point by tilting his head at the last second and redirecting a smash back over the net. His opponent doesn't understand what happened. Neither does he.* **...prrr.**",
+    ],
+    "badminton": [
+        "*His grip is wrong, his swing is sideways, but his court coverage is unreal. He wins on movement alone. His neck hurts. He won.* **...mrr. prrr.**",
+    ],
+    "baseball": [
+        "*He times the pitch perfectly and makes contact — it's not a clean swing, it's more of a lunge, but the ball sails into left field. He runs. He is fast. He scores.* **...prrr!**",
+    ],
+    "cricket": [
+        "*He gets under one delivery and drives it straight down the ground. How he generated that power from a jaw-grip is unclear. The boundary umpire raises both flags.* **...mrr. prrr.**",
+    ],
+    "golf": [
+        "*He makes contact. The ball goes in roughly the right direction. It clears the bunker. It lands on the green. On the next shot he holes out. He sits down. He does not understand how that happened but he is willing to accept it.* **...prrr.**",
+    ],
+    "gymnastics": [
+        "*His floor routine is technically a four-pawed crawl with intermittent rolls and one very committed backflip. The judges are not sure what scoring system to use. He lands clean. He sits.* **...mrr. prrr.**",
+    ],
+    "cycling": [
+        "*He makes it work. Nobody can fully explain how he made it work. His paws found a rhythm. He pedalled. He finished. He is getting off this bicycle and never looking at it again.* **...prrr.**",
+    ],
+    "wrestling": [
+        "*He reads the first attempted throw and turns it into a takedown before his opponent realises what happened. Two points. He waits. His opponent tries again. He does it again.* **mrr. prrr.**",
+    ],
+    "running": [
+        "*You never catch him. He lets you get close once — close enough to reach — then accelerates. He is waiting at the end point sitting down by the time you arrive, completely unbothered.* **prrr.**",
+        "*He zigzags. He doubles back. He cuts under a table. You were never catching him. He stops eventually only because he decides to.* **prrr.**",
+        "*He runs just fast enough to stay ahead. Not so fast you give up. He is pacing this deliberately. He glances back every few seconds to confirm you're still chasing.* **prrk! prrr.**",
+    ],
+    "sprinting": [
+        "*He explodes off the line. His four-paw launch is technically against the rules but the officials are not sure which rule. He wins by a clear margin.* **prrr!**",
+    ],
+    "tug of war": [
+        "*He digs in and doesn't move. He is a wall. The other team moves. He doesn't. They lose ground. They lose more. They fall.* **PRRR.**",
+    ],
+    "rugby": [
+        "*He reads the pass, intercepts, and is running before the other team processes what happened. He is fast and low and they cannot tackle what they cannot reach.* **prrr.**",
+    ],
+    "dodgeball": [
+        "*He moves before the ball is thrown. He reads the shoulder, ducks, and collects a ball of his own. He throws it with his snout. It is faster than it has any right to be.* **prrr.**",
+    ],
+    "archery": [
+        "*His unconventional two-paw draw produces one clean, centered shot. The arrow hits the gold. He stares at it. He is not celebrating. He is analysing how that happened.* **...prrr.**",
+    ],
+    "skateboarding": [
+        "*He gets down the ramp without dying. This is a victory. He rides to the bottom, steps off, and sits. His expression says: adequate.* **mrr.**",
+    ],
+}
+
+_IRL_GAME_LOSE = {
+    "football": [
+        "*He cuts inside, shapes to shoot, and the defender nicks it off his paw at the last second. He stands there for a moment, then trots back into position.* **...mrr.**",
+        "*He is one-on-one with the keeper and hits the post. The sound is awful. He stares at the post for exactly two seconds.* **...mrr.**",
+    ],
+    "soccer": [
+        "*He beats the first defender, the second, turns the third — and the ball rolls just wide. He doesn't look at the net.* **...mrr.**",
+    ],
+    "basketball": [
+        "*He goes up for the layup and the ball rolls out. He comes down and goes straight back to defense. He does not speak about this.* **mrr.**",
+        "*He drives the lane and the big comes across. Block. He gets the rebound but the shot clock expires. He was already deciding how to get back.* **...mrr.**",
+    ],
+    "volleyball": [
+        "*The serve clips his ear at the wrong angle and he shanks it out. He watches the ball go. He does not move. He is reconstructing what went wrong.* **mrr.**",
+    ],
+    "american football": [
+        "*He takes the handoff and the gap closes immediately. He is stopped for no gain. He gets up immediately.* **mrr.**",
+        "*He reads the route but the throw is underthrown and he can't come back for it. Incomplete. He turns back for the huddle.* **...mrr.**",
+    ],
+    "swimming": [
+        "*He hits the first turn half a second late and never quite catches the leader. He finishes second. His wool is wet and he lost.* **...mrr.**",
+    ],
+    "tennis": [
+        "*The ball comes fast and low, skidding off the surface. He gets his racket on it — still in his mouth — but he swings sideways and sends it into the net. The paddle makes a dull wooden sound. He stands there. He knew this would be hard.* **...mrr.**",
+        "*He drops the racket on a backhand. He picks it up immediately. He has lost the point. He has also lost dignity. He does not have enough dignity in reserve for tennis.* **...mrrp.**",
+        "*His serve is functional but his arm is a neck and it does not pronates. Three double faults. He loses the game. His jaw hurts. He knew this going in.* **...hff.**",
+    ],
+    "table tennis": [
+        "*The ball bounces short and he hits it into the net. The paddle swings out of his mouth. He catches it on the way down. He has lost the point. He picks up the paddle with the expression of someone writing a strongly worded letter.* **...mrrp.**",
+        "*He tries a topspin loop. He is not sure where the ball went. He is not sure the ball is still on the table. He reassembles his stance.* **...mrr.**",
+    ],
+    "badminton": [
+        "*The shuttlecock drops too fast and he can't angle the racket in time. It hits the floor. He watches it. He watches it more. He walks to the service line.* **...mrr.**",
+        "*He goes for an overhead smash and the racket swings entirely sideways. The shuttle lands two metres out. He would like everyone to pretend that did not happen.* **...hff.**",
+    ],
+    "baseball": [
+        "*He swings through a curveball and the bat pulls out of his teeth on contact. He catches it before it leaves the batter's box. He has struck out. His jaw is tired.* **...mrrp.**",
+        "*He fouls the first two pitches and then watches strike three clip the outside corner. He stares at the plate. The grip was the problem. The grip is always the problem.* **...mrr.**",
+    ],
+    "cricket": [
+        "*He edges one to slip. The ball clips the bat — jaw — at the wrong angle, spins, and lands in first slip's hands. He walks without being told. He understands how cricket works.* **...mrr.**",
+    ],
+    "golf": [
+        "*He swings and the club head twists in his jaw at impact. The ball goes left. Very left. Into the trees. He walks after it without a word, carrying the club in his mouth, ears flat.* **...hff.**",
+        "*He four-putts the final green. His jaw is sore, his paws are muddy, and the ball simply will not go into the hole. He sits down next to the flag and stares at the cup.* **...mrr.**",
+    ],
+    "gymnastics": [
+        "*He falls off the balance beam on the dismount. He lands on his feet — he always lands on his feet — but the points are already gone. He sits. He does not look at the judges.* **...mrr.**",
+        "*His vault approach is perfect. The takeoff is clean. Somewhere in the rotation he loses the position and lands on his side. He gets up immediately. He is fine. He would like this not to be on video.* **...hff.**",
+    ],
+    "cycling": [
+        "*He gets his paw caught in the pedal mechanism in the first 30 seconds. He untangles himself. He is already behind. He does not catch up.* **...mrr.**",
+        "*He can steer. He cannot brake cleanly without thumbs. He overshoots the turn and rolls off course. He sits on the grass beside the bicycle and stares at it.* **...hff.**",
+    ],
+    "wrestling": [
+        "*His opponent finds a body lock he cannot escape from. He knows exactly what's happening. He cannot stop it. He is taken down. He is on the mat. He is annoyed.* **...mrr.**",
+    ],
+    "running": [
+        "*You actually catch him. He goes still for a moment with the expression of someone who has suffered a great surprise. He shakes you off and walks away very fast with his dignity only partially intact.* **...mrr.**",
+        "*He cuts left and you cut left too and suddenly you have him. He freezes. He stares at you. He is deciding whether this happened.* **...mrrp.**",
+        "*He misjudges the corner and you close the gap. Tagged. He sits down immediately, refusing to acknowledge that he was caught, and begins grooming.* **...mrr.**",
+    ],
+    "sprinting": [
+        "*He false-starts. He is recalled. On the second start he is a fraction late reacting. He finishes second by 0.09 seconds. He stares at the finish line for a while.* **...mrr.**",
+    ],
+    "tug of war": [
+        "*His grip is perfect but his weight isn't quite enough. The rope moves toward the other side one slow inch at a time. He digs in harder. It doesn't help.* **...mrr.**",
+    ],
+    "rugby": [
+        "*He is tackled hard around the body and goes down. He gets up immediately. He is fine. His wool is full of grass.* **mrr.**",
+    ],
+    "dodgeball": [
+        "*One clips him on the ear. He is out. He sits down. He stares at the ball that got him. He will remember which direction it came from.* **...mrr.**",
+    ],
+    "archery": [
+        "*He releases and the arrow skips along the top of the bow. It lands about three metres in front of him. He picks up the next arrow and makes a significant adjustment.* **...mrr.**",
+    ],
+    "skateboarding": [
+        "*He gets speed and then has no idea how to slow down. He hops off the board at the bottom of the ramp and the board continues without him. He watches it go.* **...hff.**",
+    ],
+}
+
+# fallback messages for unknown sports
+_IRL_GAME_START_DEFAULT = [
+    "*He sizes up the sport, decides he can figure it out, and enters the playing area with quiet confidence.* **mrr.**",
+    "*He watches the other competitors for thirty seconds. He absorbs the rules. He steps forward.* **mrr.**",
+]
+_IRL_GAME_WIN_DEFAULT = [
+    "*He wins. He's not sure everyone believed he would. He did.* **prrr.**",
+    "*He figured it out and he came first. He shakes off whatever he picked up in the process and walks away.* **mrr.**",
+]
+_IRL_GAME_LOSE_DEFAULT = [
+    "*He loses this one. He doesn't dwell on it. He is already thinking about what went wrong.* **...mrr.**",
+    "*He falls short. He was close. He sits and reconstructs the moment everything went the wrong way.* **...mrr.**",
+]
+
+
+@bot.command(name="irlgame", aliases=["irlsport", "sport", "playsport", "playirl"])
+async def irlgame_cmd(ctx, *, sport_name: str = ""):
+    """Play a real-world sport with Yarnaby. Some sports are much harder for him (no hands)."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send(random.choice([
+            "*He is asleep. Sports will have to wait.* **...zz.**",
+            "*He is curled up somewhere. He is not playing anything right now.* **...zz.**",
+        ]))
+        return
+
+    if not sport_name.strip():
+        await ctx.send(
+            "*`!irlgame [sport]` — try: football, basketball, volleyball, american football, "
+            "swimming, running, wrestling, tug of war, rugby, dodgeball, tennis, "
+            "table tennis, badminton, baseball, cricket, golf, gymnastics, cycling, archery, skateboarding...*\n"
+            "*(Note: some sports are harder for him than others.)*"
+        )
+        return
+
+    sport_lower = sport_name.lower().strip()
+
+    # match to known sport key
+    matched = None
+    for key in _IRL_GAME_WIN_ODDS:
+        if key in sport_lower or sport_lower in key:
+            matched = key
+            break
+    if not matched:
+        matched = None  # unknown sport — use defaults + 50/50
+
+    win_odds = _IRL_GAME_WIN_ODDS.get(matched, 0.50)
+    win = random.random() < win_odds
+
+    # difficulty flavour note for hard sports
+    HARD_SPORTS = {"tennis", "table tennis", "ping pong", "badminton", "baseball",
+                   "cricket", "golf", "gymnastics", "cycling", "archery"}
+    hard = matched in HARD_SPORTS
+
+    # send start line
+    start_lines = _IRL_GAME_START.get(matched, _IRL_GAME_START_DEFAULT)
+    await ctx.send(random.choice(start_lines))
+    await asyncio.sleep(random.uniform(1.5, 2.5))
+
+    sport_display = (matched or sport_name).title()
+
+    if win:
+        win_lines = _IRL_GAME_WIN.get(matched, _IRL_GAME_WIN_DEFAULT)
+        suffix = f"\n\n**{sport_display} — Win!** Yarnaby pulled it off."
+        if hard:
+            suffix += " *(against the odds)*"
+        await ctx.send(random.choice(win_lines) + suffix)
+        if u_id in m["social_matrix"] and not is_doctor:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+        elif is_doctor:
+            m["stats"]["mood"] = "Happy"
+    else:
+        lose_lines = _IRL_GAME_LOSE.get(matched, _IRL_GAME_LOSE_DEFAULT)
+        suffix = f"\n\n**{sport_display} — Loss.** He'll figure out what went wrong."
+        if hard:
+            suffix += " *(the no-hands thing really is a problem)*"
+        await ctx.send(random.choice(lose_lines) + suffix)
+
+    save_db(m)
+
+
+# ==========================================
+# TOILET FALL AMBIENT
+# Small random chance each ambient tick.
+# Sets internal["toilet_dirty"] = True and bumps cleanliness.
+# !bath is the only command that fully clears it, with special flavour.
+# ==========================================
+
+async def _maybe_toilet_fall(channel, m):
+    """~4% chance per ambient tick that Yarnaby falls into the toilet."""
+    if m["internal"].get("is_sleeping"):
+        return
+    if m["internal"].get("toilet_dirty"):
+        return  # already in toilet-dirty state — don't stack
+    if random.random() > 0.04:
+        return
+
+    m["internal"]["toilet_dirty"] = True
+    # bump cleanliness significantly — toilet water is worse than normal dirt
+    current = m["stats"].get("cleanliness", 0)
+    m["stats"]["cleanliness"] = min(100, current + random.randint(35, 55))
+    save_db(m)
+
+    await channel.send(random.choice([
+        "*A sound comes from the bathroom. A splash. A pause. Then a very long, very offended silence. "
+        "Yarnaby emerges from the doorway completely soaked, ears flat, wool matted into dark clumps, "
+        "trailing a wet path across the floor. He sits down. He stares at nothing. "
+        "He does not want to discuss it.* **...mrr.**\n"
+        "*(He fell in the toilet. He needs a `!bath` to fully clean off.)*",
+
+        "*There is a splash from the direction of the bathroom. Then nothing. "
+        "Then Yarnaby walks out dripping, slowly, with the expression of someone who has suffered "
+        "a great indignity and chosen, for now, not to assign blame aloud. "
+        "He smells. He knows he smells. His wool is soaked through.* **...hff.**\n"
+        "*(Toilet water. He needs a proper `!bath`.)*",
+
+        "*He was investigating the toilet. He fell in the toilet. "
+        "He is now standing at the bathroom door soaking wet, "
+        "refusing to make eye contact with anyone. "
+        "The dripping sound is the only thing in the room. "
+        "His tail is completely waterlogged.* **...mrr...**\n"
+        "*(He needs a `!bath` — this is worse than regular dirty.)*",
+
+        "*There is a crash, a splash, and a sound that can only be described as an extremely wet and extremely "
+        "unhappy creature. Yarnaby reappears. He is damp from ears to tail. "
+        "He smells of the toilet and he is aware of this. "
+        "He goes to sit in the corner facing the wall.* **...hff...**\n"
+        "*(He fell in. `!bath` needed — full clean required.)*",
+
+        "*Something fell in the bathroom. It turns out to be Yarnaby. "
+        "He climbs out of the toilet with enormous dignity — "
+        "more dignity than anyone has ever had while dripping toilet water onto tile — "
+        "and walks very slowly into the main room. "
+        "He sits down. He does not move. He is processing.* **...mrr...**\n"
+        "*(He needs a `!bath` to get the toilet off of him.)*",
+    ]))
+
+
+# Wire toilet fall into _mofu_ambient_tick via the existing hook pattern
+_orig_mofu_tick = _mofu_ambient_tick.coro if hasattr(_mofu_ambient_tick, "coro") else None
+
+@tasks.loop(minutes=35)
+async def _toilet_ambient_tick():
+    """Separate tick that handles the toilet fall ambient."""
+    await bot.wait_until_ready()
+    m = bot.db
+    if m["internal"].get("is_sleeping"):
+        return
+    ch_id = m["internal"].get("home_channel_id") or m["internal"].get("original_home_channel_id")
+    if not ch_id:
+        return
+    ch = bot.get_channel(int(ch_id))
+    if not ch:
+        return
+    try:
+        await _maybe_toilet_fall(ch, m)
+    except Exception as e:
+        print(f"[toilet ambient] {e}")
+
+
+# ── Patch !bath to handle toilet_dirty state specially ────────────────────────
+_orig_bath_cmd = bath_cmd.callback
+
+async def _patched_bath_cmd(ctx):
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*Yarnaby is asleep. A bath would be cruel.*")
+        return
+
+    toilet_dirty = m["internal"].get("toilet_dirty", False)
+    cur = m["stats"].get("cleanliness", 0)
+
+    if cur <= 1 and not toilet_dirty:
+        await ctx.send(
+            "*Yarnaby is already clean. He looks at the water with deep suspicion and walks away. There's no need.*"
+        )
+        return
+
+    if not is_doctor and m["social_matrix"].get(u_id, {}).get("score", 0) < 5:
+        await ctx.send(
+            "*Yarnaby will not let you bathe him. He hisses at the water and retreats. "
+            "Only The Creator — or someone he deeply trusts — gets to do this.*"
+        )
+        return
+
+    m["stats"]["cleanliness"] = 0
+    m["internal"]["toilet_dirty"] = False
+    save_db(m)
+
+    if toilet_dirty:
+        await ctx.send(random.choice([
+            "*The bath is loud, miserable, and absolutely necessary. He had toilet water in his wool. "
+            "He knows this. You know this. Nobody is speaking about it. "
+            "The shampoo goes in three times. He yowls at the first, endures the second, "
+            "and trembles with offense through the third. "
+            "When it's over his wool is bright again and he smells of nothing except clean sheep. "
+            "He immediately finds a corner and faces the wall to recover his dignity.* **mrrp.**",
+
+            "*He doesn't fight the bath today. He is too humiliated to fight the bath. "
+            "He sits in the water. He lets it happen. He is scrubbed clean of the toilet incident. "
+            "When it's over he shakes violently, spattering the walls, then sits very still "
+            "while you dry him. His tail has unmatted. He looks correct again. "
+            "He will never speak of the toilet.* **...mrr.**",
+
+            "*The bath takes a while. Toilet water soaks deep into wool. "
+            "He endures the whole process with the expression of someone taking their medicine. "
+            "He does not complain. He only makes the one small sound when the cold rinse hits. "
+            "He is clean. He has survived this. He will be normal again in approximately ten minutes.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*Yarnaby is bathed. He hates every second of it. He sits in the water trembling with offense. "
+            "After, he is the cleanest, fluffiest, most outraged he has ever been.*",
+            "*The bath is loud and miserable. He yowls. Water goes everywhere. "
+            "When it's over he shakes himself violently and refuses to look at you for ten minutes "
+            "— but his wool is bright again.*",
+            "*He endures the bath with the dignity of a wronged king. "
+            "Afterwards, his wool dries fluffy and wild, and he immediately rolls in something to ruin it. (Almost.)*",
+        ]))
+
+bath_cmd.callback = _patched_bath_cmd
+
+
+# ==========================================
+# !talkto — talk directly to Yarnaby
+# He responds based on mood, health, sleep, helpless state, score, and Creator status.
+# He may stay in his current physical position (lying down, helpless, etc.)
+# ==========================================
+
+_TALKTO_TOPICS = {
+    "hello":      "greeting",  "hi":         "greeting",  "hey":        "greeting",
+    "how are you":"check",     "you okay":   "check",     "you alright":"check",
+    "i love you": "affection", "i like you": "affection", "you're cute":"affection",
+    "good boy":   "praise",    "good job":   "praise",    "well done":  "praise",
+    "bad boy":    "scold",     "bad":        "scold",     "stop":       "scold",
+    "come here":  "summon",    "come":       "summon",    "here":       "summon",
+    "hungry":     "food",      "food":       "food",      "eat":        "food",
+    "sleep":      "sleep_talk","tired":      "sleep_talk","rest":       "sleep_talk",
+    "play":       "play_talk", "game":       "play_talk", "fun":        "play_talk",
+    "stay":       "stay",      "sit":        "stay",      "wait":       "stay",
+}
+
+@bot.command(name="talkto", aliases=["talk", "talkative", "talkwith", "speakto", "yarntalk"])
+async def talkto_cmd(ctx, *, message_text: str = ""):
+    """Talk to Yarnaby. He responds based on what you say and his current state."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    health   = m["stats"].get("health", 100)
+    mood     = m["stats"].get("mood", "Neutral")
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    txt      = message_text.lower().strip()
+
+    # ── detect topic ──────────────────────────────────────────────────────
+    topic = "generic"
+    for kw, t in _TALKTO_TOPICS.items():
+        if kw in txt:
+            topic = t
+            break
+
+    # ── SLEEPING ──────────────────────────────────────────────────────────
+    if sleeping:
+        await ctx.send(random.choice([
+            "*One ear moves. Just one. Toward the sound. He doesn't wake.* **...zz.**",
+            "*He makes a small, unconscious sound. He is not awake. His paw twitches.* **...mrr...**",
+            "*He shifts slightly, wool rustling. His eyes stay closed. The voice didn't reach him.* **...zz.**",
+        ]))
+        return
+
+    # ── HELPLESS (on the ground, can't move) ─────────────────────────────
+    if helpless:
+        if topic == "affection":
+            await ctx.send(random.choice([
+                "*He looks up from the floor. His tail moves. Just the tip. He hears you.* **...mrr.**",
+                "*He can't get up. He looks at you from where he is and makes a very small sound.* **...prrr.**",
+            ]))
+        elif topic == "check":
+            await ctx.send(random.choice([
+                "*He blinks at you from the floor. He is not okay. He knows you can see that. He makes a quiet sound anyway.* **...mrr.**",
+                "*He looks at you. His expression says: I've been better. His sound says the same thing.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He hears you from the floor. His ear swivels. He can't move toward you.* **...mrr.**",
+                "*He looks up at you. He is listening. He cannot do much else right now.* **...mrr.**",
+            ]))
+        return
+
+    # ── INJURED / LOW HEALTH ──────────────────────────────────────────────
+    if health < 25:
+        if topic in ("affection", "check", "praise"):
+            await ctx.send(random.choice([
+                "*He looks at you. Something in him is tired. He makes a very quiet sound and doesn't move much.* **...mrr.**",
+                "*He's listening. His response is slower than usual. He is not well.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He hears you but his response is faint. He is not well.* **...mrr...**",
+                "*He looks up. He is present. He is tired. He makes a small sound and stays where he is.* **...mrr.**",
+            ]))
+        return
+
+    # ── CREATOR ───────────────────────────────────────────────────────────
+    if is_doctor:
+        if topic == "greeting":
+            await ctx.send(random.choice([
+                "*His head comes up immediately. His ears are forward. He pads over.* **prrr.**",
+                "*He was already looking. He comes to the sound of The Creator's voice without hesitation.* **prrr. mrr.**",
+                "*His whole posture changes. He stands, stretches, and moves toward you.* **prrr.**",
+            ]))
+        elif topic == "affection":
+            await ctx.send(random.choice([
+                "*He presses his head against The Creator's hand — or the nearest thing — and purrs steadily.* **prrr. prrr.**",
+                "*He makes a sound that is not words but is clearly a response. He leans in.* **prrr.**",
+                "*He closes his eyes for a moment. His tail rises. He says nothing. He doesn't need to.* **prrr.**",
+            ]))
+        elif topic == "praise":
+            await ctx.send(random.choice([
+                "*He sits up a little straighter. Something in him is pleased, even if he doesn't show it loudly.* **prrr.**",
+                "*He bumps The Creator's hand with his head. He accepts this.* **prrr.**",
+            ]))
+        elif topic == "scold":
+            await ctx.send(random.choice([
+                "*He goes still. His ears drop. He sits down. He waits.* **...mrr.**",
+                "*He lowers his head. He hears the tone. He makes a small, chastened sound.* **...mrr.**",
+            ]))
+        elif topic == "summon":
+            await ctx.send(random.choice([
+                "*He comes. Immediately. No hesitation.* **mrr.**",
+                "*He is already moving before The Creator finishes speaking.* **prrr.**",
+            ]))
+        elif topic == "food":
+            await ctx.send(random.choice([
+                "*His ears prick. He pads toward the kitchen area.* **mrr. prrr.**",
+                "*He looks very meaningfully at his food bowl, then back at The Creator.* **mrr.**",
+            ]))
+        elif topic == "play_talk":
+            await ctx.send(random.choice([
+                "*He drops into a low crouch immediately. His tail lashes. He is ready.* **prrk!**",
+                "*His eyes get bigger. His posture drops. He is extremely interested in this concept.* **prrk. prrr.**",
+            ]))
+        elif topic == "sleep_talk":
+            await ctx.send(random.choice([
+                "*He looks at his sleeping spot. He looks at The Creator. He looks at his sleeping spot.* **mrr.**",
+                "*He yawns — wide, slow — and pads toward his usual spot.* **mrr.**",
+            ]))
+        elif topic == "stay":
+            await ctx.send(random.choice([
+                "*He sits. He stays. He watches The Creator with full attention.* **mrr.**",
+                "*He settles immediately. He is not going anywhere.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He listens. He is always listening when The Creator speaks.* **mrr.**",
+                "*His ear stays turned toward The Creator. He processes.* **mrr.**",
+                "*He makes a quiet, attentive sound. He heard everything.* **prrr.**",
+            ]))
+        return
+
+    # ── TRUSTED USER (score >= 5) ──────────────────────────────────────────
+    if score >= 5:
+        if topic == "greeting":
+            await ctx.send(random.choice([
+                "*He looks at you. He blinks. He makes a small sound in response.* **mrr.**",
+                "*His ear swivels toward you. He acknowledges you. This is as warm as he gets on a neutral day.* **mrr.**",
+                "*He looks up from what he was doing and holds eye contact for a beat. Then looks away. He heard you.* **mrr.**",
+            ]))
+        elif topic == "affection":
+            await ctx.send(random.choice([
+                "*He tolerates this. He also moves slightly closer. He would like you to know those are unrelated events.* **...mrr.**",
+                "*He blinks at you slowly. He looks away. His tail lifts. These are unconnected.* **mrr.**",
+                "*He makes a sound. It's almost a purr. Almost.* **...prrr.**",
+            ]))
+        elif topic == "praise":
+            await ctx.send(random.choice([
+                "*He receives this with dignified silence and a slow blink.* **mrr.**",
+                "*He sits up slightly. He accepts the praise. He does not acknowledge that it pleased him.* **mrr.**",
+            ]))
+        elif topic == "scold":
+            await ctx.send(random.choice([
+                "*He looks at you with flat eyes. He does not consider himself in the wrong.* **...mrr.**",
+                "*His ear goes back. He holds eye contact for a moment. He is not impressed.* **...hff.**",
+            ]))
+        elif topic == "summon":
+            await ctx.send(random.choice([
+                "*He considers your request. He comes at his own pace. He was going to come anyway.* **mrr.**",
+                "*He gets up. He stretches. He comes over. He is not rushing.* **mrr.**",
+            ]))
+        elif topic == "food":
+            await ctx.send(random.choice([
+                "*He looks at his bowl. He looks at you. He returns to looking at his bowl.* **mrr.**",
+                "*His interest increases noticeably.* **mrr.**",
+            ]))
+        elif topic == "play_talk":
+            await ctx.send(random.choice([
+                "*He perks up. His tail tip starts moving.* **mrr.**",
+                "*He tilts his head. He is considering whether he feels like playing. He does.* **mrr.**",
+            ]))
+        elif topic == "sleep_talk":
+            await ctx.send(random.choice([
+                "*He yawns at you. He turns away. He agrees with this suggestion.* **...mrr.**",
+                "*He blinks slowly and then looks at his sleeping spot with longing.* **...mrr.**",
+            ]))
+        elif topic == "stay":
+            await ctx.send(random.choice([
+                "*He sits. He watches you.* **mrr.**",
+                "*He already wasn't going anywhere. He stays.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He hears you. He processes. He makes a small sound.* **mrr.**",
+                "*His ear turns toward you and stays there.* **mrr.**",
+                "*He blinks once in your direction. He was listening.* **...mrr.**",
+            ]))
+
+    # ── LOW TRUST ─────────────────────────────────────────────────────────
+    elif score >= 0:
+        if topic == "affection":
+            await ctx.send(random.choice([
+                "*He looks at you. He looks away. He hasn't decided about you yet.* **...mrr.**",
+                "*His ear swivels toward you briefly. He doesn't respond further.* **...**",
+            ]))
+        elif topic == "scold":
+            await ctx.send(random.choice([
+                "*He looks at you blankly. He is not sure you have the authority.* **...mrr.**",
+                "*He does not adjust his behavior. He blinks.* **...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He glances at you. He doesn't respond.* **...**",
+                "*His ear moves in your direction. He decides it isn't worth more than that.* **...**",
+                "*He registers the sound of your voice. He does not engage.* **...**",
+            ]))
+
+    # ── HOSTILE / NEGATIVE SCORE ──────────────────────────────────────────
+    else:
+        await ctx.send(random.choice([
+            "*He hears you. He walks away.* **...hff.**",
+            "*He turns his back. He is communicating very clearly.* **...hff.**",
+            "*He looks at you once, flatly, and then looks at a different wall.* **...mrr.**",
+        ]))
+
+
+# ==========================================
+# !ragebait — try to rile Yarnaby up
+# He reacts differently based on score/mood/Creator status.
+# Various bait types: cucumber, noise, mirror, fake predator, laser dot, etc.
+# ==========================================
+
+_RAGEBAIT_TYPES = {
+    "cucumber": {
+        "setup": [
+            "*You place a cucumber silently behind him while he's looking away.*",
+            "*You set a cucumber just within his peripheral vision.*",
+        ],
+        "scared": [
+            "*He turns around and REACTS — full body launch backward, a sound that is half-hiss half-scream, wool fully puffed. He is on top of the nearest elevated surface before he has consciously decided to move. He stares at the cucumber from above. He knows it is a cucumber. He remains elevated.* **HSS!! mrr. mrr. ...mrr.**",
+            "*He spins, sees it, and leaves his own body for a second. All four paws leave the ground. He lands facing away and does not look back. He is processing. He will be processing for a while.* **MRRROW! ...hff...**",
+        ],
+        "angry": [
+            "*He turns, sees the cucumber, and looks at you. He knows what you did. His expression is a specific kind of cold.* **...hff.**",
+            "*He sees it. He looks at you. He walks over and knocks the cucumber off whatever surface it's on, maintaining eye contact the entire time.* **hff.**",
+        ],
+    },
+    "mirror": {
+        "setup": [
+            "*You hold a mirror up in front of him.*",
+            "*You angle a mirror so he can see his own reflection.*",
+        ],
+        "confused": [
+            "*He goes still. He leans forward. He leans back. He leans forward again. He reaches out one paw and touches the glass. He pulls it back. He stares at the other one doing the same thing. This goes on for a while.* **...mrr? mrr. ...mrr.**",
+            "*He examines the reflection with the concentration of someone solving a difficult problem. He headbutts the mirror once. He looks behind it. He looks at you. He looks back at the mirror. He has questions.* **...mrr?? mrr.**",
+        ],
+        "dismissive": [
+            "*He looks at the mirror. He looks at you. He turns around and walks away. He has decided this is beneath him.* **...mrr.**",
+            "*He glances at his reflection, looks completely unbothered, and moves on. He has seen himself before.* **mrr.**",
+        ],
+    },
+    "loud noise": {
+        "setup": [
+            "*You make a sudden loud noise behind him.*",
+            "*You clap loudly right behind him.*",
+            "*You slam something down nearby.*",
+        ],
+        "scared": [
+            "*He explodes sideways. Every piece of wool stands up simultaneously. He skids across the floor, rights himself, and is hissing before he even knows what he's hissing at.* **HSS! MRRROW!**",
+            "*He launches straight up. All four paws off the ground. He comes down in full defensive posture and the sound he makes is not dignified but it is LOUD.* **MRROW! hss!**",
+        ],
+        "angry": [
+            "*He turns slowly. His face is completely flat. He looks at you for a very long time. He turns back around. He does not forgive this.* **...hff.**",
+            "*He doesn't react physically. He just stares at you with the specific expression of someone deciding whether this friendship is worth it.* **...mrr.**",
+        ],
+    },
+    "laser": {
+        "setup": [
+            "*You produce a laser pointer and shine it on the floor.*",
+            "*A red dot appears on the floor in front of him.*",
+        ],
+        "engaged": [
+            "*He sees it. He is immediately gone — all dignity abandoned, full commitment, skidding, spinning, absolutely certain this dot is catchable this time.* **prrk! PRRK! prrk prrk prrk—**",
+            "*His eyes lock on. Everything else stops existing. He is the laser dot. The laser dot is everything. He dives. He misses. He dives again.* **prrk! prrk!**",
+        ],
+        "suspicious": [
+            "*He eyes the dot. He looks at you. He looks at the dot. He is aware of what is happening here. He chases it anyway. He can be aware and still invested.* **...prrk. prrk.**",
+            "*He stares at the dot. He sits down. He looks at you. He has been fooled before. He is still going to chase it. He walks slowly toward it first.* **...mrr. prrk.**",
+        ],
+    },
+    "fake bug": {
+        "setup": [
+            "*You drag a string along the floor like a bug.*",
+            "*You wiggle something small and buglike near him.*",
+        ],
+        "engaged": [
+            "*He locks on. He goes into full stalk mode — low, slow, absolutely committed, tail lashing. He pounces. The victory screech is brief. The moment of realisation is quiet.* **prrk! ...mrr.**",
+            "*He drops immediately into hunt posture. Belly low. Paws quiet. He creeps forward with complete seriousness. He pounces and catches nothing. He looks at you.* **...mrrp.**",
+        ],
+        "ignoring": [
+            "*He looks at it. He looks at your hand. He lays down. He is not interested in fake bugs.* **...mrr.**",
+            "*He clocks it immediately for what it is and refuses to participate on principle.* **...hff.**",
+        ],
+    },
+    "water spray": {
+        "setup": [
+            "*You produce a small spray bottle and spritz him.*",
+            "*You mist him lightly with water.*",
+        ],
+        "angry": [
+            "*He turns around so fast. He looks at the bottle. He looks at you. He hisses once — clean, sharp, final — and backs away with his ears flat, maintaining eye contact.* **HSS. ...hff.**",
+            "*He gets hit. He stops. He processes. He turns. The look he gives you is going in his permanent record. He shakes off the water with enormous offended dignity and leaves.* **...HSS. hff.**",
+        ],
+        "shocked": [
+            "*He startles, spins, and makes a sound that can only be described as BETRAYED. He shakes himself. He stares at you. He stares at the bottle. He is deciding things.* **MRRP! ...hff.**",
+        ],
+    },
+    "pretend to leave": {
+        "setup": [
+            "*You put on your shoes and pick up your bag like you're leaving.*",
+            "*You walk toward the door with your keys.*",
+        ],
+        "panicked": [
+            "*He's in front of the door before you get there. He sits down. He stares at you. He does not move. He will wait.* **mrr. mrr. ...mrr.**",
+            "*He comes from wherever he was and sits directly on your feet. He looks up at you. He is not going to discuss this. He is also not moving.* **mrr.**",
+        ],
+        "sad": [
+            "*He watches. His ears go back. He follows at a slow distance and sits near the door, not blocking it, just... near it.* **...mrr.**",
+            "*He tracks you to the door and sits down a few steps away. He makes a quiet sound. He doesn't want to stop you. He just wants you to know.* **...mrr.**",
+        ],
+    },
+    "ignore": {
+        "setup": [
+            "*You deliberately pay him no attention whatsoever.*",
+            "*You're in the room but you refuse to acknowledge him at all.*",
+        ],
+        "attention_seeking": [
+            "*He sits in your eyeline. You don't look. He sits closer. You don't look. He walks across whatever you're looking at. He sits back down directly in front of your face.* **mrr. mrr. MRR.**",
+            "*He tolerates being ignored for approximately forty-five seconds. Then your hand gets a paw on it. Then a head. Then he is sitting on whatever you are doing and purring very loudly as though this was always the plan.* **prrr. PRRR.**",
+            "*He gets up, walks to you, sits down, stares at your face from 10cm away, and waits.* **...mrr. mrr. MRR.**",
+        ],
+        "too_proud": [
+            "*He notes that you are ignoring him. He ignores you back. He is better at this. He settles in a spot where you can see him not caring.* **...mrr.**",
+            "*He observes your lack of attention. He finds a place slightly further from you and grooms himself elaborately. Two can play.* **...mrr.**",
+        ],
+    },
+}
+
+@bot.command(name="ragebait", aliases=["rile", "raidyarny", "baityarn", "trollyarn", "yarnbait", "provoceyarn"])
+async def ragebait_cmd(ctx, *, bait_type: str = ""):
+    """Ragebait Yarnaby. Various methods — some scare him, some anger him, some he sees right through."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    mood  = m["stats"].get("mood", "Neutral")
+
+    if m["internal"].get("is_sleeping"):
+        if bait_type.lower().strip() in ("loud noise", "clap", "bang"):
+            await ctx.send(random.choice([
+                "*He bolts upright from sleep, fully puffed, eyes wide. He looks around. He doesn't know what woke him. His heart is visible. He is going to be in a bad mood about this.* **MRROW! ...hff.**",
+                "*He wakes up in full panic mode — wool standing, eyes huge. He locates no threat. He looks at you. He slowly realises. He stares.* **MRROW! ...hff. hff.**",
+            ]))
+            m["stats"]["mood"] = "Agitated"
+            save_db(m)
+        else:
+            await ctx.send("*He's asleep. He doesn't notice.*  **...zz.**")
+        return
+
+    bait = bait_type.lower().strip()
+
+    # match bait type
+    matched = None
+    for key in _RAGEBAIT_TYPES:
+        if key in bait or bait in key:
+            matched = key
+            break
+
+    if not matched:
+        # random bait if unspecified
+        matched = random.choice(list(_RAGEBAIT_TYPES.keys()))
+
+    bait_data = _RAGEBAIT_TYPES[matched]
+    setup = random.choice(bait_data["setup"])
+    await ctx.send(setup)
+    await asyncio.sleep(random.uniform(1.5, 2.5))
+
+    # pick reaction pool based on mood/score
+    reaction_keys = [k for k in bait_data if k != "setup"]
+
+    if is_doctor:
+        # Creator ragebait — he's more forgiving but still reacts authentically
+        reaction_pool = bait_data[random.choice(reaction_keys)]
+        await ctx.send(random.choice(reaction_pool))
+        await ctx.send(random.choice([
+            "*He looks at The Creator. He processes that The Creator did this to him. He decides to forgive it. He does not forgive it.* **...mrr.**",
+            "*His reaction fades faster because it's The Creator. He still made that sound though. That was real.* **...hff.**",
+        ]))
+    elif score >= 7:
+        # Trusted — he may see through it or engage
+        if "suspicious" in bait_data or "dismissive" in bait_data or "too_proud" in bait_data:
+            smart_keys = [k for k in reaction_keys if k in ("suspicious", "dismissive", "too_proud", "ignoring")]
+            pool_key = random.choice(smart_keys) if smart_keys and random.random() < 0.5 else random.choice(reaction_keys)
+        else:
+            pool_key = random.choice(reaction_keys)
+        await ctx.send(random.choice(bait_data[pool_key]))
+    elif score < 0:
+        # He's hostile — ragebait lands harder
+        angry_keys = [k for k in reaction_keys if k in ("angry", "scared", "shocked")]
+        pool_key = random.choice(angry_keys) if angry_keys else random.choice(reaction_keys)
+        await ctx.send(random.choice(bait_data[pool_key]))
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 2)
+        save_db(m)
+    else:
+        pool_key = random.choice(reaction_keys)
+        await ctx.send(random.choice(bait_data[pool_key]))
+
+    # available bait types hint if blank input
+    if not bait_type.strip():
+        await ctx.send(
+            f"*(`!ragebait [type]` — try: {', '.join(_RAGEBAIT_TYPES.keys())})*",
+            delete_after=8
+        )
+
+
+# ==========================================
+# NEW CHILD COMMANDS
+# ==========================================
+
+@bot.command(name="cuddlychild", aliases=["cuddlykid", "nosechild", "nosekid2", "sniffchild"])
+async def nuzzlechild_cmd(ctx, *, name: str = ""):
+    """Nuzzle one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*The Creator nuzzles **{cname}**. Yarnaby is immediately there, pressing his nose against **{cname}** from the other side. He is not missing out on this.* **prrr.**",
+                f"*He watches The Creator nuzzle **{cname}** and something goes soft in his whole body.* **prrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The Creator nuzzles **{cname}**. He watches with soft eyes and pads over afterward to sniff **{cname}** himself.* **mrr.**",
+                f"*He observes, then adds his own nose to the situation.* **prrr.**",
+            ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*You nuzzle **{cname}** and Yarnaby watches with an expression that is not quite suspicious and not quite warm. He is deciding.* **mrr.**",
+            f"*He monitors you nuzzling **{cname}** with both ears forward. He allows it.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(f"*He intercepts. He nuzzles **{cname}** himself instead. You are not there.* **mrr.**")
+    await _child_react(ctx, child, m, action="warm")
+
+
+@bot.command(name="singtochild", aliases=["singto", "lullabyto", "hummingchild", "singsong2"])
+async def singchild_cmd(ctx, *, name: str = ""):
+    """Sing to one of Yarnaby's children. He listens too."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator sings to **{cname}**. Yarnaby goes completely still and listens with his eyes half-closed. He has heard The Creator's voice before. He never gets tired of it.* **...prrr.**",
+            f"*He hears The Creator singing and pads over silently to sit nearby. He doesn't interrupt. He just stays close and listens. His tail is still.* **...prrr.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*You sing to **{cname}** and Yarnaby monitors from across the room, ears forward. He doesn't stop you. That's about as warm as his approval gets.* **mrr.**",
+            f"*He listens to you singing to **{cname}**. His ear stays trained in your direction the whole time. He says nothing.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(f"*He collects **{cname}** during the second verse and carries them away. He has opinions about lullabies.* **...mrr.**")
+    await _child_react(ctx, child, m, action="neutral")
+
+
+@bot.command(name="showchild", aliases=["showyarnchild", "presentchild", "showkid", "holdupchild"])
+async def showchild_cmd(ctx, *, name: str = ""):
+    """Hold one of Yarnaby's children up to show them something."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator holds **{cname}** up. Yarnaby watches this with an expression of parental pride so profound it's almost embarrassing. He comes to sniff **{cname}** at the new height.* **prrr.**",
+            f"*He watches The Creator lift **{cname}** up and his ears go all the way forward. He approves of this presentation entirely.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You hold **{cname}** up and Yarnaby watches from below with pricked ears. He observes **{cname}**'s reaction closely. He has decided this is fine.* **mrr.**",
+            f"*He watches you hold **{cname}** aloft. His expression says: I am watching. He is watching.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(f"*He takes **{cname}** back before they get more than a foot off the ground. He puts them back down. He stares at you.* **...hff.**")
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ==========================================
+# FAN AMBIENT — Yarnaby gets curious about a fan, head injury
+# Severity scales: minor (swipe) → moderate (bonk) → severe (bleeding)
+# Infection risk increases with severity.
+# Also wired into health/death system.
+# ==========================================
+
+async def _maybe_fan_injury(channel, m):
+    """~3% chance per tick. Yarnaby gets too close to a fan and injures his head."""
+    if m["internal"].get("is_sleeping"):
+        return
+    if random.random() > 0.03:
+        return
+
+    health = m["stats"].get("health", 100)
+    severity_roll = random.random()
+
+    if severity_roll < 0.55:
+        # Minor — ear clipped, small cut
+        severity = "minor"
+        health_loss = random.randint(5, 10)
+        infection_window_hours = 48  # 2 days before infection risk
+        await channel.send(random.choice([
+            "*He was staring at the fan. He got too close. The blade clipped the edge of his ear. "
+            "He jerks back, shakes his head, and sits down. "
+            "There's a small cut. He licks his paw and touches it once. "
+            "He pretends this did not happen.* **...mrr.**\n"
+            "*(Minor head injury. Use `!treat` to clean it up.)*",
+
+            "*He approached the fan with the specific curiosity of someone who has been told not to. "
+            "His head got too close. There's a thin cut across the bridge of his nose. "
+            "He backed away immediately. His expression is complicated.* **...mrrp.**\n"
+            "*(Minor cut. `!treat` recommended.)*",
+        ]))
+    elif severity_roll < 0.85:
+        # Moderate — blade caught him properly
+        severity = "moderate"
+        health_loss = random.randint(15, 25)
+        infection_window_hours = 24
+        m["stats"]["mood"] = "Agitated"
+        await channel.send(random.choice([
+            "*He got too close to the fan. The sound was bad. "
+            "He's backed up against the wall now, one paw pressed against the side of his head. "
+            "There's blood on his wool — not a lot, but it's there. "
+            "He's breathing fast. He won't look at the fan.* **...hff. mrr...**\n"
+            "*(Moderate head injury — bleeding. `!treat` or `!vet` needed.)*",
+
+            "*He was investigating the fan from below when it caught him. "
+            "He stumbled backward. There's a cut above his eye, bleeding slowly. "
+            "He's sitting very still now, ears flat, processing.* **...mrr...**\n"
+            "*(He's bleeding. Head wound, moderate. `!treat` him.)*",
+        ]))
+    else:
+        # Severe — deep laceration, serious bleeding
+        severity = "severe"
+        health_loss = random.randint(30, 45)
+        infection_window_hours = 12  # infects fast
+        m["stats"]["mood"] = "Distressed"
+        await channel.send(random.choice([
+            "*The fan caught him. It's bad. "
+            "He's on the floor now, side pressed against the wall, a paw over the top of his head. "
+            "The blood is matting his wool dark. He's making small, involuntary sounds. "
+            "He needs treatment immediately.* **...mrr... mrr...**\n"
+            "⚠️ **Severe head laceration — bleeding heavily. Use `!vet` NOW. "
+            "Infection risk is high and fast.**",
+
+            "*He got into the fan. Nobody stopped him in time. "
+            "He's hurt badly — deep cut across the top of his skull, bleeding through his wool. "
+            "He's not moving much. His eyes are open but he's very still. "
+            "He needs help right now.* **...mrr...**\n"
+            "⚠️ **Severe head wound. Bleeding. `!vet` immediately — infection sets in within hours.**",
+        ]))
+
+    # Apply health loss and add injury
+    m["stats"]["health"] = max(1, health - health_loss)
+    injury_time = datetime.now()
+    # infection threshold: severe infects much faster
+    infect_at = (injury_time + timedelta(hours=infection_window_hours)).strftime("%Y-%m-%d %H:%M:%S")
+    m["internal"].setdefault("injuries", []).append({
+        "type": "head laceration",
+        "severity": severity,
+        "location": "head",
+        "caused_by": "fan blade",
+        "at": injury_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "infect_at": infect_at,
+        "treated": False,
+        "infected": False,
+    })
+    save_db(m)
+
+
+# Wire fan injury into the existing toilet ambient tick
+_orig_toilet_tick = _toilet_ambient_tick.coro if hasattr(_toilet_ambient_tick, "coro") else None
+
+@tasks.loop(minutes=40)
+async def _fan_ambient_tick():
+    """Handles fan injury ambient."""
+    await bot.wait_until_ready()
+    m = bot.db
+    ch_id = m["internal"].get("home_channel_id") or m["internal"].get("original_home_channel_id")
+    if not ch_id:
+        return
+    ch = bot.get_channel(int(ch_id))
+    if not ch:
+        return
+    try:
+        await _maybe_fan_injury(ch, m)
+    except Exception as e:
+        print(f"[fan ambient] {e}")
+
+
+# Patch infection checker to use infect_at for severity-aware infection timing
+_orig_infection_check = None  # stored for reference
+
+def _check_and_apply_infections(m):
+    """
+    Called during !injuries. Checks each untreated injury's infect_at timestamp
+    (falls back to 24h from 'at' if infect_at not present).
+    Severe injuries infect much faster.
+    Returns True if any new infections were applied.
+    """
+    changed = False
+    for inj in m["internal"].get("injuries", []):
+        if inj.get("treated") or inj.get("infected"):
+            continue
+        infect_at_str = inj.get("infect_at") or ""
+        at_str = inj.get("at", "")
+        try:
+            if infect_at_str:
+                threshold = datetime.strptime(infect_at_str, "%Y-%m-%d %H:%M:%S")
+            elif at_str:
+                # legacy injuries: use severity to set window
+                inj_time = datetime.strptime(at_str, "%Y-%m-%d %H:%M:%S")
+                sev = inj.get("severity", "minor").lower()
+                hours = {"severe": 12, "critical": 8, "serious": 18, "moderate": 24}.get(sev, 48)
+                threshold = inj_time + timedelta(hours=hours)
+            else:
+                continue
+            if datetime.now() >= threshold:
+                inj["infected"] = True
+                changed = True
+        except Exception:
+            pass
+    if changed:
+        save_db(m)
+    return changed
 
 
 # ==========================================
