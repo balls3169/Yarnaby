@@ -11379,8 +11379,12 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!markchilddead [name]` / `!killchild` — Creator only. Marks a child as dead.\n"
             "  Adored: he goes silent and lies in their spot. Neutral: subdued grief, slow.\n"
             "  Disliked: complicated — he stays near their space. He doesn't know what he feels.\n"
-            "- Dead children remain in the list. He may revisit their spot quietly (ambient event).\n"
-            "  See `yarn!help ambient` for the dead child ambient tick."
+            "- Dead children remain in the list. Two separate ambient events may fire:\n"
+            "  **Grief ambient** (~8%/45m tick): he quietly visits their spot — low, private.\n"
+            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly\n"
+            "  and reacts in the moment — more raw, especially within the first few days.\n"
+            "  Both vary by feeling (adored / neutral / disliked) and days since death.\n"
+            "  See `yarn!help ambient` for full ambient tick details."
         ),
         "social": (
             "**Social & memory** - `yarn!help social`\n"
@@ -11694,9 +11698,11 @@ async def help_cmd(ctx, *, section: str = None):
             "  get quieter and more inward\n"
             "- **Hourly mood tick** - mood drifts based on stats; scores above 100 are clamped\n"
             "- **Birthday check (Dec 24)** - rare events become ~100x more likely all day\n"
-            "- **Dead child ambient** - if one of his children has died, he may quietly visit their\n"
-            "  corner. Adored: deep grief. Neutral: subdued. Disliked: complicated, silent.\n"
-            "  Fires ~8% chance per 45m tick when a dead child exists."
+            "- **Dead child ambient** - if one of his children has died, two events may fire:\n"
+            "  **Quiet grief** (~8%/45m tick): he pads to their spot and sits with it privately.\n"
+            "  **Body discovery** (~3%/natural tick): he stumbles upon their space unexpectedly\n"
+            "  and reacts in the moment — more startling, rawer. Within 48h: strongest reaction.\n"
+            "  Within 7 days: still fresh. Later: quieter, more settled. All vary by feeling."
         ),
         "extended": (
             "**Extended commands** - `yarn!help extended`\n"
@@ -37443,6 +37449,8 @@ async def _natural_ambient_tick():
         # child play/hide ambients — independent rolls
         await _maybe_child_wants_play(m, ch)
         await _maybe_child_hiding(m, ch)
+        # rare dead-child body discovery — distinct from the quiet grief ambient
+        await _maybe_find_dead_child_body(m, ch)
     except Exception as e:
         print(f"[natural ambient tick] {e}")
 
@@ -52536,6 +52544,160 @@ def _yarnaby_state_block(m) -> str | None:
 # ==========================================
 # Dead child ambient system
 # ==========================================
+
+async def _maybe_find_dead_child_body(m, ch):
+    """
+    ~3% chance per natural-ambient tick: Yarnaby stumbles onto the body / resting
+    place of a dead child and has a visible, raw reaction.
+
+    This is distinct from _maybe_dead_child_ambient (the quiet grief visits).
+    This fires less often but is more startling — he wasn't expecting it.
+    The reaction differs by feeling and by how recently the child died.
+    """
+    if random.random() > 0.03:
+        return
+    guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else None
+    if not guild_id:
+        return
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    dead_children = [c for c in children if c.get("dead")]
+    if not dead_children:
+        return
+
+    child = random.choice(dead_children)
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+
+    # Work out how recently the child died (affects rawness of reaction)
+    died_at_str = child.get("died_at", "")
+    days_since = 9999
+    if died_at_str:
+        try:
+            died_dt = datetime.strptime(died_at_str, "%Y-%m-%d")
+            days_since = max(0, (datetime.now() - died_dt).days)
+        except Exception:
+            pass
+    recent = days_since <= 2   # within 48 h
+    fresh  = days_since <= 7   # within a week
+
+    if feeling == "adored":
+        if recent:
+            msg = random.choice([
+                f"*Yarnaby rounds the corner and stops. Completely stops. "
+                f"**{cname}** is there — or the shape of them is, the space where they always were — "
+                f"and something in his face changes all at once. "
+                f"He doesn't approach. He stands very still for a long time, breathing. "
+                f"He does not make a sound. He turns around and walks away slowly, ears flat.* **...**",
+
+                f"*He pads toward **{cname}**'s corner out of habit — the same route he always takes — "
+                f"and then he sees it and his whole body locks. "
+                f"One paw is still raised from the step he was mid-taking. "
+                f"He sets it down. He looks. He does not go closer. "
+                f"His tail drops to the floor and stays there.* **...**",
+
+                f"*He finds **{cname}** the way you find something by accident — "
+                f"he wasn't bracing for it. He makes a sound, very small, before he can stop it. "
+                f"He circles the spot once, slowly, and then sits down right at the edge of it. "
+                f"His chin drops to his chest. He doesn't move for a long time.* **...mrr...**",
+
+                f"*He comes in from the hallway and sees **{cname}** and for just one moment — "
+                f"one fraction of a second — something in his eyes says *there they are.* "
+                f"And then it closes. He remembers. "
+                f"He lies down where he stands, nose pointed toward them, "
+                f"and doesn't get up for a very long time.* **...**",
+            ])
+        elif fresh:
+            msg = random.choice([
+                f"*He finds **{cname}**'s spot and goes still. "
+                f"He was hoping, in the small animal part of him, that it would be different this time. "
+                f"It isn't. He presses his nose to the ground where they used to sleep "
+                f"and holds it there for a long time. "
+                f"Then he curls up beside it and closes his eyes.* **...**",
+
+                f"*He rounds into **{cname}**'s corner and pauses. "
+                f"He sniffs deeply — once, twice — and his ear flicks back. "
+                f"Still gone. He knew. He checked anyway. "
+                f"He settles onto the floor at the edge of the space and watches it.* **...mrr...**",
+
+                f"*He wanders into **{cname}**'s area the way he always did and stops. "
+                f"He sees **{cname}** isn't there. He knew **{cname}** wouldn't be there. "
+                f"He looks anyway. "
+                f"He sits down heavily and wraps his tail around himself "
+                f"and watches the empty spot like it might change.* **...**",
+            ])
+        else:
+            msg = random.choice([
+                f"*He passes **{cname}**'s corner and slows without meaning to. "
+                f"He turns his head. He looks. "
+                f"Something in his face — not grief exactly, not nothing either — "
+                f"goes through him like weather. He pads away slowly.* **...mrr...**",
+
+                f"*He finds one of **{cname}**'s things — a scent, a toy, a memory embedded in the floor — "
+                f"and sits with it for a moment. "
+                f"He sets a paw on it very lightly. Then he gets up and keeps moving.* **...mrr...**",
+            ])
+
+    elif feeling == "neutral":
+        if recent:
+            msg = random.choice([
+                f"*He walks into the area and sees **{cname}** — or rather, doesn't — "
+                f"and his step falters. He stands there. "
+                f"He didn't love **{cname}**, but he knew **{cname}**, "
+                f"and there is something strange and heavy about the not-being-there. "
+                f"He sniffs the air once and leaves quietly.* **...mrr.**",
+
+                f"*He finds **{cname}**'s things still where **{cname}** left them. "
+                f"He pokes one with his nose — gently, carefully. "
+                f"He steps back. He sits. He looks at the wall for a while.* **...mrr.**",
+
+                f"*He rounds the corner and stops when he sees **{cname}**'s empty spot. "
+                f"He blinks. He takes one step forward and then doesn't take another. "
+                f"He stays at the edge of it for a while, very still, before heading back to his own place.* **...mrr.**",
+            ])
+        else:
+            msg = random.choice([
+                f"*He passes through **{cname}**'s area and hesitates. "
+                f"He was never especially warm with **{cname}**. "
+                f"He notes the absence the way you note weather — it's there, it matters, you move on. "
+                f"He moves on.* **...mrr.**",
+
+                f"*He finds **{cname}**'s old spot and sniffs it briefly. "
+                f"He sits beside it for a moment. He doesn't look sad — "
+                f"he just looks like something that has noticed something.* **...mrr.**",
+            ])
+
+    else:  # disliked
+        if recent:
+            msg = random.choice([
+                f"*He walks past **{cname}**'s corner and stops. "
+                f"He didn't expect to stop. He doesn't know what he expected. "
+                f"He looks at the empty space for a long time, ears low, expression unreadable. "
+                f"He never liked **{cname}**. He is not sure what to do with this.* **...mrr.**",
+
+                f"*He rounds the corner and sees where **{cname}** used to be. "
+                f"He makes a sound — short, quiet, not quite anything — and looks away. "
+                f"He sits down just outside the space. He doesn't enter. "
+                f"He was never kind to **{cname}** and now **{cname}** is gone "
+                f"and he has no category for this.* **...mrr.**",
+
+                f"*He finds **{cname}**'s things and his whole posture shifts — not how it does with things he loves. "
+                f"Slower. More careful. "
+                f"He touches one of **{cname}**'s things with his paw, very lightly. "
+                f"He leaves it exactly where it was. He walks away and doesn't look back. "
+                f"Something in the way he moves is heavier than it was.* **...**",
+            ])
+        else:
+            msg = random.choice([
+                f"*He passes through and sees **{cname}**'s spot. He slows. "
+                f"He never liked **{cname}**. He stays longer than he would expect himself to.* **...mrr.**",
+
+                f"*He notices **{cname}**'s corner as he passes — the empty version of it — "
+                f"and his ear flicks back. He doesn't know what he is feeling. "
+                f"He walks on.* **...mrr.**",
+            ])
+
+    await ch.send(msg)
+
 
 async def _maybe_dead_child_ambient(ch, m):
     """Fires when Yarnaby notices / grieves near a dead child.  Called from ambient tick."""
