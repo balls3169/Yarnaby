@@ -1562,6 +1562,12 @@ async def _add_reactions(ctx, m):
                 await ctx.message.add_reaction("💤")
             except Exception:
                 pass
+        is_helpless = bool(m["internal"].get("helpless", False))
+        if is_helpless:
+            try:
+                await ctx.message.add_reaction("🤕")
+            except Exception:
+                pass
         if not is_creator and score >= 4:
             try:
                 await ctx.message.add_reaction("⭐")
@@ -2220,7 +2226,7 @@ class Yarnaby(commands.Bot):
             _random_sound_tick.start()
         if not _tape_struggle_tick.is_running():
             _tape_struggle_tick.start()
-        for task_name in ("_wool_regrowth_tick", "_ambient_behaviour_tick", "_extra_ambient_tick", "_video_ambient_tick", "_natural_ambient_tick", "_mofu_ambient_tick", "_forgetting_tick", "_hunger_reminder_tick"):
+        for task_name in ("_wool_regrowth_tick", "_ambient_behaviour_tick", "_extra_ambient_tick", "_video_ambient_tick", "_natural_ambient_tick", "_mofu_ambient_tick", "_forgetting_tick", "_hunger_reminder_tick", "_child_dead_ambient_tick", "_toilet_ambient_tick"):
             task = globals().get(task_name)
             if task is not None and not task.is_running():
                 task.start()
@@ -2405,6 +2411,7 @@ class Yarnaby(commands.Bot):
                 commands.CommandNotFound,
                 commands.MissingRequiredArgument,
                 commands.BadArgument,
+                _StateBlocked,
             ),
         ):
             return
@@ -3755,6 +3762,44 @@ class Yarnaby(commands.Bot):
                         save_db(m)
         except Exception as e:
             print(f"[sleeping hiss ambient failed] {e}")
+
+        # --- SLEEPING WITH CHILDREN AMBIENT ---
+        try:
+            if m["internal"].get("is_sleeping") and channel and random.random() < 0.10:
+                guild_id_amb2 = m["internal"].get("current_guild_id", "")
+                children_amb2 = m["internal"].get("guild_states", {}).get(guild_id_amb2, {}).get("children", [])
+                last_cuddle_str = m["internal"].get("last_child_cuddle_at")
+                cuddle_ok = True
+                if last_cuddle_str:
+                    try:
+                        cuddle_gap = (datetime.now() - datetime.strptime(last_cuddle_str, "%Y-%m-%d %H:%M:%S")).total_seconds()
+                        cuddle_ok = cuddle_gap >= 3600
+                    except Exception:
+                        pass
+                if children_amb2 and cuddle_ok:
+                    child_c = random.choice(children_amb2)
+                    cname_c = child_c["name"]
+                    feeling_c = child_c.get("feeling", "neutral")
+                    m["internal"]["last_child_cuddle_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    if feeling_c == "adored":
+                        await channel.send(random.choice([
+                            f"*Yarnaby shifts in his sleep and finds **{cname_c}** nearby. He pulls them closer with one paw and settles again, chin over their head.* **...prrr...**",
+                            f"*He pads, half-asleep, to where **{cname_c}** is resting. He circles once. He curls around them. He is asleep before he finishes the circle.* **...prrr...**",
+                            f"*He finds **{cname_c}** in the dark and tucks himself around them without fully waking. The room is warmer for it.* **...prrr...**",
+                        ]))
+                    elif feeling_c == "neutral":
+                        await channel.send(random.choice([
+                            f"*He drifts across the room in his sleep and settles beside **{cname_c}**. Close enough. He does not acknowledge this in the morning.* **...mrr...**",
+                            f"*He ends up next to **{cname_c}** during the night, wool pressed together. Neither planned this. Neither moves.* **...mrr...**",
+                        ]))
+                    else:
+                        await channel.send(random.choice([
+                            f"*He ends up near **{cname_c}** in his sleep \u2014 not by design. He does not move away. The night is long. Warmth is warmth.* **...hff...**",
+                            f"*He settles near **{cname_c}**, by accident probably. He stays anyway. He will have opinions about this in the morning.* **...mrr...**",
+                        ]))
+                    save_db(m)
+        except Exception as e:
+            print(f"[sleeping cuddle ambient failed] {e}")
 
         # --- WOOL SHEDDING AMBIENT (when season is active) ---
         try:
@@ -5280,7 +5325,7 @@ async def on_message(message):
                     ]
                 )
             )
-        elif any(word in msg for word in ["bad", "no", "stop", "scold", "bad boy"]):
+        elif any(word in msg for word in ["bad", "stop", "scold", "bad boy"]) or re.search(r'\bno\b', msg):
             await message.channel.send(
                 random.choice(
                     [
@@ -7628,16 +7673,28 @@ async def doctor_sleep(ctx):
         m["internal"]["doctor_sleeping_together"] = True
         m["stats"]["tiredness"] = 0
 
-        await ctx.send(
-            random.choice(
-                [
-                    "*Yarnaby watches you settle down. He pads over quietly, circles twice, and curls up pressed against you. His glass eyes close. He won't move until you do.*",
-                    "*He follows without a sound. He tucks himself beside you - closer than he'd usually allow - and goes still. Both asleep.*",
-                    "*He sees you lying down and something in him softens. He trots over, hesitates once, then folds himself down beside you. Together.*",
-                    "*He was already tired. He curls against you without ceremony, his yarn-tail wrapping close. Asleep.*",
-                ]
+        guild_id_sl = str(ctx.guild.id) if ctx.guild else "dm"
+        children_sl = m["internal"].get("guild_states", {}).get(guild_id_sl, {}).get("children", [])
+        bring_children = children_sl and random.random() < 0.45
+
+        if bring_children:
+            clist = ", ".join(f"**{c['name']}**" for c in children_sl)
+            await ctx.send(random.choice([
+                f"*Yarnaby watches you settle down. He pads over, circles twice, and curls beside you. Before closing his eyes he glances back — and {clist} come too, quietly, folding themselves around both of you. Everyone is asleep. The room is very warm.* **prrr...**",
+                f"*He follows without a sound. He tucks himself beside you — then turns back once and makes a very low sound. {clist} appear and pile in. He closes his eyes last.* **prrr...**",
+                f"*He settles beside you. He doesn't invite the children — but {clist} come anyway, one by one, curling into the pile. He doesn't stop them. Asleep, all of you, together.* **...prrr...**",
+            ]))
+        else:
+            await ctx.send(
+                random.choice(
+                    [
+                        "*Yarnaby watches you settle down. He pads over quietly, circles twice, and curls up pressed against you. His glass eyes close. He won't move until you do.*",
+                        "*He follows without a sound. He tucks himself beside you - closer than he'd usually allow - and goes still. Both asleep.*",
+                        "*He sees you lying down and something in him softens. He trots over, hesitates once, then folds himself down beside you. Together.*",
+                        "*He was already tired. He curls against you without ceremony, his yarn-tail wrapping close. Asleep.*",
+                    ]
+                )
             )
-        )
 
     save_db(m)
 
@@ -11317,7 +11374,13 @@ async def help_cmd(ctx, *, section: str = None):
             "**Passive injury mechanic:**\n"
             "- Disliked children have a **15% chance** per interaction of being hit, batted, bitten, or shoved.\n"
             "  Injury logged to the child record. Use `!treatchild` to treat it.\n"
-            "- He does NOT pursue repair with disliked injured children the way he does with neutral/adored."
+            "- He does NOT pursue repair with disliked injured children the way he does with neutral/adored.\n\n"
+            "**Child death:**\n"
+            "- `!markchilddead [name]` / `!killchild` — Creator only. Marks a child as dead.\n"
+            "  Adored: he goes silent and lies in their spot. Neutral: subdued grief, slow.\n"
+            "  Disliked: complicated — he stays near their space. He doesn't know what he feels.\n"
+            "- Dead children remain in the list. He may revisit their spot quietly (ambient event).\n"
+            "  See `yarn!help ambient` for the dead child ambient tick."
         ),
         "social": (
             "**Social & memory** - `yarn!help social`\n"
@@ -11630,7 +11693,10 @@ async def help_cmd(ctx, *, section: str = None):
             "- **Lonely ambient** - if nobody speaks to him for 3+ hours, his wandering messages\n"
             "  get quieter and more inward\n"
             "- **Hourly mood tick** - mood drifts based on stats; scores above 100 are clamped\n"
-            "- **Birthday check (Dec 24)** - rare events become ~100x more likely all day"
+            "- **Birthday check (Dec 24)** - rare events become ~100x more likely all day\n"
+            "- **Dead child ambient** - if one of his children has died, he may quietly visit their\n"
+            "  corner. Adored: deep grief. Neutral: subdued. Disliked: complicated, silent.\n"
+            "  Fires ~8% chance per 45m tick when a dead child exists."
         ),
         "extended": (
             "**Extended commands** - `yarn!help extended`\n"
@@ -11653,7 +11719,12 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!drink`, `!bubblebath`, `!bathwithyarny`, `!meme`, `!say`, `!playmusic`, `!massage`, `!suck`\n"
             "- `!level`, `!setlevel`, `!setlevelrole`, `!joinvc`, `!leavevc`, `!suggest`, `!answer_suggest`\n"
             "- `!walk`, `!sniffsfx`, `!bathsleep`, `!feed_multi`, `!bump`, `!drag`, `!petloaf`, `!mischief`\n"
-            "- `!showoff`, `!mirror`, `!phone`, `!hiccup`, `!explore`, `!noise`, `!season`"
+            "- `!showoff`, `!mirror`, `!phone`, `!hiccup`, `!explore`, `!noise`, `!season`\n"
+            "- `!sleeponuser [name]` / `!sleeponu` / `!layonuser` (5m cd) - he physically goes and sleeps on a specific user\n"
+            "  The Creator: immediate, warm, no hesitation — purrs immediately.\n"
+            "  Score ≥8: circles, settles, trusts fully. Score ≥4: careful, one eye open.\n"
+            "  Score ≥0: neutral, pragmatic, slightly awkward. Score <0: reluctant, flat ears.\n"
+            "  Can't find user: sits down where he is. Already asleep / dead / helpless: blocked."
         ),
         "mood": (
             "**Mood system** - `yarn!help mood`\n"
@@ -11821,13 +11892,13 @@ async def help_cmd(ctx, *, section: str = None):
         "fb           - Fenerbahçe commands + !debug\n"
         "passive      - passive chat triggers and reactions\n"
         "scores       - all 22 trust milestones explained\n"
-        "ambient      - background events: wandering, shedding, lonely tick\n"
+        "ambient      - background events: wandering, shedding, lonely tick, dead child grief\n"
         "mood         - mood states and how they drift\n"
         "incidents    - disasters: !earthquake, !meteorite, !fallingstar, etc.\n"
         "trauma       - !trauma log, tiers, !comfortyarny to reduce it\n"
         "screenshare  - !screenshare / !yarnycam — who's DMing, what he's doing\n"
-        "extended     - newer commands: bite, rate, guess, voice, media, extra interactions\n"
-        "children     - children/parenting: !feedchild, !treatchild, dislike/injury system\n"
+        "extended     - newer commands: !sleeponuser, bite, rate, guess, voice, media, extras\n"
+        "children     - children/parenting: !feedchild, !treatchild, !markchilddead, death system\n"
         "```"
     )
 
@@ -11862,7 +11933,7 @@ async def help_cmd(ctx, *, section: str = None):
             "social", "social_new", "identity", "items", "teaching", "quiet",
             "birthday", "memorial", "passive", "scores", "ambient",
             "mood", "extended", "creator", "logs", "safety", "fb",
-            "incidents", "trauma", "screenshare",
+            "incidents", "trauma", "screenshare", "children",
         ]
         await ctx.send(
             "**[Yarnaby - Full Command Reference]**\n"
@@ -26318,6 +26389,69 @@ async def no_cmd(ctx):
 # ==========================================
 # !setscore - Creator sets user score
 # ==========================================
+
+
+  # ==========================================
+  # !read_book — Yarnaby reads a book
+  # ==========================================
+@bot.command(name="read_book")
+async def read_book_cmd(ctx, *, book_title: str = ""):
+      """Yarnaby reads a book. He doesn't understand it. He is completely locked in."""
+      m = bot.db
+      await _add_reactions(ctx, m)
+
+      if m["internal"].get("is_sleeping"):
+          await ctx.send(random.choice([
+              "*He is asleep. Books will have to wait.* **...zz.**",
+              "*He's out. He cannot read things while asleep. He can barely read things while awake.* **...zz.**",
+          ]))
+          return
+
+      if m["internal"].get("helpless"):
+          await ctx.send(
+              "*He cannot hold the book right now. He stares at it from the floor with great intensity. "
+              "This is probably close enough.* **...mrr...**"
+          )
+          return
+
+      title = (book_title or random.choice([
+          "a large book with no pictures",
+          "something thick and serious-looking",
+          "a manual of some kind",
+          "a book that was just lying there",
+          "something with very small text",
+          "a book with a picture of a building on the cover",
+          "a recipe book — he does not know this yet",
+          "an encyclopedia, volume 7",
+          "a dictionary — he finds the pictures on his own",
+          "a book someone left open on a page about geology",
+      ])).strip()
+
+      await _add_reactions(ctx, m)
+      await ctx.send(random.choice([
+          f"*Yarnaby finds {title} and sits down in front of it with complete seriousness. He opens it. He stares at the first page. He has not blinked.* **...mrr.**",
+          f"*He approaches {title} and opens it to a random page. He reads the first line — his head tilts three degrees to the left. He reads it again. He tilts the other way. He does not look up.* **...mrr.**",
+          f"*He sits down with {title} and begins. His face has the expression of someone receiving information in a language they almost know. He is processing. He will not be interrupted.* **...mrm.**",
+          f"*He opens {title} very carefully. He smooths the page with one paw. He leans in close. Whatever is on that page has his complete and total attention. He understands none of it.* **...prrr.**",
+      ]))
+      await asyncio.sleep(3)
+      await ctx.send(random.choice([
+          "*He turns the page. He has not understood the first page. He does not know this. He reads the second page with the same absolute focus.* **...mrr...**",
+          "*His paw moves slowly across the text, tracking the words. The words are not tracking back. He turns the page anyway.* **...mrm...**",
+          "*He blinks once. Tilts his head. Looks at the book from a slightly different angle. This does not help. He returns to his original angle and continues.* **...mrr...**",
+          "*He has made it to the third paragraph. His expression is one of deep, committed incomprehension. He is locked in. He will see this through.* **...prrr...**",
+          "*He pauses on one word for a very long time. He has decided this word is important. He has no idea what it means. He moves on.* **...mrr...**",
+      ]))
+      await asyncio.sleep(3)
+      await ctx.send(random.choice([
+          f"*He finishes his reading session with {title}. He closes it carefully. He sits very still for a moment. He has learned nothing from this book. He will remember it fondly.* **mrr.**",
+          f"*He closes {title} with one paw. He stares at the cover. His glass eyes are very bright. Something has moved through him — not understanding, exactly, but adjacent to it. He pads away slowly.* **mrr.**",
+          f"*He reaches the end of the page and stops. He looks at the book. He looks at his paw. He looks at the ceiling. Something in there meant something. He doesn't know what. He grooms his ear and walks away.* **...prrr.**",
+          f"*He finishes his reading session. He pats the book once with his paw, gently, the way you pat something you respect but cannot fully explain. He stands up. He leaves.* **mrr.**",
+      ]))
+      _remember_life(m, "read_book", f"{ctx.author.display_name} gave Yarnaby {title} to read", ctx.author)
+      save_db(m)
+
 @bot.command(name="setscore", aliases=["set_score", "forcescore", "editscore"])
 async def setscore_cmd(ctx, target: Optional[discord.Member] = None, *, val_str: str = ""):
     """Creator only: set a user's score (-100 to 100)."""
@@ -34858,8 +34992,13 @@ def _visual_prompt(scene: str, m, ctx=None) -> str:
     comfort = f" His comfort object, {comfort_object}, is nearby." if comfort_object else ""
     recent_room = (internal.get("factory_rooms") or ["main floor"])[-1]
     base = (
-        "First-person POV from Yarnaby, a small woolly grey-white catlike factory creature. "
-        f"Fluffy paws visible at the bottom edge, old abandoned factory setting, room: {recent_room}. "
+        "First-person POV from Yarnaby, a small creature made entirely of soft grey-white wool and yarn. "
+        "His body is visibly yarn-textured throughout \u2014 like a knitted or felted stuffed animal that came to life. "
+        "He has round glass button eyes (NOT real cat eyes \u2014 smooth, dark, glassy buttons sewn on), "
+        "small rounded woolly ears made of looped yarn, a fluffy yarn tail, "
+        "and chunky paws made of bundled grey-white wool threads. "
+        "He looks like a living handmade yarn toy \u2014 wool fibres visible, stuffed-animal aesthetic \u2014 NOT a real cat. "
+        f"Fluffy yarn paws visible at the bottom edge, old abandoned factory setting, room: {recent_room}. "
         f"Mood is {mood.lower()}, cleanliness is {cleanliness.lower()}, body temperature feels {temp}{outfit}. "
         f"Scene: {scene}.{comfort} Warm cinematic lighting, tactile concrete, dust motes, intimate low-to-the-ground perspective, no text, no watermark."
     )
@@ -36544,6 +36683,8 @@ async def childfeeling_cmd(ctx, *, name: str = ""):
 @bot.command(name="ask_creator", aliases=["askcreator", "requestcreator", "creatorask", "permissionrequest"])
 async def ask_creator_cmd(ctx, *, request: str = ""):
     """Ask the Creator for permission to do something."""
+    m = bot.db
+    await _add_reactions(ctx, m)
     if not request.strip():
         await ctx.send("*What do you want to ask The Creator? Write it after `!ask_creator`.* **mrr.**")
         return
@@ -47636,6 +47777,22 @@ async def groomchild_cmd(ctx, *, name: str = ""):
         )
         return
 
+    # 15% ambient chance: instinct takes over mid-groom — he tries to eat the child
+    if random.random() < 0.15:
+        await ctx.send(random.choice([
+            f"*He's grooming **{cname}** so attentively... his nose works, something ancient takes over, and his mouth opens just slightly. He catches himself before his teeth close. **{cname}** has already bolted. He stares at the spot. His ears go flat.* **...mrr.** *He did not mean to do that.*",
+            f"*He is being so gentle with **{cname}**'s ears \u2014 too close \u2014 and then there is a blur of motion and **{cname}** is across the room making a noise. He is sitting very still, paw still raised. He puts it down slowly. He feels genuinely terrible.* **...mrr...**",
+            f"*His mouth opens. Just a little. Just to check. **{cname}** does not wait to find out what 'check' means and departs at speed. Something older than fatherhood took over. He grooms his own paw in the silence, mortified.* **...hff...**",
+        ]))
+        await asyncio.sleep(2)
+        await ctx.send(random.choice([
+            f"*He goes to **{cname}** eventually. Sits beside them without touching. Does not explain himself. Grooms the spot he was going to eat, very carefully instead. **{cname}** allows this, barely.* **prrr...**",
+            f"*He approaches **{cname}** slowly, tail low, ears back. He sits next to them. He licks the top of their head once \u2014 gently, deliberately. An apology, in his language.* **...mrr...**",
+            f"*He finds **{cname}** and sits close enough to touch without touching. He makes one very small, very quiet sound. That is the sorry. It is the only sorry he has.* **...mrm...**",
+        ]))
+        save_db(m)
+        return
+
     if is_doctor:
         await ctx.send(random.choice([
             f"*The Creator grooms **{cname}** and Yarnaby immediately joins, grooming the spots "
@@ -47662,7 +47819,89 @@ async def groomchild_cmd(ctx, *, name: str = ""):
         )
 
 
-# ── walkchild ────────────────────────────────────────────────────────────────
+
+
+  # ── injurieschild ─────────────────────────────────────────────────────────────
+@bot.command(name="injurieschild", aliases=["childinjuries", "checkchildinjury", "injuredchild", "childhurt"])
+async def injurieschild_cmd(ctx, *, name: str = ""):
+      """Check one of Yarnaby's children's injuries."""
+      m = bot.db
+      is_doctor = ctx.author.id == DOCTOR_ID
+      u_id = str(ctx.author.id)
+      await _add_reactions(ctx, m)
+      guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+      child, cname = await _child_guard(ctx, name, m, guild_id)
+      if not child:
+          return
+
+      if m["internal"].get("is_sleeping"):
+          await ctx.send(random.choice([
+              "*He is asleep. Checking children's injuries will have to wait.* **...zz.**",
+              "*He's out. Do not disturb. The children are also, presumably, sleeping.* **...zz.**",
+          ]))
+          return
+
+      injuries = child.get("injuries", [])
+      untreated = [i for i in injuries if not i.get("treated")]
+
+      if not untreated:
+          feeling = child.get("feeling", "neutral")
+          if feeling == "adored":
+              await ctx.send(
+                  f"*He checks **{cname}** over himself — ears, paws, sides — with quiet thoroughness. "
+                  f"He finds nothing wrong. His tail relaxes. He gives **{cname}** one slow lick on the head.* **prrr.**"
+              )
+          elif feeling == "disliked":
+              await ctx.send(
+                  f"*He glances at **{cname}** from across the room. Brief. Evaluating. He sees nothing wrong. "
+                  f"He looks back away. He will not be showing relief.* **mrr.**"
+              )
+          else:
+              await ctx.send(
+                  f"*He looks **{cname}** over. Nothing untreated. He gives a small nod — satisfied — and returns to what he was doing.* **mrr.**"
+              )
+          save_db(m)
+          return
+
+      feeling = child.get("feeling", "neutral")
+      opening = {
+          "adored": [
+              f"*He is beside **{cname}** before you finish asking. His ears are flat. He does not like what he sees.*",
+              f"*He looks at **{cname}** and then at you. The report in his eyes is not a good one.*",
+          ],
+          "neutral": [
+              f"*He examines **{cname}** with professional detachment. There are things here that should not be here.*",
+              f"*He checks **{cname}** over. Something is wrong. He notes it.*",
+          ],
+          "disliked": [
+              f"*He checks **{cname}** because he has to. He finds injuries. He makes a complicated sound.* **...mrr...**",
+              f"*He looks **{cname}** over with his usual expression for them. He still does not like what he finds.* **mrr.**",
+          ],
+      }
+      await ctx.send(random.choice(opening.get(feeling, opening["neutral"])))
+      await asyncio.sleep(1)
+
+      lines = [f"**{cname}'s injuries** ({len(untreated)} untreated):"]
+      for inj in untreated:
+          typ = inj.get("type", "injury")
+          desc = inj.get("description", "unspecified")
+          age_str = ""
+          inj_at = inj.get("at")
+          if inj_at:
+              try:
+                  inj_dt = datetime.strptime(inj_at, "%Y-%m-%d %H:%M:%S")
+                  hrs = int((datetime.now() - inj_dt).total_seconds() // 3600)
+                  age_str = f" — {hrs}h ago"
+                  if hrs >= 24:
+                      age_str += " ⚠️ infection risk"
+              except Exception:
+                  pass
+          lines.append(f"• **{typ}**: {desc}{age_str}")
+      lines.append(f"\nUse `!treatchild {cname}` to treat them.")
+      await ctx.send("\n".join(lines))
+      save_db(m)
+
+  # ── walkchild ────────────────────────────────────────────────────────────────
 @bot.command(name="walkchild", aliases=["walkkid", "walkwithchild", "walkwithkid", "takekidwalk"])
 async def walkchild_cmd(ctx, *, name: str = ""):
     """Take one of Yarnaby's children for a walk. Yarnaby comes too."""
@@ -52259,6 +52498,549 @@ async def treatchild_cmd(ctx, *, name: str = ""):
     for inj in injuries:
         inj["treated"] = True
     save_db(m)
+
+
+# ==========================================
+# _yarnaby_state_block — shared state guard
+# ==========================================
+
+def _yarnaby_state_block(m) -> str | None:
+    """Return a blocking message if Yarnaby cannot interact right now, else None."""
+    if m["internal"].get("is_dead"):
+        return random.choice([
+            "*He is gone. He does not respond.* **...**",
+            "*He is no longer here. There is no reply.* **...**",
+            "*Nothing. He is gone.* **...**",
+        ])
+    if m["internal"].get("is_sleeping"):
+        return random.choice([
+            "*He is asleep. He does not stir.* **...zz.**",
+            "*He is deeply asleep. This will have to wait.* **...zz.**",
+            "*Faint snoring. He is not available.* **...zz.**",
+        ])
+    if m["internal"].get("helpless"):
+        return random.choice([
+            "*He cannot manage that right now. He is on the floor.* **...mrr...**",
+            "*He is helpless at the moment. He watches you with great intensity and does nothing.* **...mrr...**",
+        ])
+    injuries = m["internal"].get("injuries", [])
+    infected = any(i.get("infected") for i in injuries)
+    if infected and m["stats"].get("health", 100) < 20:
+        return random.choice([
+            "*He is too ill to do much. He barely lifts his head.* **...hff...**",
+            "*He is feverish and not fully present. He cannot respond right now.* **...mrr...**",
+        ])
+    return None
+
+
+# ==========================================
+# Dead child ambient system
+# ==========================================
+
+async def _maybe_dead_child_ambient(ch, m):
+    """Fires when Yarnaby notices / grieves near a dead child.  Called from ambient tick."""
+    guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else None
+    if not guild_id:
+        return
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    dead_children = [c for c in children if c.get("dead")]
+    if not dead_children:
+        return
+
+    child = random.choice(dead_children)
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+
+    if feeling == "adored":
+        msg = random.choice([
+            f"*Yarnaby pads into the quiet corner where **{cname}** used to sleep. "
+            f"He circles the spot once — slowly — then lies down in the middle of it. "
+            f"His chin goes to the floor. His eyes stay open. He does not move for a very long time.* **...**",
+
+            f"*He finds **{cname}**'s things — a small toy, a scent still caught in the wool. "
+            f"He presses his nose into it for a long, still moment. "
+            f"His tail doesn't move. His ears don't lift. "
+            f"He carries the toy to his own sleeping spot and sets it down very carefully.* **...**",
+
+            f"*Yarnaby stops in the middle of the room. "
+            f"He looks toward where **{cname}** always was. "
+            f"He stays there a long time — not confused, not lost — just looking. "
+            f"Something in him is simply marking the distance.* **...**",
+
+            f"*He curls into the space where **{cname}** used to sleep beside him. "
+            f"It is too big now. He tucks himself smaller. "
+            f"His purr starts low and then stops. He doesn't sleep.* **...**",
+        ])
+    elif feeling == "neutral":
+        msg = random.choice([
+            f"*Yarnaby walks past **{cname}**'s corner. "
+            f"He slows. He sniffs the air once. "
+            f"He keeps walking, but something changes in his step — just for a moment.* **...mrr.**",
+
+            f"*He sits near where **{cname}** used to rest. "
+            f"Not on top of it. Just near. "
+            f"He grooms his paw slowly and doesn't look at anything in particular. "
+            f"He's not grieving loudly. He's just… noting it.* **...mrr.**",
+
+            f"*He finds one of **{cname}**'s things in the corner. "
+            f"He sniffs it. He moves it a few inches with his paw, very gently. "
+            f"He leaves it there and goes back to his spot.* **...mrr.**",
+        ])
+    else:  # disliked
+        msg = random.choice([
+            f"*Yarnaby walks near **{cname}**'s corner and pauses. "
+            f"He sniffs the air. He sits. "
+            f"His expression doesn't tell you much — but he stays for a while before leaving. "
+            f"He was never kind to **{cname}**. He is not sure what to do with this.* **...mrr.**",
+
+            f"*He passes **{cname}**'s spot and stops without meaning to. "
+            f"One ear tilts back. He stands there longer than expected. "
+            f"Then he leaves. He does not look back.* **...mrr.**",
+
+            f"*He finds something of **{cname}**'s and sniffs it for a long time. "
+            f"He sets it back down carefully — more carefully than he ever set anything of **{cname}**'s down before. "
+            f"He sits beside it for a moment. Then he walks away.* **...**",
+        ])
+
+    await ch.send(msg)
+
+
+@tasks.loop(minutes=45)
+async def _child_dead_ambient_tick():
+    """Passive ambient: Yarnaby silently grieves near a dead child's spot."""
+    await bot.wait_until_ready()
+    m = bot.db
+    if m["internal"].get("is_sleeping"):
+        return
+    ch_id = m["internal"].get("home_channel_id") or m["internal"].get("original_home_channel_id")
+    if not ch_id:
+        return
+    ch = bot.get_channel(int(ch_id))
+    if not ch:
+        return
+    # Fire ~8% of the time when at least one dead child exists
+    guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else None
+    if not guild_id:
+        return
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    if not any(c.get("dead") for c in children):
+        return
+    if random.random() > 0.08:
+        return
+    try:
+        await _maybe_dead_child_ambient(ch, m)
+    except Exception as e:
+        print(f"[child dead ambient] {e}")
+
+
+# ==========================================
+# !markchilddead — Creator marks a child as dead
+# ==========================================
+
+@bot.command(name="markchilddead", aliases=["killchild", "childgone", "childpassed", "childdied"])
+async def markchilddead_cmd(ctx, *, name: str = ""):
+    """Creator only: mark one of Yarnaby's children as dead."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can do that.* **mrr.**")
+        return
+    m = bot.db
+    if not name.strip():
+        await ctx.send("*Which child? Give a name.* **mrr?**")
+        return
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    if not children:
+        await ctx.send("*He has no children in this server.* **mrr.**")
+        return
+    child = None
+    for c in children:
+        if name.strip().lower() in c["name"].lower():
+            child = c
+            break
+    if not child:
+        names = ", ".join(f"**{c['name']}**" for c in children)
+        await ctx.send(f"*No child found by that name. His children: {names}.* **mrr.**")
+        return
+    if child.get("dead"):
+        await ctx.send(f"***{child['name']}** is already marked as gone.* **...**")
+        return
+
+    child["dead"] = True
+    child["died_at"] = datetime.now().strftime("%Y-%m-%d")
+    save_db(m)
+
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+
+    if feeling == "adored":
+        await ctx.send(
+            f"*Yarnaby goes still. He looks toward where **{cname}** always was. "
+            f"He does not make a sound. He does not move for a long time. "
+            f"When he does move, he pads very slowly to **{cname}**'s spot and lies down in it.* **...**\n"
+            f"*(**{cname}** is gone. He will visit this place quietly, sometimes.)*"
+        )
+    elif feeling == "neutral":
+        await ctx.send(
+            f"*Something shifts in Yarnaby when he understands. "
+            f"He goes to **{cname}**'s corner. He sniffs it once. "
+            f"He sits for a while, still and quiet, before coming back.* **...mrr.**\n"
+            f"*(**{cname}** is gone.)*"
+        )
+    else:
+        await ctx.send(
+            f"*Yarnaby hears it. He goes quiet. "
+            f"He stands near **{cname}**'s space for a long time — not entering, just close. "
+            f"He doesn't know what he feels. He stays anyway.* **...mrr.**\n"
+            f"*(**{cname}** is gone. It is complicated.)*"
+        )
+
+
+# ==========================================
+# !sleeponuser — Yarnaby physically sleeps on a specific user
+# ==========================================
+
+COOLDOWN_SLEEPONUSER = 300  # 5 minutes per user
+
+@bot.command(name="sleeponuser", aliases=["sleeponu", "sleep_on", "yarnnapsonu", "naponu", "layonuser"])
+async def sleeponuser_cmd(ctx, *, target_name: str = ""):
+    """Yarnaby goes and physically sleeps on a specified user. Score-tiered reactions."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # State checks
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. He cannot sleep on anyone.* **...**")
+        return
+    if m["internal"].get("is_sleeping"):
+        await ctx.send(random.choice([
+            "*He is already asleep. He is not taking requests right now.* **...zz.**",
+            "*He is deeply asleep. He cannot also sleep on someone at this exact moment. "
+            "These are different sleeps.* **...zz.**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send(
+            "*He cannot physically go anywhere. He is on the floor. "
+            "He would like you to know he has considered the request.* **...mrr...**"
+        )
+        return
+
+    if not target_name.strip():
+        await ctx.send("*Who does he sleep on? Give a name. `!sleeponuser [name]`* **mrr?**")
+        return
+
+    # Cooldown
+    cd_key = f"sleeponuser_{str(ctx.author.id)}"
+    remaining = _cooldown_remaining(m, cd_key, COOLDOWN_SLEEPONUSER)
+    if remaining:
+        mins, secs = divmod(remaining, 60)
+        await ctx.send(
+            f"*He was just doing that. He needs a moment.* **mrr.** "
+            f"*(cooldown: {mins}m {secs}s)*"
+        )
+        return
+
+    # Find target
+    target = None
+    if ctx.guild:
+        name_lower = target_name.strip().lower()
+        for member in ctx.guild.members:
+            if name_lower == member.display_name.lower() or name_lower == member.name.lower():
+                target = member
+                break
+        if not target:
+            for member in ctx.guild.members:
+                if name_lower in member.display_name.lower() or name_lower in member.name.lower():
+                    target = member
+                    break
+
+    if not target:
+        await ctx.send(
+            f"*He looks around for whoever that is. He pads in a slow circle. "
+            f"He cannot find them. He sits down where he is and closes his eyes instead. "
+            f"A compromise.* **...zz.**"
+        )
+        return
+
+    _set_cooldown(m, cd_key)
+    save_db(m)
+
+    tname = target.display_name
+    is_creator_target = (target.id == DOCTOR_ID)
+    t_uid = str(target.id)
+    t_score = m["social_matrix"].get(t_uid, {}).get("score", 0)
+
+    # Self-target
+    if target.id == ctx.author.id:
+        await ctx.send(random.choice([
+            f"*He considers sleeping on **{tname}**. He considers who **{tname}** is. "
+            f"He walks over and simply collapses on top of them without further ceremony. "
+            f"This is a him problem now.* **...zz.**",
+            f"*He locates **{tname}**. He locates **{tname}**'s lap. "
+            f"He selects the lap. He is there now. He is asleep.* **...zz.**",
+        ]))
+        return
+
+    # The Creator
+    if is_creator_target:
+        await ctx.send(random.choice([
+            f"*Yarnaby pads over to The Creator with complete purposefulness. "
+            f"No hesitation, no circling — he simply selects The Creator's lap, turns once, "
+            f"and folds himself down. He is asleep within seconds. "
+            f"His purr fills the space like something that was always supposed to be there.* **prrr... zz.**",
+
+            f"*He walks to The Creator and headbutts their knee once — softly, just to announce himself — "
+            f"then climbs up and settles. His whole body relaxes in a way it doesn't everywhere else. "
+            f"He is asleep before he even finishes arranging himself. "
+            f"This is where he is supposed to be.* **prrr... zz.**",
+
+            f"*He finds The Creator and folds himself across their lap with the confidence of "
+            f"something that has never once questioned whether it belongs there. "
+            f"He is asleep immediately. His paw is on The Creator's arm. "
+            f"He will not move unless asked, and maybe not then.* **prrr... zz.**",
+        ]))
+        return
+
+    # Score-tiered reactions
+    if t_score >= 8:
+        await ctx.send(random.choice([
+            f"*Yarnaby walks over to **{tname}** and circles twice — the full ritual — "
+            f"then settles down on top of them with total confidence. "
+            f"He trusts this one. His purr starts almost immediately. "
+            f"He doesn't open his eyes again.* **prrr... zz.**",
+
+            f"*He pads to **{tname}**, bumps his head against their arm once, "
+            f"then climbs up and arranges himself across their lap like he owns the space. "
+            f"He has clearly done the math. He has decided **{tname}** is warm enough and safe enough. "
+            f"He is asleep.* **prrr... zz.**",
+
+            f"*He finds **{tname}** and drops himself down on them with the easy weight "
+            f"of something that has decided completely. "
+            f"His tail sweeps once. His eyes close. His whole body goes soft.* **prrr... zz.**",
+        ]))
+    elif t_score >= 4:
+        await ctx.send(random.choice([
+            f"*Yarnaby approaches **{tname}** and takes a moment before deciding. "
+            f"He circles once — slowly — then carefully lays himself down. "
+            f"He's not fully committed yet. One eye stays slightly open. "
+            f"But he doesn't leave.* **...zz.**",
+
+            f"*He pads over to **{tname}** and settles beside them — close, but not entirely on top. "
+            f"A measured distance. He's comfortable enough to close his eyes. "
+            f"He is not comfortable enough to purr immediately. Give it a minute.* **...zz.**",
+
+            f"*He chooses **{tname}** and arrives at their side with a look that says "
+            f"this is fine, not perfect, but fine. "
+            f"He lies down with the careful posture of someone maintaining a small reserve of dignity. "
+            f"He is asleep.* **...zz.**",
+        ]))
+    elif t_score >= 0:
+        await ctx.send(random.choice([
+            f"*Yarnaby eyes **{tname}** from across the room. He does not look certain. "
+            f"He walks over anyway — pauses — then lowers himself beside them with the air of "
+            f"someone making a pragmatic decision rather than an enthusiastic one. "
+            f"He is asleep. He has one eye open.* **...zz.**",
+
+            f"*He picks **{tname}**. He doesn't seem entirely thrilled about it. "
+            f"He circles once, then twice, then settles — slightly away, mostly on top — "
+            f"and goes quiet. Not warm. Not cold. Just there.* **...zz.**",
+
+            f"*He approaches **{tname}** and stands there for just a beat too long before lying down. "
+            f"He is neutral about this. He is asleep. He will be gone before they notice. "
+            f"Probably.* **...zz.**",
+        ]))
+    elif t_score >= -5:
+        await ctx.send(random.choice([
+            f"*Yarnaby looks at **{tname}**. He looks away. He looks at them again. "
+            f"He walks over with the reluctant energy of something that has no better options "
+            f"and lies down — not on, more next to — and faces the opposite direction. "
+            f"He is asleep. He is not happy about it.* **...zz. hff.**",
+
+            f"*He pads over to **{tname}** and stops just short of landing on them. "
+            f"He settles nearby — close enough to qualify, far enough to make a point. "
+            f"One ear is flat. He closes his eyes anyway. He works with what he has.* **...zz.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*Yarnaby considers **{tname}** for a long moment from a safe distance. "
+            f"He walks toward them very slowly, keeping his options open. "
+            f"He lies down beside them with the posture of someone who has made a tactical error "
+            f"and is too tired to correct it. He keeps both eyes open. He is technically asleep.* **...zz. hff.**",
+
+            f"*He chooses **{tname}** and he is not pleased about it. "
+            f"He circles once — flat ears, low tail — then collapses nearby with the weight "
+            f"of something that has run entirely out of better choices. "
+            f"He is asleep. He will not forgive this.* **hff... zz.**",
+        ]))
+
+
+# ==========================================
+# GLOBAL STATE GATE — before_invoke hook
+# ==========================================
+
+class _StateBlocked(commands.CommandError):
+    """Raised by _global_state_check to silently abort a command after a message is sent."""
+    pass
+
+
+# Commands always exempt from ALL global state checks
+_STATE_BLOCK_EXEMPT = frozenset({
+    # Help & debug
+    "help", "yarnhelp", "yarnaby_help", "helpyarny", "commandlist",
+    "yarnstate", "debug",
+    # Sleep management (these change sleep state)
+    "sleep", "nap", "wake", "wakeup", "bathsleep",
+    # Creator admin
+    "logset", "logsetchannel", "logcheck", "logoff", "loghere", "setuplog",
+    "disablelog", "logstatus",
+    "setscore", "set_score", "forcescore", "editscore",
+    "creator_approve", "creator_deny",
+    "setmood", "forcemood", "moodoverride", "setmoodto",
+    "addchild", "removechild", "setchildfeeling", "namechild",
+    "markchilddead", "killchild",
+    "fbsetstandings", "fbaddresult",
+    "antilink", "badword",
+    "cleanup", "getoutnsfw",
+    # Emergency / rescue (must always work)
+    "save", "saveyarnaby", "saveyarny", "rescueyarn", "rescuehim",
+    "stop_threat", "stopthreat", "endthreat", "freeyarny", "releaseyarny",
+    # Info / status (should always work)
+    "status", "mystatus", "howamidoing",
+    "ranking", "leaderboard", "favored", "topfan",
+    "grudge", "nemesis", "history",
+    "injuries", "trauma", "traumalog", "hispast",
+    "mood", "moodcheck", "mood_check", "howareyou",
+    "inventory", "inv", "hoard",
+    "outfit", "wearing",
+    "dental", "checkteeth",
+    "shedding", "woolshed",
+    "weight_log", "weightlog",
+    "lore", "archive", "quote",
+    "children", "hischildren",
+    "childfeeling",
+    "injurieschild", "childinjuries",
+    "forgiven_history", "forgivenlog",
+    "grudge_list", "grudgelog",
+    "log_today", "todaylog",
+    "screenshare", "share_screen", "yarnycam", "whosdming", "whostalking",
+})
+
+# Exempt from sleeping check only (they manage or react to sleep state)
+_SLEEP_EXEMPT = frozenset({
+    "sleep", "nap", "wake", "wakeup", "bathsleep",
+    "screenshare", "share_screen", "yarnycam",
+})
+
+# Exempt from score-block (info commands low-score users can still read)
+_SCORE_BLOCK_EXEMPT = frozenset({
+    "help", "yarnhelp", "status", "ranking", "leaderboard",
+    "inventory", "outfit", "injuries", "trauma", "mood", "moodcheck",
+    "mood_check", "howareyou", "children", "childfeeling", "injurieschild",
+    "forgiven_history", "grudge_list", "log_today", "dental", "shedding",
+    "weight_log", "lore", "archive", "history", "firstmet", "memory_log",
+    "yarnstate", "debug", "save", "stop_threat", "screenshare",
+    "bond", "mybond", "bondcheck",
+})
+
+
+@bot.before_invoke
+async def _global_state_check(ctx):
+    """
+    Global state gate — runs before every command.
+
+    Dead      → blocks ALL users (message sent, _StateBlocked raised).
+    Sleeping  → blocks non-Creator (score-aware message). Creator passes through.
+    Helpless  → blocks non-Creator (score-aware message). Creator passes through.
+    Infected  → blocks non-Creator when health < 15 (critical illness).
+    Score ≤ -15 → cold rejection for all interaction commands (info exempt).
+    """
+    if ctx.command is None:
+        return
+    cmd_name = ctx.command.name
+    if cmd_name in _STATE_BLOCK_EXEMPT:
+        return
+
+    m = bot.db
+    is_creator = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = m["social_matrix"].get(u_id, {}).get("score", 0) if not is_creator else 99
+
+    # ── Dead — blocks everyone ────────────────────────────────────────────────
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The room is very quiet.* **...**",
+            "*He does not respond. He is no longer here.* **...**",
+            "*Nothing. He is gone.* **...**",
+            "*He is not here anymore. There is no reply.* **...**",
+        ]))
+        raise _StateBlocked("dead")
+
+    # ── Sleeping ──────────────────────────────────────────────────────────────
+    if cmd_name not in _SLEEP_EXEMPT and m["internal"].get("is_sleeping"):
+        if is_creator:
+            # Creator passes through — let the command's own logic handle it
+            return
+        if score < 0:
+            await ctx.send(random.choice([
+                "*He is asleep. He does not stir for you.* **...zz.**",
+                "*Asleep. He will not wake for this.* **...zz.**",
+                "*He is deeply asleep and has no interest in waking for you.* **...zz.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He is asleep.* **...zz.**",
+                "*He is curled up and deeply asleep. He does not stir.* **...zz.**",
+                "*He's out. He cannot respond right now.* **...zz.**",
+                "*A faint snore. He does not wake.* **...zz.**",
+                "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+                "*He is asleep. His ears twitch once but he does not open his eyes.* **...zz.**",
+                "*He is asleep. This will have to wait.* **...zz.**",
+            ]))
+        raise _StateBlocked("sleeping")
+
+    # ── Helpless ──────────────────────────────────────────────────────────────
+    if m["internal"].get("helpless"):
+        if is_creator:
+            return
+        if score < 0:
+            await ctx.send(random.choice([
+                "*He is on the floor. He does not attempt to respond to you.* **...mrr...**",
+                "*He cannot do anything right now. He does not look at you.* **...mrr...**",
+                "*He is on the floor and he is not interested in engaging.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He cannot manage that right now. He is on the floor.* **...mrr...**",
+                "*He is helpless at the moment. He watches you with great intensity and does nothing.* **...mrr...**",
+                "*He cannot do that. He stares at you from the floor.* **...mrr...**",
+                "*He's not in a position to do that right now. He is very much on the floor.* **...mrr...**",
+                "*He tries. He does not manage.* **...mrr...**",
+            ]))
+        raise _StateBlocked("helpless")
+
+    # ── Severe infection + critical health ────────────────────────────────────
+    if not is_creator:
+        injuries = m["internal"].get("injuries", [])
+        infected = any(i.get("infected") for i in injuries)
+        if infected and m["stats"].get("health", 100) < 15:
+            await ctx.send(random.choice([
+                "*He is too ill to respond. He barely lifts his head.* **...hff...**",
+                "*He is feverish and not fully present. He cannot do that right now.* **...mrr...**",
+                "*He tries. He does not manage. He looks at you with glazed eyes.* **...hff...**",
+                "*He hears you. He cannot act on it. He is not well.* **...hff...**",
+            ]))
+            raise _StateBlocked("infected")
+
+    # ── Very negative score — cold rejection ─────────────────────────────────
+    if not is_creator and score <= -15 and cmd_name not in _SCORE_BLOCK_EXEMPT:
+        await ctx.send(random.choice([
+            "*He looks at you. He looks away. He does not engage.* **...**",
+            "*He turns his back. He has decided not to participate in this.* **...hff.**",
+            "*He goes still. Then he walks away, slowly, without looking back.* **...**",
+            "*He is aware of you. He chooses not to respond.* **...hff.**",
+            "*He eyes you for a moment, then turns away. Not now.* **...hff.**",
+        ]))
+        raise _StateBlocked("negative_score")
 
 
 # ==========================================
