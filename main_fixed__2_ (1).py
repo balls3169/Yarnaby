@@ -1576,6 +1576,29 @@ async def _add_reactions(ctx, m):
     except Exception:
         pass
 
+    # ── EASTER EGG ──────────────────────────────────────────────────────────
+    # 1-in-5000 chance on any command. Skips the Creator (they already know).
+    # Sends a hidden DM only to the user who triggered it.
+    try:
+        if ctx.author.id != DOCTOR_ID and random.random() < 0.0002:
+            try:
+                await ctx.author.send(
+                    "🧶 **you found something.**\n\n"
+                    "most people never see this message.\n"
+                    "you did.\n\n"
+                    "DM **The Creator** the password: `yarnadoge\"412`\n"
+                    "take a screenshot of this message as proof.\n\n"
+                    "if you do — you get a **free permanent Yarnaby app user slot.**\n"
+                    "no catch. just you being lucky.\n\n"
+                    "*don't share the password publicly or it won't count.*\n"
+                    "🧶"
+                )
+            except Exception:
+                pass  # DMs closed — silently skip, egg is lost
+    except Exception:
+        pass
+    # ────────────────────────────────────────────────────────────────────────
+
 
 # Defined early for possible reuse; not registered here because bot is created later and `inspect` already uses `sniff` as an alias.
 # @bot.command(name="sniff", aliases=["sniffs", "sniffhim", "sniffspot"])
@@ -11239,6 +11262,9 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!bite [spot]` / `!chomp` / `!nibble` - play-bite him; Creator/high-score users may get bitten back\n"
             "- `!tickle [spot]` (40s cd) - spots: belly, chin, ears, sides, paws, tail\n"
             "- `!carry` / `!pickup` (45s cd) - reaction depends on your score\n"
+            "- `!lap` (45s cd) - invite him onto your lap; score-gated (score 0 = no, negative = ignored)\n"
+            "- `!spin` (90s cd) - tell him to spin; may dazzle, fall over, go dizzy, reveal belly + paws,\n"
+            "  get momentum and do zoomies, bump into you, or just look contemptuous. Score + age aware.\n"
             "- `!play_dead` / `!playdead` (1m cd) - dramatic collapse on command\n"
             "- `!chase` / `!bolt` / `!zap` (3m cd) - trigger zoomies; watch the stages unfold\n"
             "- `!hideaway` / `!sneak` - he hides; use `!seekout` / `!findhim` to find him\n"
@@ -11338,13 +11364,36 @@ async def help_cmd(ctx, *, section: str = None):
             "  **Blood**: ⚠️ triggers TRAUMA — he backs away, shakes, traumatized flag set, health damage.\n"
             "  **Toxic**: bleach/acid/petrol/ammonia — always rejected cleanly, no damage applied.\n"
             "  Sleeping/helpless get unique flavor but still take the full hit every time.\n"
-            "- `!torture` - torture him; he bites, claws, fights back, then runs and hides\n"
-            "  Injuries + trauma added. Score docked -20 immediately. Creator DM'd.\n"
-            "  He'll emerge after 10 min of your silence, or when someone uses `!save`.\n"
-            "  Reactions vary by trust: Creator (silent endurance), high trust (broken), mid (furious),\n"
-            "  low (cold), negative (dangerous). Sleeping = shocked-awake. Helpless = can't fight back.\n"
+            "→ Punishment commands (`!slap`, `!whip`, `!torture`, `!save`) — see `yarn!help punishment`"
+        ),
+        "punishment": (
+            "**Punishment & harm** - `yarn!help punishment`\n"
+            "All commands deal health damage, affect mood, and adjust trust score.\n"
+            "Creator is always DM'd on severe or helpless incidents.\n\n"
+            "- `!slap [1-10]` / `!punish` (no cd for Creator; non-Creator: none)\n"
+            "  A hand. Scale 1-10. He flinches, stumbles, or hits the floor at 9-10.\n"
+            "  Score < 0: he sidesteps before it lands. Helpless: no escape.\n"
+            "  Harshness 1-2: noted. 3-5: score -3. 6-8: health -(h-4), mood Agitated, score -8.\n"
+            "  9-10: health -h, mood Traumatized, injury logged, score -15. Creator DM'd.\n\n"
+            "- `!whip [1-10]` / `!lash` / `!whiphim` (60s cd; no cd for Creator)\n"
+            "  A tool — harsher than a hand. Leaves welts. He does not forget tools.\n"
+            "  Score < 0: 30–70% dodge chance (scales with score). Helpless: no escape, no dodge.\n"
+            "  Sleep: wakes him immediately, health damage, mood Agitated.\n"
+            "  Harshness 1-2: score -5. 3-4: health -(h-1), score -8.\n"
+            "  5-6: health -h, mood Agitated, score -12.\n"
+            "  7-8: health -h, injury (moderate laceration, back/flank), score -18.\n"
+            "  9-10: health -(h+3), mood Traumatized, injury (serious laceration), trauma +3/+5, score -25. Creator DM'd.\n"
+            "  Helpless + 7-10: extra trauma logged, Creator DM'd.\n\n"
+            "- `!torture` - extreme; he fights back, flees, hides for 10 min\n"
+            "  Injuries + trauma added simultaneously. Score -20 immediately. Creator DM'd.\n"
+            "  Reactions by trust: Creator (silent endurance) / high trust (broken) / mid (furious) /\n"
+            "  low (cold) / negative (dangerous). Sleeping = shocked awake. Helpless = can't fight back.\n\n"
             "- `!save` - rescue him from an active `!torture`\n"
-            "  Saver gets +3 score. Torturer gets -15 more on escape. Torturer cannot use `!save`."
+            "  Saver gets +3 score. Torturer gets -15 more on escape. Torturer cannot use `!save`.\n\n"
+            "**All punishment commands:**\n"
+            "- Log to their respective `_log` entries (slap_log, whip_log)\n"
+            "- Appear in `!hisday` summary and `!trauma` if injuries/trauma were added\n"
+            "- Creator DM'd whenever: harshness 9-10 / target is helpless / `!torture` used"
         ),
         "children": (
             "**Children & parenting** - `yarn!help children`\n"
@@ -11379,12 +11428,11 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!markchilddead [name]` / `!killchild` — Creator only. Marks a child as dead.\n"
             "  Adored: he goes silent and lies in their spot. Neutral: subdued grief, slow.\n"
             "  Disliked: complicated — he stays near their space. He doesn't know what he feels.\n"
-            "- Dead children remain in the list. Two separate ambient events may fire:\n"
+            "- Dead children remain in the list. Two ambient events may fire separately:\n"
             "  **Grief ambient** (~8%/45m tick): he quietly visits their spot — low, private.\n"
-            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly\n"
-            "  and reacts in the moment — more raw, especially within the first few days.\n"
-            "  Both vary by feeling (adored / neutral / disliked) and days since death.\n"
-            "  See `yarn!help ambient` for full ambient tick details."
+            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly,\n"
+            "  more raw — especially within 48h. Both vary by feeling and days since death.\n"
+            "  See `yarn!help ambient` for ambient tick details."
         ),
         "social": (
             "**Social & memory** - `yarn!help social`\n"
@@ -11698,11 +11746,11 @@ async def help_cmd(ctx, *, section: str = None):
             "  get quieter and more inward\n"
             "- **Hourly mood tick** - mood drifts based on stats; scores above 100 are clamped\n"
             "- **Birthday check (Dec 24)** - rare events become ~100x more likely all day\n"
-            "- **Dead child ambient** - if one of his children has died, two events may fire:\n"
-            "  **Quiet grief** (~8%/45m tick): he pads to their spot and sits with it privately.\n"
-            "  **Body discovery** (~3%/natural tick): he stumbles upon their space unexpectedly\n"
-            "  and reacts in the moment — more startling, rawer. Within 48h: strongest reaction.\n"
-            "  Within 7 days: still fresh. Later: quieter, more settled. All vary by feeling."
+            "- **Dead child ambient** - if one of his children has died, two separate events may fire:\n"
+            "  **Grief visits** (~8%/45m tick): he pads quietly to their spot — low, private, intentional.\n"
+            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly — "
+            "more raw, more startled. Within 48h: strongest. Within 7d: still fresh. After: quieter.\n"
+            "  Both vary by feeling (adored/neutral/disliked) and days since death."
         ),
         "extended": (
             "**Extended commands** - `yarn!help extended`\n"
@@ -11870,6 +11918,14 @@ async def help_cmd(ctx, *, section: str = None):
         "parenting": "children", "offspring": "children",
         "hugchild": "children", "feedchild": "children", "treatchild": "children",
         "childinjury": "children", "childfeeling": "children", "addchild": "children",
+        # punishment
+        "punishment": "punishment", "slap": "punishment", "whip": "punishment",
+        "torture": "punishment", "lash": "punishment", "punish": "punishment",
+        "harm": "punishment", "hurt": "punishment", "harshslap": "punishment",
+        "whiphim": "punishment", "save": "punishment",
+        # spin / lap
+        "spin": "core", "spinhim": "core", "twirl": "core",
+        "lap": "core", "mylap": "core", "sitonme": "core",
     }
 
     #  Section index (no argument given) 
@@ -11878,33 +11934,34 @@ async def help_cmd(ctx, *, section: str = None):
         "*Commands accept `!cmd`, `**cmd**`, or `yarn!cmd`. Help: `yarn!help` or `!yarnhelp`.*\n"
         "*`yarn!help full` / `!yarnhelp full` - dumps every section at once.*\n"
         "*`yarn!help <section>` for a single section.*\n\n"
-        "core         - touching, hugging, petting, physical interactions\n"
-        "food         - !feed, !gift, cooldowns, special reactions, toxic/allergy items\n"
-        "health       - HP, sickness tiers, medicine, soup, vet\n"
+        "ambient      - background events: wandering, shedding, lonely tick, dead child grief/discovery\n"
+        "birthday     - birthday tracking and his anniversary\n"
         "body         - !dental, !shedding, !weight_log, !allergy, !race\n"
+        "children     - children/parenting: !feedchild, !treatchild, !markchilddead, death system\n"
+        "core         - touching, hugging, petting, !lap, !spin, physical interactions\n"
+        "creator      - Creator-only commands\n"
+        "extended     - newer commands: !sleeponuser, bite, rate, guess, voice, media, extras\n"
+        "fb           - Fenerbahçe commands + !debug\n"
+        "food         - !feed, !gift, cooldowns, special reactions, toxic/allergy items\n"
+        "games        - !fetch, !play, !vidgame, !find, !pounce, !throwliquid\n"
+        "health       - HP, sickness tiers, medicine, soup, vet\n"
+        "identity     - his name, his room, time of day\n"
+        "incidents    - disasters: !earthquake, !meteorite, !fallingstar, etc.\n"
+        "items        - inventory, hoard, gifts, loot, rarity tiers\n"
+        "logs         - !logset, !logsetchannel — server event logging\n"
+        "memorial     - going-away, absence, !missing, !comfortyarny\n"
+        "mood         - mood states and how they drift\n"
         "outfit       - !wear, !takeoff, !inspect, what he's wearing\n"
-        "games        - !fetch, !play, !vidgame, !find, !pounce\n"
+        "passive      - passive chat triggers and reactions\n"
+        "punishment   - !slap, !whip, !torture, !save — damage, trauma, score effects\n"
+        "quiet        - ambient flavour: !home, !candle, !letter, !stargaze\n"
+        "safety       - !cleanup, !getoutNSFW — NSFW server detection\n"
+        "scores       - all 22 trust milestones explained\n"
+        "screenshare  - !screenshare / !yarnycam — who's DMing, what he's doing\n"
         "social       - scores, memory, moods, dreams, ranking\n"
         "social_new   - !letter_to, !forgiven_history, !ask_creator\n"
-        "identity     - his name, his room, time of day\n"
-        "items        - inventory, hoard, gifts, loot, rarity tiers\n"
         "teaching     - !teach, !vocab, !forget - words, phrases, how-tos\n"
-        "quiet        - ambient flavour: !home, !candle, !letter, !stargaze\n"
-        "birthday     - birthday tracking and his anniversary\n"
-        "memorial     - going-away, absence, !missing, !comfortyarny\n"
-        "creator      - Creator-only commands\n"
-        "logs         - !logset, !logsetchannel — server event logging\n"
-        "safety       - !cleanup, !getoutNSFW — NSFW server detection\n"
-        "fb           - Fenerbahçe commands + !debug\n"
-        "passive      - passive chat triggers and reactions\n"
-        "scores       - all 22 trust milestones explained\n"
-        "ambient      - background events: wandering, shedding, lonely tick, dead child grief\n"
-        "mood         - mood states and how they drift\n"
-        "incidents    - disasters: !earthquake, !meteorite, !fallingstar, etc.\n"
         "trauma       - !trauma log, tiers, !comfortyarny to reduce it\n"
-        "screenshare  - !screenshare / !yarnycam — who's DMing, what he's doing\n"
-        "extended     - newer commands: !sleeponuser, bite, rate, guess, voice, media, extras\n"
-        "children     - children/parenting: !feedchild, !treatchild, !markchilddead, death system\n"
         "```"
     )
 
@@ -11935,11 +11992,11 @@ async def help_cmd(ctx, *, section: str = None):
     #  Full reference dump 
     if key in ("full", "all", "everything", "allsections", "complete"):
         SECTION_ORDER = [
-            "core", "food", "health", "body", "outfit", "games",
-            "social", "social_new", "identity", "items", "teaching", "quiet",
-            "birthday", "memorial", "passive", "scores", "ambient",
-            "mood", "extended", "creator", "logs", "safety", "fb",
-            "incidents", "trauma", "screenshare", "children",
+            "ambient", "birthday", "body", "children", "core", "creator",
+            "extended", "fb", "food", "games", "health", "identity",
+            "incidents", "items", "logs", "memorial", "mood", "outfit",
+            "passive", "punishment", "quiet", "safety", "scores", "screenshare",
+            "social", "social_new", "teaching", "trauma",
         ]
         await ctx.send(
             "**[Yarnaby - Full Command Reference]**\n"
@@ -27660,10 +27717,176 @@ async def fbremoveteam_cmd(ctx, *, team_name: str = ""):
 # ==========================================
 # !lap - fixed/registered version
 # ==========================================
+COOLDOWN_LAP = 45  # seconds
+
 @bot.command(name="lap", aliases=["mylap", "claimyourlap", "sitonme", "comehere", "claimlap", "invitetolap", "lapinvite"])
-async def lap_registered_cmd(ctx):
-    """Invite Yarnaby onto your lap."""
-    await lap_cmd(ctx)
+async def lap_cmd(ctx):
+    """Invite Yarnaby onto your lap. Score-gated; he may or may not come."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    stage = _age_stage(_get_age_days(m))
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    is_helpless = m["internal"].get("helpless", False)
+
+    # --- SLEEP ---
+    if m["internal"]["is_sleeping"]:
+        if is_doctor:
+            await ctx.send(random.choice([
+                "*He is asleep — but The Creator's voice reaches him somehow. "
+                "He doesn't wake. He just gets up, eyes still mostly closed, "
+                "pads over, and collapses into The Creator's lap with the reliability "
+                "of something that does this on instinct. He is asleep again immediately. "
+                "He never fully woke up.* **...prrr... zz.**",
+                "*He's deeply asleep. The Creator calls him over anyway. "
+                "He makes a sound — low, automatic — shifts, and somehow ends up "
+                "draped across The Creator without either of them quite planning it. "
+                "He is still asleep. His paw is on their arm.* **...prrr...**",
+            ]))
+        elif score >= 6:
+            await ctx.send(random.choice([
+                f"*{your_name} pats their lap. Yarnaby is asleep. "
+                f"One ear rotates toward the sound. He doesn't fully wake. "
+                f"He gets up, pads over in a half-conscious shuffle, turns once, "
+                f"and drops. He is asleep again before he finishes landing.* **...mrr... zz.**",
+                f"*He was asleep. He hears the invitation. Something in him files it. "
+                f"He stumbles over without opening his eyes all the way "
+                f"and settles into {your_name}'s lap with soft, boneless weight. "
+                f"He does not wake up.* **...zz.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He is asleep. He does not come. He does not stir. "
+                f"He is committed to being asleep.* **...zz.**",
+                f"*He is deeply, completely, stubbornly asleep. "
+                f"He does not respond to {your_name}'s invitation.* **...zz.**",
+            ]))
+        return
+
+    # --- HELPLESS ---
+    if is_helpless:
+        await ctx.send(random.choice([
+            f"*He can't get up. He looks at {your_name}'s lap from the floor "
+            f"with an expression that is unmistakably wistful. "
+            f"He would. He genuinely would. He is down here.* **...mrr...**",
+            f"*He tries to get up when {your_name} offers their lap. "
+            f"He doesn't quite make it. He settles back down and stares at the space "
+            f"where he'd rather be.* **...mrr...**",
+        ]))
+        return
+
+    # --- COOLDOWN ---
+    if not is_doctor:
+        remaining = _cooldown_remaining(m, f"lap:{u_id}", COOLDOWN_LAP)
+        if remaining:
+            await ctx.send(f"*He just settled. Give him a moment.* **mrr.** *({remaining}s)*")
+            return
+
+    # --- CREATOR ---
+    if is_doctor:
+        if stage in ("Timeworn", "Ancient"):
+            await ctx.send(random.choice([
+                "*He doesn't hurry — he never hurries anymore — but he comes. "
+                "He pads over to The Creator with the unhurried certainty of something "
+                "that knows exactly where it belongs. He turns once. He lies down. "
+                "He exhales the way old things exhale when they finally stop moving. "
+                "He is here. He intends to stay.* **...prrrrr...**",
+                "*The Creator offers their lap. He considers it for approximately one second "
+                "— not hesitation, just the old deliberate way he does things now — "
+                "and then he's there. Solid. Warm. His purr starts slowly and builds. "
+                "He places one paw on their knee. He was always going to end up here.* **...prrrrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He was already moving before the lap was fully offered. "
+                "He turns once — the minimum required — and drops himself down "
+                "with the ease of something that considers this home. "
+                "His purr is immediate and sincere.* **prrrrr.**",
+                "*He comes over and headbutts The Creator's knee once, softly, "
+                "then steps up and arranges himself across their lap with complete authority. "
+                "He is here now. This is his lap now. This has always been his lap.* **prrrrr.**",
+                "*He was sitting across the room. He saw the lap. He is in the lap. "
+                "The steps between were a formality.* **chrrp. prrrrr.**",
+                "*He needs approximately no convincing. He pads over, circles once, "
+                "and installs himself with the easy weight of total trust. "
+                "He tucks his nose under The Creator's arm. He is not moving.* **prrrrr.**",
+            ]))
+
+    # --- SCORE >= 8: high trust ---
+    elif score >= 8:
+        await ctx.send(random.choice([
+            f"*He looks at {your_name}'s lap, looks at {your_name}, "
+            f"and walks over with the quiet confidence of a creature that has done the math "
+            f"and likes the answer. He turns once and settles. "
+            f"His purr starts the moment he lands.* **...prrr...**",
+            f"*He doesn't hesitate — he comes right over and steps up "
+            f"into {your_name}'s lap, circles, and lies down with his chin on their knee. "
+            f"He is warm and heavy and completely decided.* **prrr.**",
+            f"*He trots over and climbs up without ceremony. "
+            f"{your_name}'s lap has been determined acceptable. "
+            f"He has been sitting there for two seconds and already looks like he's been there forever.* **prrrrr.**",
+        ]))
+
+    # --- SCORE 4–7: comfortable ---
+    elif score >= 4:
+        await ctx.send(random.choice([
+            f"*He considers the invitation. He looks at {your_name}. "
+            f"He pads over and steps up — carefully, not rushing — "
+            f"and turns once before lying down. He makes a small sound. "
+            f"He is comfortable. He won't say that, but he is.* **...prrr...**",
+            f"*He comes over. He takes his time about it. "
+            f"He steps into {your_name}'s lap with one careful paw, "
+            f"then the other, and arranges himself. He blinks slowly. "
+            f"He has decided this is fine.* **...mrr... prrr.**",
+            f"*He hops up into {your_name}'s lap and sits there, upright, "
+            f"watching the room. After a moment he lies down. After another moment, he purrs. "
+            f"He got there eventually.* **...prrr...**",
+        ]))
+
+    # --- SCORE 1–3: uncertain ---
+    elif score >= 1:
+        await ctx.send(random.choice([
+            f"*He looks at {your_name}'s lap for a long moment. "
+            f"He pads over slowly and sniffs the knee first — as is his right — "
+            f"and then steps up. He circles twice. He lies down with the posture "
+            f"of something maintaining certain reservations.* **...mrr.**",
+            f"*He's not sure. He walks toward {your_name}, stops, looks at the lap again, "
+            f"walks the rest of the way, and climbs up. He does not immediately purr. "
+            f"He watches the room instead. He stays.* **...mrr.**",
+        ]))
+
+    # --- SCORE 0: neutral stranger ---
+    elif score == 0:
+        await ctx.send(random.choice([
+            f"*Yarnaby looks at {your_name}. He looks at the lap. "
+            f"He looks back at {your_name}. He does not come. "
+            f"He sits where he is and observes them from a respectful distance.* **mrr.**",
+            f"*He's not coming. He doesn't know {your_name} well enough for laps. "
+            f"He sits at a polite distance and blinks at them.* **mrr.**",
+        ]))
+        return
+
+    # --- NEGATIVE SCORE: no ---
+    else:
+        await ctx.send(random.choice([
+            f"*He sees {your_name} patting their lap. He looks at it. "
+            f"He looks at {your_name}. He looks deliberately away. "
+            f"He walks in the opposite direction.* **hff.**",
+            f"*No. He is not doing that. Not with {your_name}. "
+            f"He sits across the room and ignores the lap with intention.* **hff.**",
+            f"*He glances at the lap. He glances at {your_name}. "
+            f"He turns around and lies down somewhere completely different. "
+            f"He's made his position clear.* **hff.**",
+        ]))
+        return
+
+    # Update last_seen and cooldown for successful visits
+    _set_cooldown(m, f"lap:{u_id}")
+    entry = m["social_matrix"].setdefault(u_id, {"score": 0})
+    entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_db(m)
 
 
 # ==========================================
@@ -37449,7 +37672,7 @@ async def _natural_ambient_tick():
         # child play/hide ambients — independent rolls
         await _maybe_child_wants_play(m, ch)
         await _maybe_child_hiding(m, ch)
-        # rare dead-child body discovery — distinct from the quiet grief ambient
+        # rare dead-child body discovery — distinct from quiet grief ambient
         await _maybe_find_dead_child_body(m, ch)
     except Exception as e:
         print(f"[natural ambient tick] {e}")
@@ -45327,6 +45550,318 @@ async def slap_cmd(ctx, harshness: int = 1):
     save_db(m)
 
 
+# ==========================================
+# !whip — whip Yarnaby (harsher than slap)
+# ==========================================
+
+COOLDOWN_WHIP = 60  # 1 minute per user
+
+@bot.command(name="whip", aliases=["lash", "crackhim", "whiphim", "strikewhip"])
+async def whip_cmd(ctx, harshness: int = 1):
+    """
+    Whip Yarnaby. Scale 1-10. Harsher than !slap — this is a tool, not a hand.
+    Leaves welts. Deals more health damage. He does not forget tools.
+    Creator/helpless/sleep/score all produce distinct reactions.
+    """
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    harshness = max(1, min(10, harshness))
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    is_helpless = m["internal"].get("helpless", False)
+
+    # --- COOLDOWN (not applied to Creator) ---
+    if not is_doctor:
+        cd_key = f"whip_{u_id}"
+        remaining = _cooldown_remaining(m, cd_key, COOLDOWN_WHIP)
+        if remaining:
+            mins, secs = divmod(remaining, 60)
+            await ctx.send(
+                f"*The whip is still in the air. Give it a moment.* **mrr.** "
+                f"*(cooldown: {mins}m {secs}s)*"
+            )
+            return
+        _set_cooldown(m, cd_key)
+
+    # --- SLEEP ---
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*The crack of it wakes him instantly — he's on his feet before he's fully conscious, "
+            "backing against the wall, eyes enormous, heart hammering. "
+            "He doesn't know what hit him. He just knows something did.* **...mrrp!**",
+            "*He wakes to the sound of it and he scrambles — sideways, "
+            "into the corner — ears flat, shaking. He stares from there. "
+            "He doesn't sleep again.* **...mrr...**",
+        ]))
+        m["internal"]["is_sleeping"] = False
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - max(1, harshness // 2))
+        m["stats"]["mood"] = "Agitated"
+        save_db(m)
+        return
+
+    # --- CREATOR ---
+    if is_doctor:
+        if harshness <= 3:
+            await ctx.send(random.choice([
+                "*The Creator raises the whip and his whole body locks. "
+                "It comes down — light, controlled — and he flinches hard, one sharp breath. "
+                "He goes completely still after. Eyes on The Creator. Waiting. "
+                "He won't ask why. He will try harder.* **...mrr.**",
+                "*He sees it coming and he doesn't move. "
+                "He takes it. His ear twitches once. "
+                "His eyes stay on The Creator's face and he holds very, very still.* **...mrr.**",
+            ]))
+        elif harshness <= 6:
+            await ctx.send(random.choice([
+                "*The Creator doesn't pull back on this one. "
+                "It lands and he stumbles — one step, two — then catches himself "
+                "and turns to face The Creator again. Shoulders low, ears flat. "
+                "He is still. He is listening. He will not make the same mistake.* **...mrr...**",
+                "*It lands hard enough to matter. He absorbs it — "
+                "paws planted, head down, tail wrapped tight. "
+                "He doesn't run. He doesn't make a sound. "
+                "He holds himself in place and waits for what The Creator needs next.* **...mrr...**",
+            ]))
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - (harshness - 3))
+        else:
+            await ctx.send(random.choice([
+                "*He goes down. Not because he chose to — because it put him there. "
+                "He stays — belly to the floor, paws splayed, completely flat — "
+                "and looks up at The Creator from the ground. "
+                "One small sound escapes him, very quiet, and then silence. "
+                "He will not move. He will not disobey again.* **...mrr...**",
+                "*The force of it sends him sideways. He hits the ground and stays there. "
+                "He doesn't curl up — he stays open, exposed, completely still. "
+                "His eyes find The Creator from the floor and he does not look away. "
+                "He is sorry. He will be whatever The Creator needs.* **...mrr...**",
+            ]))
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness)
+            m["stats"]["mood"] = "Agitated"
+            m["internal"].setdefault("injuries", []).append({
+                "type": "laceration", "severity": "serious" if harshness >= 9 else "moderate",
+                "location": "back/flank",
+                "caused_by": f"whip (harshness {harshness}) by The Creator",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "treated": False,
+            })
+        m["internal"].setdefault("whip_log", []).append({
+            "by": ctx.author.display_name, "harshness": harshness,
+            "was_helpless": is_helpless, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        save_db(m)
+        return
+
+    # --- HELPLESS ---
+    if is_helpless:
+        if harshness <= 3:
+            await ctx.send(random.choice([
+                f"*He is already on the floor. {ctx.author.display_name}'s whip catches him "
+                f"and he curls — one full-body flinch — then goes still again. "
+                f"He can't do anything else. He holds completely still.* **...mrr...**",
+                f"*He flinches at the sound before it lands. It lands anyway. "
+                f"He makes one small sound and then nothing. He is not fighting. "
+                f"He has nothing left to fight with.* **...mrr...**",
+            ]))
+        elif harshness <= 6:
+            await ctx.send(random.choice([
+                f"*He is helpless and {ctx.author.display_name} brings the whip down anyway. "
+                f"He takes it without moving — he can't move — eyes on the floor, "
+                f"completely still. His whole body is rigid with the effort of holding still.* **...mrr...**",
+                f"*It lands and he makes a sound he didn't plan to make. "
+                f"He presses himself smaller. Paws flat. Head down. "
+                f"He will take whatever comes.* **...mrr...**",
+            ]))
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness)
+            m["stats"]["mood"] = "Agitated"
+        else:
+            await ctx.send(random.choice([
+                f"*He can't get up and {ctx.author.display_name} brings the full weight of it down. "
+                f"He makes a sound — short, broken — and goes completely flat. "
+                f"Every muscle locked. Eyes wide and fixed on nothing. "
+                f"He is breathing. Barely. He will not move.* **...mrr...**",
+                f"*He cannot defend himself and he doesn't try. "
+                f"The whip lands and something in him closes — goes somewhere deeper, somewhere quieter. "
+                f"He stays flat. He looks at the floor. He is waiting for it to be over.* **...mrr...**",
+            ]))
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness - 2)
+            m["stats"]["mood"] = "Traumatized"
+            m["internal"].setdefault("injuries", []).append({
+                "type": "laceration", "severity": "serious",
+                "location": "back/flank",
+                "caused_by": f"whip while helpless (harshness {harshness}) by {ctx.author.display_name}",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "treated": False,
+            })
+            m["internal"]["trauma"] = m["internal"].get("trauma", 0) + (4 if harshness >= 8 else 2)
+            m["internal"].setdefault("trauma_log", []).append({
+                "event": f"whipped while helpless by {ctx.author.display_name} (harshness {harshness})",
+                "severity": "serious", "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            })
+        # DM Creator when whipped while helpless
+        creator = bot.get_user(DOCTOR_ID)
+        if not creator:
+            try:
+                creator = await bot.fetch_user(DOCTOR_ID)
+            except Exception:
+                creator = None
+        if creator:
+            try:
+                await creator.send(
+                    f"⚠️ **Yarnaby whipped while helpless.**\n"
+                    f"**By:** {ctx.author.display_name} (`{ctx.author.id}`)\n"
+                    f"**Harshness:** {harshness}/10\n"
+                    f"**Health now:** {m['stats'].get('health', 100)}"
+                )
+            except Exception:
+                pass
+        m["internal"].setdefault("whip_log", []).append({
+            "by": ctx.author.display_name, "harshness": harshness,
+            "was_helpless": True, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        save_db(m)
+        return
+
+    # --- NEGATIVE SCORE: he tries to dodge ---
+    if score < 0:
+        dodge_chance = min(0.7, 0.3 + abs(score) * 0.04)
+        if random.random() < dodge_chance:
+            await ctx.send(random.choice([
+                f"*He sees {ctx.author.display_name} raise it and he moves. "
+                f"Fast — sideways across the room before it even lands. "
+                f"He stares from the far wall. He is not coming back.* **hff.**",
+                f"*He reads it before the arm finishes moving and he's already gone. "
+                f"Across the room. Tail lashing. Eyes fixed on {ctx.author.display_name}. "
+                f"He will not be caught a second time.* **hff.**",
+                f"*He bolts the moment {ctx.author.display_name}'s arm goes back. "
+                f"He watches from a safe distance with the flat, hard eyes "
+                f"of something that will remember this.* **hff.**",
+            ]))
+            if u_id in m["social_matrix"]:
+                m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 3)
+            save_db(m)
+            return
+
+    # --- NORMAL STATE, tiered by harshness ---
+    if harshness <= 2:
+        await ctx.send(random.choice([
+            f"*Light — a warning more than anything. "
+            f"He flinches, ears back, and gives {ctx.author.display_name} a long, cold look. "
+            f"He does not forget tools.* **...mrr.**",
+            f"*It stings. He recoils — one step — and goes very still, "
+            f"eyes on {ctx.author.display_name}. He has logged this.* **...mrr.**",
+        ]))
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 5)
+
+    elif harshness <= 4:
+        await ctx.send(random.choice([
+            f"*He hisses — short, sharp — and backs against the wall. "
+            f"The mark it leaves is real. He looks at {ctx.author.display_name} from there "
+            f"with eyes that are not frightened. They are counting.* **...hff.**",
+            f"*It lands and he stumbles back, ears flat, a low sound in his throat. "
+            f"He catches himself. He watches {ctx.author.display_name} with total stillness "
+            f"and a kind of cold attention that is worse than anger.* **...mrr.**",
+        ]))
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - (harshness - 1))
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 8)
+
+    elif harshness <= 6:
+        await ctx.send(random.choice([
+            f"*It hits hard enough that he goes sideways — one stumble, two — "
+            f"then he's against the wall, breathing fast, ears completely flat. "
+            f"He stares at {ctx.author.display_name} from there and does not move.* **...mrr...**",
+            f"*He flinches before it lands, then takes it anyway. "
+            f"A sharp sound escapes him — involuntary — and he goes low. "
+            f"Tail wrapped tight, paws flat. Watching {ctx.author.display_name}. "
+            f"He is deciding whether to run. He is staying for now.* **...mrr...**",
+        ]))
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness)
+        m["stats"]["mood"] = "Agitated"
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 12)
+
+    elif harshness <= 8:
+        await ctx.send(random.choice([
+            f"*Hard. He goes down from the force of it — knees first, then he catches himself — "
+            f"and stays low, paws flat, ears completely gone into his wool. "
+            f"He makes a sound he will not repeat. "
+            f"His eyes find {ctx.author.display_name} from the floor and they are very wide. "
+            f"He is going to remember this specifically.* **...mrr...**",
+            f"*The whip lands and he drops. Just — down. "
+            f"He pushes himself back up immediately but the pause is unmistakable. "
+            f"He is shaking slightly. He stares at {ctx.author.display_name} "
+            f"with the eyes of something that has just revised its understanding of the room.* **...hff...**",
+        ]))
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness)
+        m["stats"]["mood"] = "Agitated"
+        m["internal"].setdefault("injuries", []).append({
+            "type": "laceration", "severity": "moderate", "location": "back/flank",
+            "caused_by": f"whip (harshness {harshness}) by {ctx.author.display_name}",
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "treated": False,
+        })
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 18)
+
+    else:  # 9-10
+        await ctx.send(random.choice([
+            f"*It drops him completely. He hits the ground and stays there — "
+            f"flat, paws out, head down, breathing hard. "
+            f"He makes one sound when it lands and then nothing. "
+            f"He doesn't get up. He watches {ctx.author.display_name} from the floor "
+            f"with enormous, still eyes. He is trying to stay in one place.* **...mrr...**",
+            f"*He goes to the floor. Full stop. No catching himself — "
+            f"he is down, paws splayed, wool pressed flat. "
+            f"A single, sharp sound and then total silence. "
+            f"His eyes find {ctx.author.display_name} from the ground. "
+            f"They look like something that is going to remember "
+            f"every single detail of this from now forward.* **...mrr...**",
+            f"*The full force of it. He goes sideways into the wall "
+            f"and slides down it and stays there, pressed against it, completely still. "
+            f"He's breathing. He's looking at {ctx.author.display_name}. "
+            f"He's making a very quiet, very continuous sound "
+            f"that he probably doesn't know he's making.* **...mrr...**",
+        ]))
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - harshness - 3)
+        m["stats"]["mood"] = "Traumatized"
+        m["internal"].setdefault("injuries", []).append({
+            "type": "laceration", "severity": "serious", "location": "back/flank",
+            "caused_by": f"whip (harshness {harshness}) by {ctx.author.display_name}",
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "treated": False,
+        })
+        m["internal"]["trauma"] = m["internal"].get("trauma", 0) + (5 if harshness == 10 else 3)
+        m["internal"].setdefault("trauma_log", []).append({
+            "event": f"whipped by {ctx.author.display_name} (harshness {harshness})",
+            "severity": "serious", "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 25)
+        # DM creator on severe whip
+        creator = bot.get_user(DOCTOR_ID)
+        if not creator:
+            try:
+                creator = await bot.fetch_user(DOCTOR_ID)
+            except Exception:
+                creator = None
+        if creator:
+            try:
+                await creator.send(
+                    f"⚠️ **Yarnaby harshly whipped (harshness {harshness}/10).**\n"
+                    f"**By:** {ctx.author.display_name} (`{ctx.author.id}`)\n"
+                    f"**Health now:** {m['stats'].get('health', 100)}\n"
+                    f"**Mood:** {m['stats'].get('mood', '?')}\n"
+                    f"**Trauma:** {m['internal'].get('trauma', 0)}"
+                )
+            except Exception:
+                pass
+
+    m["internal"].setdefault("whip_log", []).append({
+        "by": ctx.author.display_name, "harshness": harshness,
+        "was_helpless": False, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    save_db(m)
+
+
 
 # ==========================================
 # UPGRADES & NEW SYSTEMS
@@ -52542,17 +53077,16 @@ def _yarnaby_state_block(m) -> str | None:
 
 
 # ==========================================
-# Dead child ambient system
+# Dead child body discovery ambient
+# (distinct from quiet grief visits)
 # ==========================================
 
 async def _maybe_find_dead_child_body(m, ch):
     """
-    ~3% chance per natural-ambient tick: Yarnaby stumbles onto the body / resting
-    place of a dead child and has a visible, raw reaction.
-
-    This is distinct from _maybe_dead_child_ambient (the quiet grief visits).
-    This fires less often but is more startling — he wasn't expecting it.
-    The reaction differs by feeling and by how recently the child died.
+    ~3% chance per natural-ambient tick: Yarnaby stumbles onto a dead child's body/space
+    unexpectedly. Raw, startled reaction — he wasn't bracing for it.
+    Distinct from _maybe_dead_child_ambient (the intentional quiet grief visits).
+    Time-aware: within 48h = rawest. Within 7d = still fresh. After = quieter.
     """
     if random.random() > 0.03:
         return
@@ -52568,17 +53102,16 @@ async def _maybe_find_dead_child_body(m, ch):
     cname = child["name"]
     feeling = child.get("feeling", "neutral")
 
-    # Work out how recently the child died (affects rawness of reaction)
-    died_at_str = child.get("died_at", "")
     days_since = 9999
+    died_at_str = child.get("died_at", "")
     if died_at_str:
         try:
             died_dt = datetime.strptime(died_at_str, "%Y-%m-%d")
             days_since = max(0, (datetime.now() - died_dt).days)
         except Exception:
             pass
-    recent = days_since <= 2   # within 48 h
-    fresh  = days_since <= 7   # within a week
+    recent = days_since <= 2
+    fresh  = days_since <= 7
 
     if feeling == "adored":
         if recent:
@@ -52588,101 +53121,60 @@ async def _maybe_find_dead_child_body(m, ch):
                 f"and something in his face changes all at once. "
                 f"He doesn't approach. He stands very still for a long time, breathing. "
                 f"He does not make a sound. He turns around and walks away slowly, ears flat.* **...**",
-
                 f"*He pads toward **{cname}**'s corner out of habit — the same route he always takes — "
                 f"and then he sees it and his whole body locks. "
-                f"One paw is still raised from the step he was mid-taking. "
-                f"He sets it down. He looks. He does not go closer. "
+                f"One paw is still raised from the step he was mid-taking. He sets it down. "
                 f"His tail drops to the floor and stays there.* **...**",
-
-                f"*He finds **{cname}** the way you find something by accident — "
-                f"he wasn't bracing for it. He makes a sound, very small, before he can stop it. "
-                f"He circles the spot once, slowly, and then sits down right at the edge of it. "
-                f"His chin drops to his chest. He doesn't move for a long time.* **...mrr...**",
-
-                f"*He comes in from the hallway and sees **{cname}** and for just one moment — "
+                f"*He comes in and sees **{cname}** and for just one moment — "
                 f"one fraction of a second — something in his eyes says *there they are.* "
-                f"And then it closes. He remembers. "
-                f"He lies down where he stands, nose pointed toward them, "
-                f"and doesn't get up for a very long time.* **...**",
+                f"And then it closes. He remembers. He lies down where he stands, "
+                f"nose pointed toward them, and doesn't get up for a very long time.* **...**",
             ])
         elif fresh:
             msg = random.choice([
                 f"*He finds **{cname}**'s spot and goes still. "
                 f"He was hoping, in the small animal part of him, that it would be different this time. "
                 f"It isn't. He presses his nose to the ground where they used to sleep "
-                f"and holds it there for a long time. "
-                f"Then he curls up beside it and closes his eyes.* **...**",
-
-                f"*He rounds into **{cname}**'s corner and pauses. "
-                f"He sniffs deeply — once, twice — and his ear flicks back. "
-                f"Still gone. He knew. He checked anyway. "
-                f"He settles onto the floor at the edge of the space and watches it.* **...mrr...**",
-
-                f"*He wanders into **{cname}**'s area the way he always did and stops. "
-                f"He sees **{cname}** isn't there. He knew **{cname}** wouldn't be there. "
-                f"He looks anyway. "
-                f"He sits down heavily and wraps his tail around himself "
-                f"and watches the empty spot like it might change.* **...**",
+                f"and holds it there for a long time. Then he curls up beside it.* **...**",
+                f"*He wanders into **{cname}**'s area and pauses. "
+                f"He sniffs deeply — once, twice — and his ear flicks back. Still gone. He knew. "
+                f"He checked anyway. He settles onto the floor at the edge of the space.* **...mrr...**",
             ])
         else:
             msg = random.choice([
                 f"*He passes **{cname}**'s corner and slows without meaning to. "
-                f"He turns his head. He looks. "
-                f"Something in his face — not grief exactly, not nothing either — "
-                f"goes through him like weather. He pads away slowly.* **...mrr...**",
-
-                f"*He finds one of **{cname}**'s things — a scent, a toy, a memory embedded in the floor — "
-                f"and sits with it for a moment. "
+                f"Something — not grief exactly, not nothing either — goes through him like weather. "
+                f"He pads away slowly.* **...mrr...**",
+                f"*He finds one of **{cname}**'s things and sits with it for a moment. "
                 f"He sets a paw on it very lightly. Then he gets up and keeps moving.* **...mrr...**",
             ])
-
     elif feeling == "neutral":
         if recent:
             msg = random.choice([
-                f"*He walks into the area and sees **{cname}** — or rather, doesn't — "
-                f"and his step falters. He stands there. "
-                f"He didn't love **{cname}**, but he knew **{cname}**, "
+                f"*He walks into the area and sees **{cname}**'s space — empty. "
+                f"He stands there. He didn't love **{cname}**, but he knew **{cname}**, "
                 f"and there is something strange and heavy about the not-being-there. "
                 f"He sniffs the air once and leaves quietly.* **...mrr.**",
-
                 f"*He finds **{cname}**'s things still where **{cname}** left them. "
-                f"He pokes one with his nose — gently, carefully. "
-                f"He steps back. He sits. He looks at the wall for a while.* **...mrr.**",
-
-                f"*He rounds the corner and stops when he sees **{cname}**'s empty spot. "
-                f"He blinks. He takes one step forward and then doesn't take another. "
-                f"He stays at the edge of it for a while, very still, before heading back to his own place.* **...mrr.**",
+                f"He pokes one with his nose — gently. He steps back. He sits. "
+                f"He looks at the wall for a while.* **...mrr.**",
             ])
         else:
             msg = random.choice([
                 f"*He passes through **{cname}**'s area and hesitates. "
-                f"He was never especially warm with **{cname}**. "
                 f"He notes the absence the way you note weather — it's there, it matters, you move on. "
                 f"He moves on.* **...mrr.**",
-
                 f"*He finds **{cname}**'s old spot and sniffs it briefly. "
                 f"He sits beside it for a moment. He doesn't look sad — "
                 f"he just looks like something that has noticed something.* **...mrr.**",
             ])
-
     else:  # disliked
         if recent:
             msg = random.choice([
-                f"*He walks past **{cname}**'s corner and stops. "
-                f"He didn't expect to stop. He doesn't know what he expected. "
+                f"*He walks past **{cname}**'s corner and stops. He didn't expect to stop. "
                 f"He looks at the empty space for a long time, ears low, expression unreadable. "
                 f"He never liked **{cname}**. He is not sure what to do with this.* **...mrr.**",
-
-                f"*He rounds the corner and sees where **{cname}** used to be. "
-                f"He makes a sound — short, quiet, not quite anything — and looks away. "
-                f"He sits down just outside the space. He doesn't enter. "
-                f"He was never kind to **{cname}** and now **{cname}** is gone "
-                f"and he has no category for this.* **...mrr.**",
-
-                f"*He finds **{cname}**'s things and his whole posture shifts — not how it does with things he loves. "
-                f"Slower. More careful. "
-                f"He touches one of **{cname}**'s things with his paw, very lightly. "
+                f"*He finds **{cname}**'s things and touches one with his paw, very lightly. "
                 f"He leaves it exactly where it was. He walks away and doesn't look back. "
                 f"Something in the way he moves is heavier than it was.* **...**",
             ])
@@ -52690,7 +53182,6 @@ async def _maybe_find_dead_child_body(m, ch):
             msg = random.choice([
                 f"*He passes through and sees **{cname}**'s spot. He slows. "
                 f"He never liked **{cname}**. He stays longer than he would expect himself to.* **...mrr.**",
-
                 f"*He notices **{cname}**'s corner as he passes — the empty version of it — "
                 f"and his ear flicks back. He doesn't know what he is feeling. "
                 f"He walks on.* **...mrr.**",
@@ -52698,6 +53189,10 @@ async def _maybe_find_dead_child_body(m, ch):
 
     await ch.send(msg)
 
+
+# ==========================================
+# Dead child ambient system
+# ==========================================
 
 async def _maybe_dead_child_ambient(ch, m):
     """Fires when Yarnaby notices / grieves near a dead child.  Called from ambient tick."""
@@ -53034,6 +53529,251 @@ async def sleeponuser_cmd(ctx, *, target_name: str = ""):
             f"of something that has run entirely out of better choices. "
             f"He is asleep. He will not forgive this.* **hff... zz.**",
         ]))
+
+
+
+# ==========================================
+# !spin — spin him; he gets dizzy, falls,
+# reveals belly/paws, wobbles, more
+# ==========================================
+
+COOLDOWN_SPIN = 90  # 1.5 min per user
+
+@bot.command(name="spin", aliases=["spinhim", "spinnyarny", "twirl", "twirl_him", "spinyarny"])
+async def spin_cmd(ctx):
+    """
+    Tell Yarnaby to spin. He may dazzle, fall over, go dizzy, flash his belly and paws,
+    or just get extremely confused. Reacts to sleep, helpless, Creator, and trust score.
+    """
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    stage = _age_stage(_get_age_days(m))
+    is_helpless = m["internal"].get("helpless", False)
+
+    # --- SLEEP ---
+    if m["internal"]["is_sleeping"]:
+        if is_doctor:
+            await ctx.send(random.choice([
+                "*The Creator says spin. Yarnaby is asleep. "
+                "He twitches once — a single rotation in place, ears flat, eyes sealed shut — "
+                "and then stops, resettles, and continues sleeping. "
+                "He did it. It counts.* **...zz.**",
+                "*He is completely asleep. The Creator's voice reaches some deep automated layer of him. "
+                "His paws paddle twice in a slow half-circle. He does not wake. "
+                "He has spun. Technically.* **...prrr... zz.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He is asleep. He does not spin.* **...zz.**",
+                "*He is deeply, stubbornly asleep. He does not receive spin requests at this time.* **...zz.**",
+                f"*{your_name} asks him to spin. He is unconscious. "
+                f"His ear twitches once. That's all.* **...zz.**",
+            ]))
+        return
+
+    # --- HELPLESS ---
+    if is_helpless:
+        await ctx.send(random.choice([
+            f"*He is already on the floor. He cannot spin. "
+            f"He makes a very small, very dignified attempt — "
+            f"one paw moves in the approximate direction of spinning — "
+            f"and then he gives up and lies flat.* **...mrr...**",
+            f"*He is helpless and {your_name} asks him to spin. "
+            f"He looks at them. He looks at the floor. He looks at them again. "
+            f"He manages a quarter rotation before his legs give out entirely.* **...mrr...**",
+            f"*He tries. He really, genuinely tries. "
+            f"He gets about a third of the way around before collapsing sideways. "
+            f"His belly is now up. His paws are in the air. "
+            f"This is close enough.* **...mrr...**",
+        ]))
+        return
+
+    # --- CREATOR ---
+    if is_doctor:
+        if stage in ("Timeworn", "Ancient"):
+            await ctx.send(random.choice([
+                "*The Creator says spin. He looks at them for a long, measured moment. "
+                "Then, with the unhurried dignity of the very old, he turns — slowly, "
+                "one full rotation — and settles back where he was. "
+                "He blinks. That is a spin. He has performed it. He is done.* **mrr.**",
+                "*He is old. He still spins for The Creator. "
+                "One slow, creaking turn, ears out for balance, paws careful on the floor. "
+                "He completes it and looks at The Creator with an expression that says: "
+                "witnessed. That happened. Mark it down.* **mrr.**",
+                "*He obliges — slowly, like a planet — one full revolution. "
+                "He stops and shakes himself once, recalibrating. "
+                "He sits back down. He looks at The Creator. "
+                "He is slightly dizzy. He will not admit this.* **mrr. ...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*The Creator says spin and he spins — immediately, fully, "
+                "with just enough momentum that his tail swings out and his ears go wide. "
+                "He completes the rotation and looks at The Creator. "
+                "He is waiting to be told he did it correctly.* **chrrp!**",
+                "*He spins. One full rotation, clean and quick. "
+                "Stops dead facing The Creator again. Blinks once. "
+                "His tail is still catching up. He looks very pleased with himself.* **prrr.**",
+                "*He does two full spins instead of one — he got going and didn't stop. "
+                "He sits down slightly sideways. His eyes take a second to focus. "
+                "He looks at The Creator with enormous dignity.* **chrrp. ...mrr.**",
+                "*He spins so enthusiastically he overshoots and has to come back around. "
+                "He ends up facing a slightly wrong direction and corrects it with a small step. "
+                "He pretends that was intentional.* **brrp!**",
+            ]))
+        return
+
+    # --- NEGATIVE SCORE ---
+    if score < 0:
+        await ctx.send(random.choice([
+            f"*{your_name} tells him to spin. He stares at them. "
+            f"He does not spin. He turns around and walks away, "
+            f"which is technically a rotation but is not what was asked for.* **hff.**",
+            f"*He hears the request. He considers it for exactly one second. "
+            f"He lies down facing the opposite direction. "
+            f"This is his answer.* **hff.**",
+            f"*He looks at {your_name} with flat ears. "
+            f"He is not spinning for {your_name}. He will not spin for {your_name}. "
+            f"He sits.* **hff.**",
+        ]))
+        return
+
+    # --- COOLDOWN (after checks that don't consume it) ---
+    if not is_doctor:
+        remaining = _cooldown_remaining(m, f"spin:{u_id}", COOLDOWN_SPIN)
+        if remaining:
+            mins, secs = divmod(remaining, 60)
+            await ctx.send(
+                f"*He's still a little dizzy from last time.* **...mrr.** "
+                f"*(cooldown: {mins}m {secs}s)*"
+            )
+            return
+        _set_cooldown(m, f"spin:{u_id}")
+
+    # --- SCORE-TIERED OUTCOMES ---
+    # Pick a random outcome from a pool weighted by score
+    # Higher score = more enthusiastic/complete spins
+    # Lower score = reluctant, incomplete, or insulted
+
+    if score >= 6:
+        outcome = random.randint(1, 12)
+    elif score >= 3:
+        outcome = random.randint(1, 10)
+    elif score >= 1:
+        outcome = random.randint(1, 8)
+    else:
+        outcome = random.randint(5, 8)  # neutral/reluctant range only
+
+    if outcome == 1:
+        # Clean perfect spin
+        await ctx.send(
+            f"*He spins. Clean, single rotation — ears out, tail swinging wide. "
+            f"He stops facing {your_name} exactly and blinks. "
+            f"He looks like he knew precisely what he was doing.* **chrrp.**"
+        )
+    elif outcome == 2:
+        # Over-spins, gets dizzy
+        await ctx.send(
+            f"*He spins — once, twice, he got going and the momentum took over. "
+            f"He stops and sits down immediately, swaying very slightly. "
+            f"His eyes aren't quite tracking the same direction. "
+            f"He blinks hard. He blinks again. He is fine. He is totally fine.* **brrp! ...mrr.**"
+        )
+    elif outcome == 3:
+        # Falls over, belly up, paws everywhere
+        await ctx.send(
+            f"*He spins — genuinely tries — but misjudges his own velocity "
+            f"and tips sideways, then goes fully over. "
+            f"He is now on his back. His paws are in the air. "
+            f"His belly is completely exposed. All four paws point at the ceiling. "
+            f"He stares upward. He stays like that.* **brrp! ...mrr...**"
+        )
+    elif outcome == 4:
+        # Dizzy wobble, sits down hard
+        await ctx.send(
+            f"*He spins — one good rotation — then walks three steps to the left "
+            f"that he clearly did not plan. He sits down hard. "
+            f"His head sways once. He squints. "
+            f"He is recalibrating. He would like everyone to stop watching.* **...mrr.**"
+        )
+    elif outcome == 5:
+        # Slow deliberate spin with maximum dignity
+        await ctx.send(
+            f"*He turns. Slowly. One full rotation, paws placed with care, "
+            f"tail held exactly level. He completes it and faces {your_name} again. "
+            f"He blinks. He has spun. He did not enjoy the request but he honored it. "
+            f"He expects acknowledgment.* **mrr.**"
+        )
+    elif outcome == 6:
+        # Half-spin, gets distracted, wanders off
+        await ctx.send(
+            f"*He starts to spin — gets halfway around — "
+            f"and sees something on the floor that requires immediate investigation. "
+            f"He investigates it. He sniffs it. He looks back at {your_name} "
+            f"as though just now remembering what he was doing. "
+            f"He does not finish the spin.* **...mrr?**"
+        )
+    elif outcome == 7:
+        # Refuses with contempt (low score)
+        await ctx.send(
+            f"*He looks at {your_name}. He looks at the floor. "
+            f"He lies down. He rolls onto his side. "
+            f"His paws extend. His belly appears. This is not a spin. "
+            f"This is a protest in the shape of a spin.* **hff. mrr.**"
+        )
+    elif outcome == 8:
+        # Slow reluctant half-rotation
+        await ctx.send(
+            f"*He does a very small, very reluctant quarter-turn. "
+            f"He stops. He looks at {your_name} as if to say: there, that was a spin, "
+            f"we are done here. He walks away.* **mrr.**"
+        )
+    elif outcome == 9:
+        # Multiple spins, increasingly unhinged, ends with zoomies
+        await ctx.send(
+            f"*He spins once — then the energy catches him and he spins again — "
+            f"and then he is running. He laps the room twice at full speed, "
+            f"ears flat, paws hammering. He stops exactly where he started. "
+            f"He sits. He is breathing hard. His eyes are enormous. "
+            f"He has no comment.* **chrrp-chrrp-chrrp!**"
+        )
+    elif outcome == 10:
+        # Spins so hard his wool lifts, reveals full underside, paws flail
+        await ctx.send(
+            f"*He spins with genuine commitment — fast enough that his wool lifts "
+            f"and his ears stream back and his tail becomes a blur. "
+            f"He overshoots badly and topples sideways. "
+            f"He is on his back. All four paws are in the air. "
+            f"His belly is entirely visible, wool splayed around him. "
+            f"He lies there for a moment. He blinks at the ceiling. "
+            f"He is reconsidering the physics of this whole thing.* **BRRP! ...mrr...**"
+        )
+    elif outcome == 11:
+        # Falls into {your_name}, full-body lean
+        await ctx.send(
+            f"*He spins and comes out of it going slightly the wrong direction — "
+            f"directly toward {your_name}. He bumps into them, full-body, "
+            f"and stays there, leaning, apparently deciding this was intentional. "
+            f"He does not move away. He is warm and a little dizzy "
+            f"and he has claimed {your_name} as a stabilizing surface.* **brrp! ...mrr.**"
+        )
+    else:  # 12 — rare: perfect spin, slow blink, sits perfectly
+        await ctx.send(
+            f"*He spins — one flawless rotation, paws light, tail a perfect arc — "
+            f"and stops facing {your_name} exactly. "
+            f"He slow-blinks. He sits down, very straight, in the exact spot where he started. "
+            f"He looks like a creature who has been spinning beautifully his entire life "
+            f"and will continue to do so.* **prrr.**"
+        )
+
+    # Update last_seen
+    entry = m["social_matrix"].setdefault(u_id, {"score": 0})
+    entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_db(m)
 
 
 # ==========================================
