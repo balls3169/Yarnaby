@@ -53073,7 +53073,6 @@ async def torture_cmd(ctx):
         m["internal"]["yarnaby_hiding"] = True
         m["internal"]["yarnaby_hiding_spot"] = "somewhere small and quiet"
         save_db(m)
-        global _torture_timeout_task
         _torturer_last_msg[u_id] = datetime.now().timestamp()
         if _torture_timeout_task and not _torture_timeout_task.done():
             _torture_timeout_task.cancel()
@@ -53335,6 +53334,7 @@ async def torture_cmd(ctx):
 @bot.command(name="save", aliases=["saveyarnaby", "saveyarny", "rescueyarn", "rescuehim",
                                     "rescueyarnaby", "savekitty", "helphim", "helphimout"])
 async def save_cmd(ctx):
+    global _torture_timeout_task
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
@@ -53362,7 +53362,6 @@ async def save_cmd(ctx):
     save_db(m)
 
     # Cancel the timeout task
-    global _torture_timeout_task
     if _torture_timeout_task and not _torture_timeout_task.done():
         _torture_timeout_task.cancel()
         _torture_timeout_task = None
