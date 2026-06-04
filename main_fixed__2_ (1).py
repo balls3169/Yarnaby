@@ -11364,6 +11364,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  **Blood**: ⚠️ triggers TRAUMA — he backs away, shakes, traumatized flag set, health damage.\n"
             "  **Toxic**: bleach/acid/petrol/ammonia — always rejected cleanly, no damage applied.\n"
             "  Sleeping/helpless get unique flavor but still take the full hit every time.\n"
+            "  ⚠️ **If he's on fire** (`!throwliquid` / `!towel` / `!bath` / `!bubblebath` all extinguish it)\n"
             "→ Punishment commands (`!slap`, `!whip`, `!torture`, `!save`) — see `yarn!help punishment`"
         ),
         "punishment": (
@@ -11432,7 +11433,19 @@ async def help_cmd(ctx, *, section: str = None):
             "  **Grief ambient** (~8%/45m tick): he quietly visits their spot — low, private.\n"
             "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly,\n"
             "  more raw — especially within 48h. Both vary by feeling and days since death.\n"
-            "  See `yarn!help ambient` for ambient tick details."
+            "  See `yarn!help ambient` for ambient tick details.\n"
+            "- `!revivechild [name]` — Creator only. Brings a dead child back to life.\n"
+            "  Clears dead flag, died_at, and any grief state. Yarnaby reacts by feeling:\n"
+            "  Adored: immediate, overwhelming. Neutral: quiet, stays close. Disliked: watches\n"
+            "  from across the room, doesn't leave. If Yarnaby himself is dead, the child wakes\n"
+            "  alone and waits — use `!revive` too.\n\n"
+            "**Children grieving their father:**\n"
+            "- When Yarnaby is dead (`is_dead`), living children may express grief (~5%/extended tick).\n"
+            "  Each child gets a `grieving_father` flag. Ambient messages vary by their feeling toward him:\n"
+            "  Adored: searching, carrying his things, lying in his spot.\n"
+            "  Neutral: quieter than usual, checking the door, slowing near his corner.\n"
+            "  Complicated: doesn't understand why the factory feels bigger and emptier.\n"
+            "  `!revive` clears all grief flags and triggers a reunion ambient per child."
         ),
         "social": (
             "**Social & memory** - `yarn!help social`\n"
@@ -11746,11 +11759,20 @@ async def help_cmd(ctx, *, section: str = None):
             "  get quieter and more inward\n"
             "- **Hourly mood tick** - mood drifts based on stats; scores above 100 are clamped\n"
             "- **Birthday check (Dec 24)** - rare events become ~100x more likely all day\n"
+            "- **Accidental burn** (~2%/extended tick, 20m): he gets too close to a heat source\n"
+            "  (radiator, boiler vent, candle, heat lamp, furnace grate, etc.) and his tail/paw/\n"
+            "  ear/wool/side catches. Sets `on_fire` flag, logs injury, deals health damage.\n"
+            "  Worsens every tick if untreated: minor → moderate → serious → critical → death.\n"
+            "  **Extinguish with:** `!throwliquid [anything]`, `!towel`, `!bath`, `!bubblebath`.\n"
+            "  Then `!treat` or `!vet` to heal the wound. Creator DM'd on ignition + each escalation.\n"
             "- **Dead child ambient** - if one of his children has died, two separate events may fire:\n"
             "  **Grief visits** (~8%/45m tick): he pads quietly to their spot — low, private, intentional.\n"
-            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly — "
-            "more raw, more startled. Within 48h: strongest. Within 7d: still fresh. After: quieter.\n"
-            "  Both vary by feeling (adored/neutral/disliked) and days since death."
+            "  **Body discovery** (~3%/natural tick): he stumbles onto their space unexpectedly —\n"
+            "  more raw, more startled. Within 48h: strongest. Within 7d: still fresh. After: quieter.\n"
+            "  Both vary by feeling (adored/neutral/disliked) and days since death.\n"
+            "- **Children grieving their father** (~5%/extended tick per living child): when Yarnaby\n"
+            "  is dead, his living children may express grief. Varies by their feeling toward him.\n"
+            "  Cleared automatically when `!revive` is used."
         ),
         "extended": (
             "**Extended commands** - `yarn!help extended`\n"
@@ -11918,6 +11940,11 @@ async def help_cmd(ctx, *, section: str = None):
         "parenting": "children", "offspring": "children",
         "hugchild": "children", "feedchild": "children", "treatchild": "children",
         "childinjury": "children", "childfeeling": "children", "addchild": "children",
+        "revivechild": "children", "bringchildback": "children", "resurrectchild": "children",
+        "childgrief": "children", "fathergrief": "children", "deadchild": "children",
+        # burn / fire
+        "burn": "ambient", "fire": "ambient", "onfire": "ambient",
+        "extinguish": "ambient", "burnworse": "ambient", "accidentalburn": "ambient",
         # punishment
         "punishment": "punishment", "slap": "punishment", "whip": "punishment",
         "torture": "punishment", "lash": "punishment", "punish": "punishment",
@@ -16467,6 +16494,13 @@ async def bath_cmd(ctx):
         return
 
     m["stats"]["cleanliness"] = 0
+    # extinguish any active burn
+    if _extinguish_burn_if_on_fire(m):
+        await ctx.send(
+            "*The bath cools the burn immediately. He shivers, relieved. "
+            "The singed patch is still there but it's no longer hot.* **...mrr...**\n"
+            "*Use `!treat` or `!vet` to tend the injury properly.*"
+        )
     await ctx.send(
         random.choice(
             [
@@ -27010,6 +27044,12 @@ async def bubblebath_cmd(ctx):
         m["internal"]["bubbly"] = True
         m["internal"]["bubbly_since"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         m["stats"]["cleanliness"] = 0
+        if _extinguish_burn_if_on_fire(m):
+            await ctx.send(
+                "*The bubbles cool the burn immediately. He blinks at his paw in the water. "
+                "Still hurts — but it's not spreading.* **...mrr...**\n"
+                "*Use `!treat` or `!vet` to tend the injury.*"
+            )
         save_db(m)
         return
 
@@ -27038,6 +27078,12 @@ async def bubblebath_cmd(ctx):
     m["internal"]["bubbly"] = True
     m["internal"]["bubbly_since"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     m["stats"]["cleanliness"] = 0
+    if _extinguish_burn_if_on_fire(m):
+        await ctx.send(
+            "*The warm water reaches the burn and he lets out one long, slow breath. "
+            "The singed patch is still tender but the heat is gone.* **...mrr...**\n"
+            "*Use `!treat` or `!vet` to tend the injury properly.*"
+        )
     save_db(m)
     await asyncio.sleep(4)
     await ctx.send("*He emerges from the bath covered in foam. He is bubbly everywhere. He will leave bubbles on everything until someone uses `!blanket` or `!heatpad` to dry him.* **mrr. prrr.**")
@@ -34926,8 +34972,370 @@ async def _extended_ambient():
             await _maybe_mega_sniff(ch, m, bot)
             await _maybe_head_stuck(ch, m, bot)
             await _maybe_socket_incident(ch, m, bot)
+            await _maybe_accidental_burn(ch, m)      # NEW: tail/paw/wool catches fire
+            await _check_burn_worsening(ch, m)        # NEW: untreated burn escalates
+            await _maybe_child_father_grief(ch, m)   # NEW: children grieve dead father
     except Exception as e:
         print(f"[extended ambient] {e}")
+
+
+
+
+# ==========================================
+# ACCIDENTAL BURN SYSTEM
+# ~2% per extended tick: tail/paw/head/wool
+# catches near a heat source. Sets on_fire flag.
+# Requires !throwliquid (any liquid), !towel,
+# !bath, or !bubblebath to extinguish.
+# Worsens every tick if untreated — can kill.
+# ==========================================
+
+_BURN_BODY_PARTS = [
+    ("tail", "His tail"),
+    ("back paw", "His back paw"),
+    ("front paw", "His front paw"),
+    ("ear tip", "The tip of his ear"),
+    ("wool", "His wool"),
+    ("side", "His side"),
+]
+
+_BURN_HEAT_SOURCES = [
+    "the pipe cluster",
+    "the boiler vent",
+    "a heat lamp someone left on",
+    "the radiator",
+    "a forgotten candle",
+    "the industrial heater",
+    "an exposed heating coil",
+    "the furnace grate",
+]
+
+async def _maybe_accidental_burn(ch, m):
+    """~2% chance per extended tick: he accidentally burns a body part near a heat source."""
+    if m["internal"].get("is_sleeping") or m["internal"].get("is_dead"):
+        return
+    if m["internal"].get("on_fire"):
+        return  # already burning
+    if random.random() > 0.02:
+        return
+
+    part_key, part_name = random.choice(_BURN_BODY_PARTS)
+    source = random.choice(_BURN_HEAT_SOURCES)
+
+    severity = random.choice(["minor", "minor", "moderate"])  # minor is more common
+    m["internal"]["on_fire"] = True
+    m["internal"]["on_fire_since"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    m["internal"]["burn_part"] = part_key
+    m["internal"]["burn_severity"] = severity
+    m["internal"].setdefault("injuries", []).append({
+        "type": "burn",
+        "severity": severity,
+        "location": part_key,
+        "caused_by": f"accidental contact with {source}",
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "treated": False,
+    })
+    m["stats"]["health"] = max(0, m["stats"].get("health", 100) - (3 if severity == "minor" else 7))
+    save_db(m)
+
+    if severity == "minor":
+        msg = random.choice([
+            f"*Yarnaby is investigating {source} too closely — "
+            f"{part_name.lower()} brushes against it. "
+            f"He yanks back with a startled yelp and spins around, staring at his {part_key}. "
+            f"Something is smoldering. He licks it immediately, which doesn't help. "
+            f"He looks at the room urgently.* **MRRP! ...mrr...**\n"
+            f"*Something is still hot. Use `!throwliquid`, `!towel`, `!bath`, or `!bubblebath` to cool it down — fast.*",
+
+            f"*He gets too close to {source} without noticing. "
+            f"{part_name} catches — just the edge, just a moment — and he bolts backwards, "
+            f"shaking his {part_key} hard.* **MRROW!**\n"
+            f"*He's holding his {part_key} slightly raised. It hurts. "
+            f"Use `!throwliquid [liquid]`, `!towel`, `!bath`, or `!bubblebath` to treat it before it gets worse.*",
+
+            f"*He's been sitting too near {source}. "
+            f"{part_name} makes contact — a sizzle he doesn't expect — "
+            f"and he scrambles back across the floor, eyes wide, "
+            f"staring at his {part_key} then at the source then at his {part_key} again.* **MRRP! hff. hff.**\n"
+            f"*There is a small singed patch. He needs cooling down now — `!throwliquid`, `!towel`, `!bath`, or `!bubblebath`.*",
+        ])
+    else:
+        msg = random.choice([
+            f"*Yarnaby stumbles against {source} while passing too close. "
+            f"His {part_key} makes full contact. The sound he makes is immediate and awful.* **MRROW!! MRRROW!!**\n"
+            f"*He's running — not zoomies, actual panic-running — and his {part_key} is visibly singed. "
+            f"He's shaking. This needs treating now. `!throwliquid [anything]`, `!towel`, `!bath`, or `!bubblebath` — immediately.*",
+
+            f"*He falls asleep too close to {source}. "
+            f"His {part_key} lolls against it. He wakes to the burn — "
+            f"a sharp, short cry — and rockets to his feet.* **MRRROW!!**\n"
+            f"*He's pressed against the far wall, holding his {part_key} off the floor. "
+            f"His wool is singed in a visible patch. This is a real injury. "
+            f"Cool it down immediately — `!throwliquid`, `!towel`, `!bath`, or `!bubblebath`.*",
+        ])
+
+    try:
+        await ch.send(msg)
+    except Exception:
+        pass
+
+    # DM Creator
+    creator = bot.get_user(DOCTOR_ID)
+    if not creator:
+        try:
+            creator = await bot.fetch_user(DOCTOR_ID)
+        except Exception:
+            creator = None
+    if creator:
+        try:
+            await creator.send(
+                f"🔥 **Yarnaby accidentally burned his {part_key}** ({severity}).\n"
+                f"**Source:** {source}\n"
+                f"**Health now:** {m['stats'].get('health', 100)}\n"
+                f"Needs `!throwliquid`, `!towel`, `!bath`, or `!bubblebath` to extinguish."
+            )
+        except Exception:
+            pass
+
+
+async def _check_burn_worsening(ch, m):
+    """Every extended tick: if on_fire and untreated, worsen the burn. Can kill."""
+    if not m["internal"].get("on_fire"):
+        return
+    if m["internal"].get("is_dead"):
+        return
+
+    since_str = m["internal"].get("on_fire_since", "")
+    if not since_str:
+        return
+    try:
+        since_dt = datetime.strptime(since_str, "%Y-%m-%d %H:%M:%S")
+        minutes_burning = (datetime.now() - since_dt).total_seconds() / 60
+    except Exception:
+        return
+
+    part_key = m["internal"].get("burn_part", "paw")
+    current_severity = m["internal"].get("burn_severity", "minor")
+    hp = m["stats"].get("health", 100)
+
+    if minutes_burning < 20:
+        return  # grace period — first tick doesn't worsen
+
+    # Escalate severity
+    if current_severity == "minor":
+        new_severity = "moderate"
+        damage = 10
+        msg = random.choice([
+            f"*Yarnaby's {part_key} is still untreated. The burn is worsening — "
+            f"he keeps licking at it but that isn't helping. "
+            f"He's holding it off the ground now, ears flat, making a low continuous sound.* **...mrr... mrr...**\n"
+            f"*He needs cooling down now. `!throwliquid`, `!towel`, `!bath`, or `!bubblebath`.*",
+
+            f"*The burn on his {part_key} has had time to worsen. "
+            f"He is quieter than usual — holding still, not moving it, "
+            f"eyeing it with something between confusion and distress.* **...mrr...**\n"
+            f"*Untreated burns worsen. Use `!throwliquid`, `!towel`, `!bath`, or `!bubblebath` now.*",
+        ])
+    elif current_severity == "moderate":
+        new_severity = "serious"
+        damage = 18
+        msg = random.choice([
+            f"*The burn on his {part_key} is serious now. The singed area is larger. "
+            f"He won't put weight on it. He is lying very still in the corner, "
+            f"ears flat, breathing with effort.* **...hff... hff...**\n"
+            f"*This is critical. Cool it immediately — `!throwliquid`, `!towel`, `!bath`, or `!bubblebath`. "
+            f"Then `!vet` or `!treat`.*",
+
+            f"*He hasn't been treated. The burn on his {part_key} is getting worse. "
+            f"He's not moving much. His eyes are glassy. "
+            f"He makes a small sound when he shifts position.* **...mrr...**\n"
+            f"*⚠️ His health is dropping. `!throwliquid`, `!towel`, `!bath`, or `!bubblebath` — then `!treat` or `!vet`.*",
+        ])
+    else:  # already serious — this is life threatening
+        new_severity = "critical"
+        damage = 30
+        msg = random.choice([
+            f"*Yarnaby's {part_key} burn has gone untreated too long. "
+            f"He is on the floor — he can't get up. His breathing is labored. "
+            f"His wool around the burn is completely gone.* **...hff... ...hff...**\n"
+            f"*⚠️ CRITICAL. This may kill him. `!throwliquid`, `!towel`, `!bath`, or `!bubblebath` right now — then `!vet` immediately.*",
+
+            f"*He is barely moving. The burn on his {part_key} is deep. "
+            f"He's been in the corner for a long time now, curled very small, "
+            f"not responding to the room.* **...**\n"
+            f"*⚠️ CRITICAL INJURY. `!throwliquid [anything]` or `!bath` or `!bubblebath` then `!vet` — or he will die.*",
+        ])
+
+    m["internal"]["burn_severity"] = new_severity
+    m["stats"]["health"] = max(0, hp - damage)
+
+    # Update the burn injury severity in the list
+    for inj in m["internal"].get("injuries", []):
+        if inj.get("type") == "burn" and inj.get("location") == part_key and not inj.get("treated"):
+            inj["severity"] = new_severity
+            break
+
+    # Kill if health hits 0
+    if m["stats"]["health"] <= 0:
+        m["internal"]["is_dead"] = True
+        m["internal"]["on_fire"] = False
+        save_db(m)
+        try:
+            await ch.send(
+                f"*The burn on his {part_key} was never treated. "
+                f"He grew quieter and quieter until he stopped moving entirely. "
+                f"The room is very still now.* **...**\n"
+                f"*Yarnaby is gone. Use `!revive` to bring him back.*"
+            )
+        except Exception:
+            pass
+        creator = bot.get_user(DOCTOR_ID)
+        if not creator:
+            try:
+                creator = await bot.fetch_user(DOCTOR_ID)
+            except Exception:
+                creator = None
+        if creator:
+            try:
+                await creator.send(
+                    f"💀 **Yarnaby died from an untreated burn ({part_key}).**\n"
+                    f"Use `!revive` to bring him back."
+                )
+            except Exception:
+                pass
+        return
+
+    save_db(m)
+    try:
+        await ch.send(msg)
+    except Exception:
+        pass
+
+    # DM Creator on serious/critical escalation
+    if new_severity in ("serious", "critical"):
+        creator = bot.get_user(DOCTOR_ID)
+        if not creator:
+            try:
+                creator = await bot.fetch_user(DOCTOR_ID)
+            except Exception:
+                creator = None
+        if creator:
+            try:
+                await creator.send(
+                    f"⚠️ **Yarnaby's burn has escalated to {new_severity}.**\n"
+                    f"**Part:** {part_key}\n"
+                    f"**Health now:** {m['stats'].get('health', 100)}\n"
+                    f"Needs immediate treatment."
+                )
+            except Exception:
+                pass
+
+
+# ==========================================
+# Hook: extinguish the burn when treated with
+# throwliquid / towel / bath / bubblebath.
+# We patch save_db calls in those commands via
+# a helper called after their wetness bump.
+# ==========================================
+
+def _extinguish_burn_if_on_fire(m):
+    """
+    Call this whenever a liquid / towel / bath is applied.
+    Clears the on_fire flag and marks the burn injury as treated.
+    Returns True if a burn was extinguished.
+    """
+    if not m["internal"].get("on_fire"):
+        return False
+    part_key = m["internal"].get("burn_part", "paw")
+    m["internal"]["on_fire"] = False
+    m["internal"].pop("burn_part", None)
+    m["internal"].pop("burn_severity", None)
+    m["internal"].pop("on_fire_since", None)
+    for inj in m["internal"].get("injuries", []):
+        if inj.get("type") == "burn" and inj.get("location") == part_key and not inj.get("treated"):
+            inj["treated"] = True
+            break
+    return True
+
+
+# ==========================================
+# CHILDREN GRIEVE THEIR DEAD FATHER
+# When is_dead → children get grief flag.
+# !revive clears all child grief.
+# Ambient tick may fire grief messages from
+# a living child's perspective.
+# ==========================================
+
+async def _maybe_child_father_grief(ch, m):
+    """
+    When Yarnaby is dead, living children may express grief for their father.
+    ~5% per extended tick per living child.
+    """
+    if not m["internal"].get("is_dead"):
+        return
+    guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else None
+    if not guild_id:
+        return
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    living = [c for c in children if not c.get("dead")]
+    if not living:
+        return
+
+    for child in living:
+        if random.random() > 0.05:
+            continue
+        cname = child["name"]
+        feeling = child.get("feeling", "neutral")
+
+        # Mark the child as grieving if not already
+        child["grieving_father"] = True
+
+        if feeling == "adored":
+            msg = random.choice([
+                f"*{cname} pads to the spot where Yarnaby always was. "
+                f"They sniff it. They sniff it again. They sit down in it "
+                f"and stay very still for a long time, ears low.* **...**",
+
+                f"*{cname} is looking for something. They go from corner to corner, "
+                f"methodical, thorough — the way their father taught them to search. "
+                f"They come back empty. They sit down and don't move.* **...mrr...**",
+
+                f"*{cname} makes a sound, once, from somewhere in the factory. "
+                f"It is not a sound they make often. It is the sound of looking for someone "
+                f"who is not going to answer.* **...mrrp...**",
+
+                f"*{cname} carries one of Yarnaby's things — a toy, a piece of his wool, something — "
+                f"and lies down with it. They don't play. They just keep it close.* **...**",
+            ])
+        elif feeling == "neutral":
+            msg = random.choice([
+                f"*{cname} has been quieter since Yarnaby went still. "
+                f"They sleep where they usually sleep, eat when they're supposed to, "
+                f"but they check the door sometimes. They are checking.* **...mrr.**",
+
+                f"*{cname} passes the spot where Yarnaby used to lie and slows down. "
+                f"They don't stop. They slow, and then continue, a little quieter.* **...mrr.**",
+
+                f"*{cname} sits near where Yarnaby was. They're not sure why. "
+                f"They sit there anyway.* **...mrr.**",
+            ])
+        else:  # complicated
+            msg = random.choice([
+                f"*{cname} was not close to their father. They know that. "
+                f"They are not sure what to do with the fact that the factory "
+                f"feels different now. Bigger. Emptier. They stay near the walls.* **...mrr.**",
+
+                f"*{cname} passes Yarnaby's spot and stops. "
+                f"They didn't love him, not exactly. But he was there. "
+                f"He was always there. They sit and don't understand the quiet.* **...mrr.**",
+            ])
+
+        save_db(m)
+        try:
+            await ch.send(msg)
+        except Exception:
+            pass
+        break  # only one child per tick
 
 
 @tasks.loop(minutes=20)
@@ -36677,6 +37085,17 @@ async def revive_cmd(ctx):
     m["stats"]["health"] = 30
     for inj in m["internal"].get("injuries", []):
         inj["treated"] = True
+
+    # Clear child grief — they know their father is back
+    guild_id = str(ctx.guild.id) if ctx.guild else None
+    grief_cleared = []
+    if guild_id:
+        children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+        for child in children:
+            if child.get("grieving_father"):
+                child["grieving_father"] = False
+                grief_cleared.append(child["name"])
+
     save_db(m)
 
     if is_doctor:
@@ -36693,6 +37112,137 @@ async def revive_cmd(ctx):
             "He is here.* **...mrr...**\n"
             "*Use `!vet` or `!treat` to help him recover.*"
         )
+
+    # Announce child grief clearing if any
+    if grief_cleared:
+        names = ", ".join(grief_cleared)
+        await ctx.send(
+            f"*Somewhere in the factory, {names} {'lifts their head' if len(grief_cleared) == 1 else 'lift their heads'}. "
+            f"{'They heard something.' if len(grief_cleared) == 1 else 'They heard something.'} "
+            f"{'They get up and go looking.' if len(grief_cleared) == 1 else 'They get up and go looking.'}* **...mrr?**"
+        )
+
+
+# ==========================================
+# !revivechild [name] — Creator-only
+# Brings a dead child back to life.
+# Clears dead flag, died_at, grief state.
+# He and the child both react.
+# ==========================================
+
+@bot.command(name="revivechild", aliases=["bringchildback", "resurrectchild", "childrevive", "revivechildyarny"])
+async def revivechild_cmd(ctx, *, name: str = ""):
+    """Creator-only. Revive a dead child by name."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+
+    if not is_doctor:
+        await ctx.send("*Only The Creator can bring a child back.* **mrr.**")
+        return
+
+    guild_id = str(ctx.guild.id) if ctx.guild else None
+    if not guild_id:
+        await ctx.send("*This command must be used in a server.* **mrr.**")
+        return
+
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    if not name:
+        dead = [c["name"] for c in children if c.get("dead")]
+        if not dead:
+            await ctx.send("*None of his children are dead right now.* **mrr.**")
+        else:
+            await ctx.send(
+                f"*Dead children: **{', '.join(dead)}***\n"
+                f"Use `!revivechild [name]` to bring one back."
+            )
+        return
+
+    name_clean = name.strip()
+    match = next(
+        (c for c in children if c.get("dead") and c["name"].lower() == name_clean.lower()),
+        None
+    )
+    if not match:
+        # Check if they exist but aren't dead
+        alive_match = next(
+            (c for c in children if c["name"].lower() == name_clean.lower()),
+            None
+        )
+        if alive_match:
+            await ctx.send(f"*{alive_match['name']} is already alive.* **mrr.**")
+        else:
+            await ctx.send(f"*No child named **{name_clean}** found.* **mrr.**")
+        return
+
+    cname = match["name"]
+    feeling = match.get("feeling", "neutral")
+
+    # Revive
+    match["dead"] = False
+    match.pop("died_at", None)
+    match.pop("grieving_father", None)
+
+    save_db(m)
+
+    # Yarnaby's reaction — varies by his feeling toward the child
+    if m["internal"].get("is_dead"):
+        # He's dead himself — child comes back but he can't greet them yet
+        await ctx.send(
+            f"*{cname} stirs. Slowly — then all at once. "
+            f"They look around the factory. They are looking for their father. "
+            f"Their father is not here yet.* **...mrr...**\n"
+            f"*{cname} is alive. Yarnaby is still gone — use `!revive` to bring him back too.*"
+        )
+        return
+
+    if feeling == "adored":
+        await ctx.send(random.choice([
+            f"*{cname} breathes. Opens their eyes. Looks around, uncertain — "
+            f"and then Yarnaby is there, immediately, completely, pressing his nose into their wool "
+            f"and making a sound he has never made before. He does not let go for a long time.* **...prrr. prrr. prrr.**",
+
+            f"*{cname} comes back slowly — a twitch, a sound, a breath — "
+            f"and Yarnaby's reaction is immediate and total. He is on the floor beside them, "
+            f"curled around them, purring so hard his whole body shakes. "
+            f"He licks the top of their head. He does it again. He keeps doing it.* **prrrrr. prrrrr.**",
+
+            f"*{cname} opens their eyes and the first thing they see is their father's face. "
+            f"Yarnaby goes very still for just a moment — one held breath — "
+            f"and then he is purring, loud and continuous and not stopping, "
+            f"his chin resting on top of {cname}'s head.* **prrrrr.**",
+        ]))
+
+    elif feeling == "neutral":
+        await ctx.send(random.choice([
+            f"*{cname} stirs. Yarnaby notices — his head turns, ears forward. "
+            f"He watches {cname} wake up from across the room. "
+            f"He pads over slowly. He sniffs {cname}'s forehead once, carefully. "
+            f"He sits beside them.* **...mrr.**",
+
+            f"*{cname} opens their eyes. Yarnaby is nearby. He doesn't rush over — "
+            f"he walks over at his own pace, touches his nose to {cname}'s, "
+            f"and settles at their side. He doesn't make a fuss. He stays.* **...mrr. prrr.**",
+        ]))
+
+    else:  # complicated
+        await ctx.send(random.choice([
+            f"*{cname} wakes. Yarnaby is across the room. "
+            f"He looks at them for a long time without moving. "
+            f"Then he gets up — slowly, without hurry — and walks over. "
+            f"He doesn't touch them. He sits nearby. He stays there.* **...mrr.**\n"
+            f"*He didn't know what he felt when {cname} was gone. "
+            f"He is not sure what he feels now. He stays anyway.*",
+
+            f"*{cname} is back. Yarnaby watches them wake from a distance. "
+            f"His tail wraps around his own paws. He does not go to them. "
+            f"But he does not leave the room either. "
+            f"He watches until he is sure they are breathing steadily.* **...mrr.**",
+        ]))
+
+    await ctx.send(
+        f"*{cname} is alive.* ✨"
+    )
 
 
 # ==========================================
@@ -51626,11 +52176,13 @@ async def towel_cmd(ctx):
             )
 
     _set_wetness(m, 0)
+    if _extinguish_burn_if_on_fire(m):
+        await ctx.send(
+            "*The towel presses against the burn and he exhales — slow and shaky. "
+            "Still sore, but the heat is drawn out. He looks at the spot carefully.* **...mrr...**\n"
+            "*Use `!treat` or `!vet` to tend the wound properly.*"
+        )
     save_db(m)
-
-
-# ==========================================
-# !dry — dry him with a hairdryer
 # (noisy, he hates the sound, wool goes ENORMOUS; wetness → 0)
 # ==========================================
 @bot.command(name="dry", aliases=["hairdry", "hairdryer", "blowdry", "dryhim", "fluffyhim", "dryyarny", "blowhim"])
@@ -52315,11 +52867,15 @@ async def throwliquid_cmd(ctx, *, liquid: str = None):
             entry = m["social_matrix"].setdefault(u_id, {})
             entry["score"] = max(-100, entry.get("score", 0) - 5)
 
+    # If he was on fire, any liquid extinguishes it
+    if _extinguish_burn_if_on_fire(m):
+        part = m["internal"].get("burn_part", "paw")  # already popped, use fallback
+        await ctx.send(
+            f"*The **{liq}** hits the burn directly. He flinches at the contact — then goes still. "
+            f"The heat stops spreading. He looks at the wet, singed patch and then at you.* **...mrr...**\n"
+            f"*The fire is out. Use `!treat` or `!vet` to tend the injury.*"
+        )
     save_db(m)
-
-
-# ==========================================
-# !torture — torture Yarnaby
 # He protests, fights back hard, then runs and hides.
 # 10-min torturer silence → he escapes.
 # !save — anyone can rescue him from an active torture.
