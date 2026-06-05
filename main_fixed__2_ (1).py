@@ -11439,6 +11439,16 @@ async def help_cmd(ctx, *, section: str = None):
             "  Adored: immediate, overwhelming. Neutral: quiet, stays close. Disliked: watches\n"
             "  from across the room, doesn't leave. If Yarnaby himself is dead, the child wakes\n"
             "  alone and waits — use `!revive` too.\n\n"
+            "**`!kill [method]`** — kills Yarnaby deliberately. Requires `!kill CONFIRM` within 60s.\n"
+            "  Methods: `beheading` · `poison` · `slaughter` · `torture` · `extreme torture`\n"
+            "  Creator/helpless/sleeping/score all produce distinct reactions per method.\n"
+            "  `extreme torture` = full sequence (tied first): back leg 1 → back leg 2 → tail\n"
+            "  → front arm 1 → front arm 2 → full wool stripped → head. Pauses between each.\n"
+            "  Sounds shift from raw screams → silence → something worse. He can't escape — he's tied.\n"
+            "  Creator DM'd on every kill by non-Creator.\n"
+            "  Living children are traumatized: poison=moderate / beheading+slaughter+torture=severe\n"
+            "  / extreme torture=critical. Reactions vary by their feeling toward him.\n"
+            "  `!revive` brings him back and clears all child grief flags.\n\n"
             "**Children grieving their father:**\n"
             "- When Yarnaby is dead (`is_dead`), living children may express grief (~5%/extended tick).\n"
             "  Each child gets a `grieving_father` flag. Ambient messages vary by their feeling toward him:\n"
@@ -37098,19 +37108,60 @@ async def revive_cmd(ctx):
 
     save_db(m)
 
+    your_name = ctx.author.display_name
+    score = 99 if is_doctor else m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+    cause = m["internal"].get("cause_of_death", "")
+
     if is_doctor:
-        await ctx.send(
+        await ctx.send(random.choice([
             "*The Creator calls to him. There is a long silence. Then — a very faint sound. "
             "A small paw moves. He opens one eye. He finds The Creator. "
             "He crawls toward them and presses against them completely.* **...prrr...**\n"
-            "*He is back. He is weak. He is here.*"
-        )
+            "*He is back. He is weak. He is here.*",
+
+            "*The Creator reaches for him. Something stirs. A breath — shallow, then steadier. "
+            "He opens both eyes slowly and finds The Creator's face immediately, "
+            "the way he always finds The Creator's face. "
+            "He makes one small sound and doesn't move. He is back.* **...prrr...**",
+
+            "*Silence. Then — the faintest sound, somewhere between a purr and a breath. "
+            "He is back. He presses his nose against The Creator's hand and stays there.* **...prrr...**",
+        ]))
+
+    elif score >= 8:
+        await ctx.send(random.choice([
+            f"*Something reaches him. {your_name}'s voice, maybe — or just presence. "
+            f"He stirs. Opens his eyes. He looks at {your_name} for a long moment "
+            f"and then something in his face settles. He is here. He trusts this.* **...mrr. prrr...**\n"
+            f"*Use `!vet` or `!treat` to help him recover.*",
+
+            f"*He comes back slowly — a paw moves, then his head lifts. "
+            f"He finds {your_name} immediately. He blinks once, slow, and presses forward "
+            f"until he's leaning against them. He stays there.* **...prrr...**\n"
+            f"*Use `!vet` or `!treat` to help him recover.*",
+        ]))
+
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*Something pulls him back. He opens his eyes slowly. "
+            f"He looks at {your_name} with the careful attention of something "
+            f"that is trying to understand where it is. He blinks. "
+            f"He is here.* **...mrr...**\n"
+            f"*Use `!vet` or `!treat` to help him recover.*",
+
+            f"*He stirs. Opens one eye, then both. He sees {your_name}. "
+            f"He doesn't move toward them but he doesn't move away either. "
+            f"He stays where he is and breathes. He is back.* **...mrr...**\n"
+            f"*Use `!vet` or `!treat` to help him recover.*",
+        ]))
+
     else:
+        # Shouldn't reach here (score < 5 blocked above) but handle gracefully
         await ctx.send(
-            "*Something pulls him back. He opens his eyes slowly. "
-            "He looks at whoever brought him back. He blinks once. "
-            "He is here.* **...mrr...**\n"
-            "*Use `!vet` or `!treat` to help him recover.*"
+            f"*He opens his eyes. He is back. He does not look at {your_name}. "
+            f"He looks at the room instead, getting his bearings. "
+            f"He is alive.* **...mrr...**\n"
+            f"*Use `!vet` or `!treat` to help him recover.*"
         )
 
     # Announce child grief clearing if any
@@ -37185,6 +37236,8 @@ async def revivechild_cmd(ctx, *, name: str = ""):
 
     save_db(m)
 
+    is_sleeping = m["internal"].get("is_sleeping", False)
+
     # Yarnaby's reaction — varies by his feeling toward the child
     if m["internal"].get("is_dead"):
         # He's dead himself — child comes back but he can't greet them yet
@@ -37194,6 +37247,47 @@ async def revivechild_cmd(ctx, *, name: str = ""):
             f"Their father is not here yet.* **...mrr...**\n"
             f"*{cname} is alive. Yarnaby is still gone — use `!revive` to bring him back too.*"
         )
+        return
+
+    # ── SLEEPING: he hears/senses the child coming back ───────────────
+    if is_sleeping:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*He is asleep. {cname} breathes. Opens their eyes. Looks around. "
+                f"And then something — some animal thing that was listening even in sleep — "
+                f"pulls Yarnaby up from wherever he was. "
+                f"He opens his eyes. He looks at {cname}. He does not think. "
+                f"He crosses the room still mostly asleep and presses himself against {cname} "
+                f"and starts purring before he is fully conscious.* **...prrr. prrr.**",
+
+                f"*He was asleep. {cname} comes back and the room changes in some way "
+                f"he can't name but his body knows. He wakes mid-purr, already turning toward {cname}, "
+                f"already moving. He doesn't ask questions. He just goes to them.* **prrrrr.**",
+            ]))
+        elif feeling == "neutral":
+            await ctx.send(random.choice([
+                f"*He is asleep when {cname} comes back. "
+                f"His ear rotates first — toward the sound, toward the change in the air. "
+                f"One eye opens. He sees {cname}. He is quiet for a moment. "
+                f"He gets up slowly and pads over and sits beside them without a word.* **...mrr.**",
+
+                f"*He was deeply asleep. {cname} stirs back to life and something wakes him — "
+                f"not a sound, just a shift. He opens his eyes, sees {cname}, "
+                f"and blinks slowly. He gets up. He goes and sits nearby.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He is asleep when {cname} wakes. He does not stir immediately. "
+                f"Then — after a moment — one eye opens. He sees {cname}. "
+                f"He stays where he is. He watches them from across the room. "
+                f"His tail moves once.* **...mrr.**",
+
+                f"*{cname} comes back while he is sleeping. "
+                f"He wakes eventually — rolls over, sees {cname} there, "
+                f"and goes very still. He doesn't go to them. He stays where he is. "
+                f"He watches until he is satisfied they are real.* **...mrr.**",
+            ]))
+        await ctx.send(f"*{cname} is alive.* ✨")
         return
 
     if feeling == "adored":
@@ -54332,8 +54426,726 @@ async def spin_cmd(ctx):
 
 
 # ==========================================
-# GLOBAL STATE GATE — before_invoke hook
+# !kill [method] — kill Yarnaby deliberately
+# Requires !kill CONFIRM within 60s to execute.
+# !revive brings him back.
+# Children may be traumatized depending on method.
 # ==========================================
+
+_pending_kill: dict = {}  # user_id -> {"method": str, "expires": float}
+
+_KILL_METHODS = {
+    # aliases mapped to canonical method key
+    "beheading":       "beheading",
+    "behead":          "beheading",
+    "decapitate":      "beheading",
+    "decapitation":    "beheading",
+    "head":            "beheading",
+    "cuthead":         "beheading",
+    "poison":          "poison",
+    "poisoned":        "poison",
+    "feed poison":     "poison",
+    "feedpoison":      "poison",
+    "drink poison":    "poison",
+    "drinkpoison":     "poison",
+    "toxic":           "poison",
+    "venomed":         "poison",
+    "slaughter":       "slaughter",
+    "slaughtered":     "slaughter",
+    "butcher":         "slaughter",
+    "butchered":       "slaughter",
+    "stab":            "slaughter",
+    "stabbed":         "slaughter",
+    "gut":             "slaughter",
+    "gutted":          "slaughter",
+    "torture":         "torture",
+    "torturekill":     "torture",
+    "torturedead":     "torture",
+    "extreme torture": "extreme_torture",
+    "extremetorture":  "extreme_torture",
+    "dismember":       "extreme_torture",
+    "dismemberment":   "extreme_torture",
+    "cutlimbs":        "extreme_torture",
+    "limbremoval":     "extreme_torture",
+    "extreme":         "extreme_torture",
+}
+
+# Child trauma by method — how badly the method traumatizes living children
+_KILL_CHILD_TRAUMA = {
+    "beheading":       ("severe",   10),
+    "poison":          ("moderate", 5),
+    "slaughter":       ("severe",   8),
+    "torture":         ("severe",   7),
+    "extreme_torture": ("critical", 15),
+}
+
+# Human-readable method names
+_KILL_METHOD_NAMES = {
+    "beheading":       "beheading",
+    "poison":          "poison",
+    "slaughter":       "slaughter",
+    "torture":         "torture until death",
+    "extreme_torture": "extreme torture (dismemberment)",
+}
+
+
+def _resolve_kill_method(raw: str) -> str | None:
+    """Resolve a raw method string to a canonical method key, or None."""
+    if not raw:
+        return None
+    r = raw.strip().lower()
+    if r in _KILL_METHODS:
+        return _KILL_METHODS[r]
+    # partial match
+    for k, v in _KILL_METHODS.items():
+        if r in k or k in r:
+            return v
+    return None
+
+
+@bot.command(name="kill")
+async def kill_cmd(ctx, *, method: str = ""):
+    """
+    Kill Yarnaby by a specified method.
+    First call shows a preview and asks for !kill CONFIRM.
+    Second call (!kill CONFIRM) within 60s executes it.
+    !revive brings him back.
+    """
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    your_name = ctx.author.display_name
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    is_helpless = m["internal"].get("helpless", False)
+    is_sleeping = m["internal"].get("is_sleeping", False)
+    guild_id = str(ctx.guild.id) if ctx.guild else None
+
+    # ── ALREADY DEAD ──────────────────────────────────────────────────
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is already gone. Use `!revive` to bring him back.* **...**")
+        return
+
+    # ── CONFIRM STEP ──────────────────────────────────────────────────
+    if method.strip().upper() == "CONFIRM":
+        pending = _pending_kill.get(u_id)
+        if not pending or pending["expires"] < datetime.now().timestamp():
+            _pending_kill.pop(u_id, None)
+            await ctx.send(
+                "*There's nothing to confirm. Use `!kill [method]` first.*\n"
+                "*(Methods: `beheading`, `poison`, `slaughter`, `torture`, `extreme torture`)*"
+            )
+            return
+        resolved = pending["method"]
+        _pending_kill.pop(u_id, None)
+        await _execute_kill(ctx, m, resolved, is_doctor, u_id, your_name,
+                            score, is_helpless, is_sleeping, guild_id)
+        return
+
+    # ── NO METHOD ─────────────────────────────────────────────────────
+    if not method.strip():
+        await ctx.send(
+            "*You need to pick a method.*\n"
+            "**Methods:** `beheading` · `poison` · `slaughter` · `torture` · `extreme torture`\n"
+            "Use `!kill [method]` then `!kill CONFIRM` within 60 seconds."
+        )
+        return
+
+    # ── RESOLVE METHOD ────────────────────────────────────────────────
+    resolved = _resolve_kill_method(method)
+    if not resolved:
+        await ctx.send(
+            f"*Unknown method: **{method}**.*\n"
+            "**Methods:** `beheading` · `poison` · `slaughter` · `torture` · `extreme torture`\n"
+        )
+        return
+
+    method_name = _KILL_METHOD_NAMES[resolved]
+
+    # ── SLEEPING PREVIEW ─────────────────────────────────────────────
+    if is_sleeping:
+        preview = random.choice([
+            f"*He is asleep. He does not know what is about to happen.*",
+            f"*He is deeply asleep. His breathing is slow. He has no idea.*",
+        ])
+    # ── HELPLESS PREVIEW ─────────────────────────────────────────────
+    elif is_helpless:
+        preview = random.choice([
+            f"*He is already on the floor. He cannot run. He cannot fight back.*",
+            f"*He is helpless. He is looking at you. He cannot stop this.*",
+        ])
+    # ── CREATOR PREVIEW ──────────────────────────────────────────────
+    elif is_doctor:
+        preview = random.choice([
+            f"*The Creator prepares to end him by **{method_name}**. "
+            f"He senses something. He looks at The Creator's face — and goes very still.*",
+            f"*He is watching The Creator with total attention. "
+            f"Something in the room has changed. He is not sure what. He stays perfectly still.*",
+        ])
+    # ── SCORE-GATED PREVIEW ──────────────────────────────────────────
+    elif score >= 6:
+        preview = random.choice([
+            f"*He trusts {your_name}. He does not see this coming.*",
+            f"*He is comfortable around {your_name}. His guard is down.*",
+        ])
+    elif score >= 1:
+        preview = random.choice([
+            f"*He is watching {your_name} carefully. Something feels wrong.*",
+            f"*His ears are back slightly. He is not sure yet.*",
+        ])
+    else:
+        preview = random.choice([
+            f"*He has never trusted {your_name}. He is backing away.*",
+            f"*He sees {your_name} moving toward him and his whole body tenses.*",
+        ])
+
+    _pending_kill[u_id] = {
+        "method": resolved,
+        "expires": (datetime.now() + timedelta(seconds=60)).timestamp(),
+    }
+
+    await ctx.send(
+        f"{preview}\n\n"
+        f"**Method:** `{method_name}`\n"
+        f"⚠️ *Type `!kill CONFIRM` within 60 seconds to execute. There is no undo except `!revive`.*"
+    )
+
+
+async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
+                        score, is_helpless, is_sleeping, guild_id):
+    """Execute the kill. Called after CONFIRM."""
+
+    # ── SLEEPING — wakes to it ────────────────────────────────────────
+    sleep_prefix = ""
+    if is_sleeping:
+        m["internal"]["is_sleeping"] = False
+        sleep_prefix = random.choice([
+            "*He was asleep. He wakes into it with no warning, no preparation — just consciousness, "
+            "and then what is happening to him.*\n",
+            "*He was dreaming. He was having a good dream. "
+            "He wakes and reality arrives all at once.*\n",
+        ])
+
+    # ── HELPLESS FLAG ────────────────────────────────────────────────
+    helpless_note = ""
+    if is_helpless:
+        helpless_note = "*He cannot fight back. He cannot run. He is already on the floor.*\n"
+
+    # ── METHOD NARRATIONS ────────────────────────────────────────────
+
+    if method == "beheading":
+        if is_doctor:
+            narration = random.choice([
+                "*The Creator raises the blade. He does not look away. "
+                "He does not run. He holds perfectly still — ears flat, eyes on The Creator's face — "
+                "and waits. The last sound he makes is very small. Then nothing.*\n**...**",
+                "*He sees the blade. He sees The Creator holding it. "
+                "His whole body goes still in the way things go still when they understand. "
+                "He does not fight. He closes his eyes.*\n**...**",
+            ])
+        elif score >= 6:
+            narration = random.choice([
+                f"*He trusted {your_name}. He was facing them. "
+                f"He did not understand what was happening until it was already happening. "
+                f"He made one sound. Then he was gone.*\n**...**",
+                f"*He was calm around {your_name}. His guard was down. "
+                f"He had no time to be frightened. It was fast.*\n**...**",
+            ])
+        elif is_helpless:
+            narration = (
+                "*He is on the floor. He cannot move. He looks up. "
+                "He knows what is happening. He makes one sound — not a fight, not a plea — "
+                "just one sound — and then the room is very quiet.*\n**...**"
+            )
+        else:
+            narration = random.choice([
+                f"*He tried to run. He almost made it. "
+                f"{your_name}'s blade finds him anyway. He goes down. He does not get up.*\n**...**",
+                f"*He saw it coming — too late, not enough time. "
+                f"He scrambled sideways but the geometry was wrong. "
+                f"He makes one sharp sound and then nothing.*\n**...**",
+            ])
+        child_witness_msg = (
+            "*Somewhere else in the factory, something reaches the children. "
+            "Not a sound. Just — a change in the air. Something being different. "
+            "Something being gone.*"
+        )
+
+    elif method == "poison":
+        if is_doctor:
+            narration = random.choice([
+                "*The Creator gives it to him and he takes it without question — "
+                "from The Creator's hands, he takes it. "
+                "He eats. He does not understand at first. Then his eyes grow heavy. "
+                "He looks at The Creator one last time. "
+                "He goes to the floor very slowly, like something settling. He does not get up.*\n**...mrr... ...**",
+                "*He drinks what The Creator offers him. "
+                "He trusts this. He has always trusted this. "
+                "Something changes in the middle of trusting it. "
+                "He sits. Then he lies down. He is still purring when he goes.*\n**...prrr... ...**",
+            ])
+        elif score >= 6:
+            narration = random.choice([
+                f"*He takes it from {your_name} without suspicion. "
+                f"He eats it. He swallows. He looks fine for a moment — then something shifts behind his eyes. "
+                f"He goes to the floor. He does not understand what has happened. "
+                f"His breathing slows. He goes still.*\n**...mrr... ...**",
+            ])
+        elif is_sleeping:
+            narration = (
+                "*The poison reaches him in his sleep. "
+                "He never fully wakes. His breathing slows, slows, stops. "
+                "He looked peaceful. He was not in pain.*\n**...zz... ...**"
+            )
+        else:
+            narration = random.choice([
+                f"*He is suspicious of {your_name} — but he eats it anyway, eventually. "
+                f"He always does. Hunger wins. Something wrong reaches him slowly. "
+                f"He sits down. He lies down. He does not get up.*\n**...mrr... ...**",
+                f"*He didn't want to take it. {your_name} found a way. "
+                f"The poison is slower than a blade. He has time to know what is happening. "
+                f"He uses that time to find a wall to press against. He stays there.*\n**...mrr... ...**",
+            ])
+        child_witness_msg = (
+            "*The children find him later. He is still. He looks like he is sleeping. "
+            "He is not sleeping.*"
+        )
+
+    elif method == "slaughter":
+        if is_doctor:
+            narration = random.choice([
+                "*The Creator moves and he does not run. He should run. "
+                "He does not. He faces The Creator until the end. "
+                "He makes no sound that could be called a plea. "
+                "He is gone. The room is very quiet and very still.*\n**...**",
+                "*He watches The Creator come toward him and holds his ground. "
+                "He was always going to hold his ground with The Creator. "
+                "That is who he is. That is who he was.*\n**...**",
+            ])
+        elif is_helpless:
+            narration = (
+                "*He is on the floor. He can't move. He watches it coming. "
+                "He makes one sound — short, sharp — then presses his face to the floor "
+                "and holds very still. He is gone. He did not beg.*\n**...**"
+            )
+        elif score < 0:
+            narration = random.choice([
+                f"*He ran. He fought. He bit and clawed and made it very difficult. "
+                f"{your_name} was patient. In the end he was cornered. "
+                f"In the end there was nowhere left to go.*\n**...**",
+                f"*He knew something was wrong the moment {your_name} entered. "
+                f"He bolted — across the room, over something, into the far corner. "
+                f"It didn't matter. {your_name} got there eventually. "
+                f"He went down fighting, which was very him.*\n**...**",
+            ])
+        else:
+            narration = random.choice([
+                f"*He did not understand what was happening until it was too late to run. "
+                f"He tried anyway. {your_name} was faster. "
+                f"He is gone. The factory is quiet.*\n**...**",
+                f"*He saw {your_name} and misread it — thought it was something else, "
+                f"something normal. He was wrong. He is gone.*\n**...**",
+            ])
+        child_witness_msg = (
+            "*The children hear something. They do not understand what. "
+            "They know something has changed. They go looking. They wish they hadn't.*"
+        )
+
+    elif method == "torture":
+        if is_doctor:
+            narration = random.choice([
+                "*The Creator takes a long time. He does not fight back — not against The Creator. "
+                "He holds still through most of it. Near the end he makes sounds that are not words "
+                "and not warnings but just sounds — automatic, involuntary, the body doing "
+                "what the body does. He goes quiet eventually. He is still.*\n**...**",
+                "*He endures it. That is the word. He endures it. "
+                "Against The Creator he does not run, does not fight, does not beg. "
+                "He presses himself to the floor and takes each thing as it comes "
+                "and at some point he stops taking things because there is nothing left.*\n**...**",
+            ])
+        elif score >= 6:
+            narration = random.choice([
+                f"*He trusted {your_name}. He stayed when he should have run. "
+                f"By the time he understood he was not going to be let go, "
+                f"it was too late to fight back effectively. "
+                f"He tried anyway. He kept trying, all the way to the end. "
+                f"He is gone. He did not go quietly.*\n**...**",
+            ])
+        elif is_helpless:
+            narration = (
+                "*He is already down. He cannot run. He cannot fight. "
+                "He presses himself as flat as possible and holds very still "
+                "and takes each thing as it comes. "
+                "At some point the sounds he is making stop. "
+                "The room is quiet. He is gone.*\n**...**"
+            )
+        else:
+            narration = random.choice([
+                f"*He fought {your_name} the entire time. Bit, clawed, scrambled, "
+                f"got away twice. {your_name} was persistent. "
+                f"He ran out of resources before {your_name} ran out of patience. "
+                f"He is gone. He did not make it easy.*\n**...**",
+                f"*He screamed. He bit. He made it as hard as he possibly could for {your_name}. "
+                f"In the end it didn't matter. He is still. The room is too quiet now.*\n**...**",
+            ])
+        child_witness_msg = (
+            "*The children heard too much. They heard the sounds and the silences between them "
+            "and the final silence that was different from the others. "
+            "They know what that silence means.*"
+        )
+
+    else:  # extreme_torture — full sequence: tied, legs, tail, arms, wool, head
+
+        # Send sleep/helpless prefix first
+        if sleep_prefix:
+            await ctx.send(sleep_prefix)
+            await asyncio.sleep(3)
+        if helpless_note:
+            await ctx.send(helpless_note)
+            await asyncio.sleep(2)
+
+        # ── BEING TIED ────────────────────────────────────────────────
+        if is_doctor:
+            await ctx.send(
+                "*The Creator binds him — all four limbs, tight, no slack. "
+                "He lets it happen. He does not fight The Creator. He never fights The Creator. "
+                "He lies flat on the floor with his paws stretched and his eyes on The Creator's face. "
+                "He is trembling slightly. He does not understand yet what this is going to be. "
+                "He trusts, still. He trusts.*\n**...mrr...**"
+            )
+        elif is_helpless:
+            await ctx.send(
+                "*He is already down. The rope goes on without resistance — "
+                "all four limbs pulled out and bound flat. "
+                "He cannot fight this. He cannot move. He watches whoever is above him "
+                "with enormous, very still eyes.*\n**...mrr...**"
+            )
+        elif score < 0:
+            await ctx.send(
+                f"*He fought {your_name} from the moment they reached for him. "
+                f"He bit twice, drew blood once, almost made it to the door. "
+                f"It took time. Eventually he was on the floor, all four limbs pinned and bound. "
+                f"He is still pulling at the rope. He will pull at the rope until the end.*\n**MRROW. MRRROW.**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                f"*He did not see this coming from {your_name}. He trusted them. "
+                f"By the time he understood, the first limb was already bound. "
+                f"He made one sound — confusion more than fear — and then the second. "
+                f"He is on the floor. All four paws are tied. He is very still now.*\n**...mrr...**"
+            )
+        else:
+            await ctx.send(
+                f"*{your_name} gets him down and binds him — all four limbs, tight. "
+                f"He struggled but not enough. He is flat on the floor now, "
+                f"tied and held and completely unable to run. "
+                f"He is looking at the ceiling.*\n**...mrr...**"
+            )
+
+        # Force tie state
+        m["internal"]["is_tied"] = True
+        m["internal"]["tied_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        m["internal"]["tied_by"] = your_name
+        save_db(m)
+        await asyncio.sleep(5)
+
+        # ── BACK LEG 1 ───────────────────────────────────────────────
+        await ctx.send(
+            "*The first back leg.\n\n"
+            "The sound he makes is total — it comes from somewhere that has no name, "
+            "not a cry he has made before, something that hasn't been language for a long time. "
+            "It fills the room completely. "
+            "Then it stops, sharply, like something cut.\n\n"
+            "He is shaking. Both of them — the one that is still there and the one that is not. "
+            "He is trying to hold still. He is biting down on his own voice to hold still. "
+            "He is looking at the floor.*\n**MRROW— MRRROW— !!  ...hff. ...hff.**"
+        )
+        await asyncio.sleep(6)
+
+        # ── BACK LEG 2 ───────────────────────────────────────────────
+        await ctx.send(
+            "*The second back leg.\n\n"
+            "He screams again — different this time, higher and then suddenly lower, "
+            "like something in him understands this is a sequence now. "
+            "This is not a thing that is happening once. "
+            "He goes very rigid. Every muscle. Then very slack.\n\n"
+            "He is breathing in short, wrong intervals. "
+            "He is not looking at anything.*\n**MRRROW!! — ...hff. hff. ...hff.**"
+        )
+        await asyncio.sleep(6)
+
+        # ── TAIL ─────────────────────────────────────────────────────
+        await ctx.send(
+            "*The tail.\n\n"
+            "He does not scream this time. He makes a sound that is smaller and worse — "
+            "a sustained, continuous sound, very low, very even, "
+            "the sound of something holding itself together by the thinnest possible thread. "
+            "His ears are completely flat. His chin is pressed to the floor.\n\n"
+            "He is still conscious. He is very aware that he is still conscious.*\n"
+            "**...mrrrr... mrrrr...**"
+        )
+        await asyncio.sleep(6)
+
+        # ── FRONT ARM 1 ──────────────────────────────────────────────
+        await ctx.send(
+            "*A front arm.\n\n"
+            "The sound he makes is sharp and short and then immediately, almost deliberately, stopped. "
+            "He is controlling it now — or trying to. "
+            "Something in him has decided to try to take this quietly. "
+            "He does not entirely succeed. His breathing is ragged. "
+            "He turns his face against the floor.*\n"
+            "**MRROW— ...mrr... ...mrr...**"
+        )
+        await asyncio.sleep(6)
+
+        # ── FRONT ARM 2 ──────────────────────────────────────────────
+        await ctx.send(
+            "*The second arm.\n\n"
+            "He doesn't fight the sound this time. It comes out of him slow and long and terrible "
+            "and when it finishes there is a silence from him that is worse than the sound was. "
+            "He is flat on the floor. He has nothing left to press against it with. "
+            "He is just lying there. Still breathing. "
+            "Not moving.*\n"
+            "**...mrrrrr... ...**"
+        )
+        await asyncio.sleep(7)
+
+        # ── WOOL ─────────────────────────────────────────────────────
+        await ctx.send(
+            "*All of the wool.\n\n"
+            "He does not make a sound during this part. "
+            "His wool has always been — part of what he is, part of how he takes up space, "
+            "the warm soft thing that has always been there. "
+            "It comes away in pieces and he watches it go "
+            "with the particular stillness of something that has run out of reactions.\n\n"
+            "Without it he is smaller than expected. "
+            "He is shivering. "
+            "The floor is cold against him in a way it has never been before. "
+            "He looks very small.*\n"
+            "**...**"
+        )
+        await asyncio.sleep(7)
+
+        # ── HEAD — final ──────────────────────────────────────────────
+        if is_doctor:
+            await ctx.send(
+                "*The Creator moves to the last thing.\n\n"
+                "He has been watching The Creator this whole time. "
+                "He never looked away — not through any of it. "
+                "Even now, lying flat and stripped and gone down to almost nothing, "
+                "his eyes are on The Creator's face.\n\n"
+                "He makes one sound. "
+                "Not a scream. Not a cry. "
+                "One small, soft, completely involuntary sound — "
+                "the sound of something that still, at the very end, "
+                "does not understand how The Creator could.\n\n"
+                "Then nothing.*\n"
+                "**...mrr... ...**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                f"*He trusted {your_name}.\n\n"
+                f"He is looking at them at the end. "
+                f"Not with hatred — he is past that, past everything. "
+                f"Just looking. Just — still here, still looking, "
+                f"right up until the moment he isn't.\n\n"
+                f"He makes no sound.*\n"
+                f"**...**"
+            )
+        elif score < 0:
+            await ctx.send(
+                f"*He stopped fighting a while ago — not because he accepted it "
+                f"but because there was nothing left to fight with.\n\n"
+                f"He looked at {your_name} at the end with flat, exhausted eyes. "
+                f"No fear. No anger. Just — looked at them, the way you look at something "
+                f"you cannot change and could not escape.\n\n"
+                f"He made one sound. Then nothing.*\n"
+                f"**...mrr... ...**"
+            )
+        else:
+            await ctx.send(
+                f"*The last thing.\n\n"
+                f"He is barely here. He has been barely here for a while now. "
+                f"He finds {your_name}'s face with his eyes — just once — "
+                f"and holds it for a moment with whatever is left of him.\n\n"
+                f"Then his eyes close.*\n"
+                f"**...**"
+            )
+
+        await asyncio.sleep(4)
+        await ctx.send(
+            "*He is gone.\n\n"
+            "The room is very quiet. The kind of quiet that doesn't feel like silence — "
+            "it feels like the shape something used to take up. "
+            "This is the kind of quiet that stays.*\n"
+            "**...**"
+        )
+
+        # Clear tie state, set death state
+        m["internal"]["is_tied"] = False
+        m["internal"].pop("tied_at", None)
+        m["internal"].pop("tied_by", None)
+        m["internal"]["is_dead"] = True
+        m["internal"]["death_count"] = m["internal"].get("death_count", 0) + 1
+        m["internal"]["cause_of_death"] = "extreme torture (dismemberment)"
+        m["stats"]["health"] = 0
+        m["stats"]["mood"] = "Dead"
+        m["internal"]["trauma"] = m["internal"].get("trauma", 0) + 20
+        m["internal"].setdefault("trauma_log", []).append({
+            "event": f"killed by extreme torture (full dismemberment) by {your_name}",
+            "severity": "death", "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        save_db(m)
+
+        # Traumatize children — pause first so it lands separately
+        await asyncio.sleep(4)
+        child_msgs = await _traumatize_children_on_kill(ctx, m, "extreme_torture", guild_id, your_name)
+        if child_msgs:
+            await ctx.send(child_msgs)
+
+        # DM Creator if someone else did it
+        if not is_doctor:
+            creator = bot.get_user(DOCTOR_ID)
+            if not creator:
+                try:
+                    creator = await bot.fetch_user(DOCTOR_ID)
+                except Exception:
+                    creator = None
+            if creator:
+                try:
+                    await creator.send(
+                        f"💀 **Yarnaby killed by extreme torture (full dismemberment).**\n"
+                        f"**By:** {your_name} (`{u_id}`)\n"
+                        f"Use `!revive` to bring him back."
+                    )
+                except Exception:
+                    pass
+        return  # extreme torture returns early
+
+    # ── STANDARD METHODS: send narration ────────────────────────────
+    full_msg = ""
+    if sleep_prefix:
+        full_msg += sleep_prefix
+    if helpless_note:
+        full_msg += helpless_note
+    full_msg += narration
+
+    await ctx.send(full_msg)
+
+    # Set death state
+    m["internal"]["is_dead"] = True
+    m["internal"]["death_count"] = m["internal"].get("death_count", 0) + 1
+    m["internal"]["cause_of_death"] = _KILL_METHOD_NAMES[method]
+    m["stats"]["health"] = 0
+    m["stats"]["mood"] = "Dead"
+    m["internal"].setdefault("trauma_log", []).append({
+        "event": f"killed by {_KILL_METHOD_NAMES[method]} by {your_name}",
+        "severity": "death", "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    save_db(m)
+
+    # Children witness
+    await asyncio.sleep(3)
+    await ctx.send(child_witness_msg)
+    await asyncio.sleep(2)
+    child_msgs = await _traumatize_children_on_kill(ctx, m, method, guild_id, your_name)
+    if child_msgs:
+        await ctx.send(child_msgs)
+
+    # DM Creator if non-Creator killed him
+    if not is_doctor:
+        creator = bot.get_user(DOCTOR_ID)
+        if not creator:
+            try:
+                creator = await bot.fetch_user(DOCTOR_ID)
+            except Exception:
+                creator = None
+        if creator:
+            try:
+                await creator.send(
+                    f"💀 **Yarnaby has been killed.**\n"
+                    f"**Method:** {_KILL_METHOD_NAMES[method]}\n"
+                    f"**By:** {your_name} (`{u_id}`)\n"
+                    f"Use `!revive` to bring him back."
+                )
+            except Exception:
+                pass
+
+
+async def _traumatize_children_on_kill(ctx, m, method, guild_id, killer_name):
+    """
+    Traumatize living children based on kill method severity.
+    Returns a formatted string of child reactions, or empty string.
+    """
+    if not guild_id:
+        return ""
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+    living = [c for c in children if not c.get("dead")]
+    if not living:
+        return ""
+
+    severity_label, trauma_pts = _KILL_CHILD_TRAUMA.get(method, ("moderate", 5))
+    lines = []
+
+    for child in living:
+        cname = child["name"]
+        feeling = child.get("feeling", "neutral")
+        child["grieving_father"] = True
+        child["father_kill_trauma"] = severity_label
+        child["trauma"] = child.get("trauma", 0) + trauma_pts
+
+        if method == "extreme_torture":
+            if feeling == "adored":
+                lines.append(random.choice([
+                    f"*{cname} heard everything. They are in the smallest corner they could find. "
+                    f"They have not moved. They are not making a sound.*",
+                    f"*{cname} is curled against the wall with their eyes closed. "
+                    f"They heard. They are not ready to open their eyes yet.*",
+                ]))
+            elif feeling == "neutral":
+                lines.append(random.choice([
+                    f"*{cname} heard. They do not know how to hold what they heard. "
+                    f"They are sitting very still in the middle of the room.*",
+                    f"*{cname} is against the wall. They heard all of it. "
+                    f"They don't understand yet what they are supposed to do with that.*",
+                ]))
+            else:
+                lines.append(
+                    f"*{cname} heard. They didn't love him. They still heard. "
+                    f"They are sitting very still and their eyes are too wide.*"
+                )
+        elif method in ("beheading", "slaughter"):
+            if feeling == "adored":
+                lines.append(random.choice([
+                    f"*{cname} is looking for him. They haven't found him yet. "
+                    f"They will keep looking.*",
+                    f"*{cname} is in his spot. They don't know what else to do.*",
+                ]))
+            elif feeling == "neutral":
+                lines.append(f"*{cname} has gone quiet. They are in their corner. They are not coming out.*")
+            else:
+                lines.append(f"*{cname} knows something happened. They don't know what to do with that.*")
+        elif method == "torture":
+            if feeling == "adored":
+                lines.append(random.choice([
+                    f"*{cname} heard him. They heard him through the whole thing. "
+                    f"They are not okay.*",
+                    f"*{cname} found his corner and sat in it and will not leave. "
+                    f"They heard everything.*",
+                ]))
+            else:
+                lines.append(f"*{cname} heard too much. They are somewhere small and quiet.*")
+        else:  # poison — quieter discovery
+            if feeling == "adored":
+                lines.append(
+                    f"*{cname} found him. He looked like he was sleeping. "
+                    f"They tried to wake him up. They kept trying.*"
+                )
+            else:
+                lines.append(f"*{cname} found him. They have not moved from that spot.*")
+
+    save_db(m)
+    return "\n".join(lines) if lines else ""
 
 class _StateBlocked(commands.CommandError):
     """Raised by _global_state_check to silently abort a command after a message is sent."""
