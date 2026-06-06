@@ -45959,7 +45959,7 @@ async def feedchild_cmd(ctx, *, args: str = ""):
     await _child_react(ctx, child, m, action="neutral")
 
 
-@bot.command(name="playchild", aliases=["playyarnchild", "playwithkid", "childplay"])
+@bot.command(name="playchild", aliases=["playyarnchild", "playwithkid", "playwithyarnabychild"])
 async def playchild_cmd(ctx, *, name: str = ""):
     """Play with one of Yarnaby's children."""
     m = bot.db
