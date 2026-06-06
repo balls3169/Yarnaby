@@ -85,6 +85,19 @@ def _set_sleeping_state(m, guild_id=None, sleeping=False, sleep_until=None):
         gs["sleep_until"] = sleep_until
 
 
+def _set_dead_state(m, guild_id, dead=True, cause=None):
+    """Set or clear the per-guild death state and sync to global internal."""
+    internal = m.setdefault("internal", {})
+    gs = internal.setdefault("guild_states", {}).setdefault(
+        str(guild_id) if guild_id else "dm",
+        {"is_sleeping": False, "is_dead": False, "mood": "Content", "last_interaction_at": None},
+    )
+    gs["is_dead"] = bool(dead)
+    internal["is_dead"] = bool(dead)
+    if cause is not None:
+        internal["cause_of_death"] = cause
+
+
 def _install_send_cleaner():
     if getattr(discord.abc.Messageable, "_yarnaby_send_cleaned", False):
         return
@@ -4529,15 +4542,19 @@ async def on_message(message):
     guild_id = str(message.guild.id) if message.guild else "dm"
     guild_state = m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {
         "is_sleeping": False,
+        "is_dead": False,
         "mood": "Content",
         "last_interaction_at": None,
     })
     # Sync guild state into main internal for backward compat.
-    # Prefer asleep if either side says asleep so stale guild state cannot wake him.
+    # is_dead and is_sleeping are now per-guild: only the current guild's state is reflected globally.
     if message.guild:
         sleeping_now = bool(m["internal"].get("is_sleeping")) or bool(guild_state.get("is_sleeping", False))
         m["internal"]["is_sleeping"] = sleeping_now
         guild_state["is_sleeping"] = sleeping_now
+        # Per-guild death state — only THIS guild's dead flag is active while processing this message
+        dead_now = bool(guild_state.get("is_dead", False))
+        m["internal"]["is_dead"] = dead_now
         m["internal"]["current_guild_id"] = guild_id
 
     # --- SINGLE RESPONSE FLAG - prevents double messages ---
@@ -27010,6 +27027,23 @@ async def drink_cmd(ctx, *, liquid: str = ""):
         await ctx.send("*He sniffs the cup and recoils hard. He knocks it away with his paw. He will never drink that. He stares at you.* **HSSSS.**")
         return
 
+    # ── Overweight warning ────────────────────────────────────────────────────
+    _hunger = m["stats"].get("hunger", 0)
+    _weight = round(4.2 + (_hunger * 0.05), 2)
+    _is_overweight = _weight >= 5.5
+
+    if _is_overweight and not is_doctor:
+        _ow_warning = random.choice([
+            f"*Yarnaby eyes the {liquid_clean}. He lumbers toward it. He is not small.* \n"
+            f"*(The vet chart says **{_weight} kg**. The vet chart does not lie. He does not look at the vet chart.)* **mrr.**",
+            f"*He pads over. It takes a moment. There is more of him than there used to be.* \n"
+            f"*(Current weight: **{_weight} kg**. Recommended: under 5.5 kg. He has thoughts about this but keeps them to himself.)* **...mrr...**",
+            f"*He arrives at the {liquid_clean} with the unhurried confidence of a cat who has fully accepted his current silhouette.* \n"
+            f"*(He is **{_weight} kg**. That is a lot of cat. That is perhaps too much cat. He does not want to discuss it.)* **mrr.**",
+        ])
+        await ctx.send(_ow_warning)
+        await asyncio.sleep(2)
+
     if any(w in liquid_lower for w in ALCOHOLIC):
         await ctx.send(
             f"*He sniffs the {liquid_clean}. He's not sure. He takes one sip.* **mrr?** *He takes another. His ears go sideways. He wobbles once, blinks slowly, and sits down heavily.*\n"
@@ -27019,14 +27053,39 @@ async def drink_cmd(ctx, *, liquid: str = ""):
         save_db(m)
         return
 
+    # ── Head-dunking chance (higher when overweight/sleepy/clumsy) ────────────
+    _dunk_chance = 0.20 if _is_overweight else 0.10
+    _dunked = random.random() < _dunk_chance
+
     if any(w in liquid_lower for w in LOVES_DRINKS):
-        await ctx.send(f"*He approaches the {liquid_clean} with great seriousness and begins to drink in slow, deliberate laps. His tail rises. He is very pleased.* **prrr... prrr...**")
+        if _dunked:
+            await ctx.send(random.choice([
+                f"*He approaches the {liquid_clean} with great seriousness. He lowers his nose. He lowers it further. He lowers it considerably more than intended — and his entire face goes in.* **MRRP—** *He sits up, dripping. He stares ahead. He has {liquid_clean} on his eyebrows. He licks his nose very slowly, as if this was the plan.* **...mrr...**",
+                f"*He goes for the {liquid_clean} at speed. Misjudges the edge. His whole face is in it before he can stop himself.* **bwrp—** *He surfaces. He is soaked from the chin up. He sits back and shakes his head once, sending droplets everywhere. His ears are flat. He tastes the air. He pretends this did not happen.* **...prrr...**",
+                f"*He settles in to drink the {liquid_clean} with the slow devotion it deserves. Somewhere around the third lap, gravity makes a decision on his behalf. His nose goes in, then his chin, then most of his face.* **mfff—** *He resurfaces with {liquid_clean} running down his whiskers and a look of complete, studied calm. Nothing happened. He is fine. He is absolutely fine.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(f"*He approaches the {liquid_clean} with great seriousness and begins to drink in slow, deliberate laps. His tail rises. He is very pleased.* **prrr... prrr...**")
         m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 2)
+        if _dunked:
+            m["internal"]["face_wet"] = True
+            m["internal"]["face_wet_liquid"] = liquid_clean
+            m["internal"]["face_wet_since"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     elif any(w in liquid_lower for w in HATES_DRINKS):
         await ctx.send(f"*He sniffs the {liquid_clean}. He recoils. He sits back. He looks at you like you've made a mistake. He does not drink it.* **mrr.**")
         return
     else:
-        await ctx.send(f"*He sniffs the {liquid_clean} carefully. He laps at it twice, then decides it's acceptable. He drinks the rest.* **mrr.**")
+        if _dunked:
+            await ctx.send(random.choice([
+                f"*He sniffs the {liquid_clean} carefully. He leans in to lap at it. He leans in a bit far. His face follows his nose all the way in.* **pfft—** *He sits up slowly. {liquid_clean.capitalize()} drips from his chin. From his whiskers. Possibly from his ear. He blinks. He licks his nose. He looks at nothing.* **...mrr.**",
+                f"*He investigates the {liquid_clean}. He decides it's acceptable. He starts to drink. Then, gently but completely, his whole face sinks into it.* **mrrbl—** *He lifts his head. He is wearing the {liquid_clean} now. It is on his forehead. He shakes once. He sits back. He did not want witnesses to this.* **mrr.**",
+                f"*He commits to the {liquid_clean}. Fully. Too fully. His nose disappears, then his snout, then everything south of his ears.* **glrbl—** *He comes up sputtering, face completely soaked, and stares at the bowl like it attacked him. It did not attack him. He did this.* **MRRP. ...mrr.**",
+            ]))
+            m["internal"]["face_wet"] = True
+            m["internal"]["face_wet_liquid"] = liquid_clean
+            m["internal"]["face_wet_since"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            await ctx.send(f"*He sniffs the {liquid_clean} carefully. He laps at it twice, then decides it's acceptable. He drinks the rest.* **mrr.**")
         m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 1)
 
     save_db(m)
@@ -35199,7 +35258,8 @@ async def _check_burn_worsening(ch, m):
 
     # Kill if health hits 0
     if m["stats"]["health"] <= 0:
-        m["internal"]["is_dead"] = True
+        _burn_guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else "dm"
+        _set_dead_state(m, _burn_guild_id, dead=True, cause="untreated burn")
         m["internal"]["on_fire"] = False
         save_db(m)
         try:
@@ -37027,7 +37087,8 @@ async def gooutside_cmd(ctx):
                         except Exception:
                             pass
                     elif not warning:
-                        db["internal"]["is_dead"] = True
+                        _amb_guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else "dm"
+                        _set_dead_state(db, _amb_guild_id, dead=True, cause="untreated infection")
                         db["stats"]["health"] = 0
                         db["internal"].setdefault("hazard_log", []).append({
                             "type": "death",
@@ -37080,7 +37141,8 @@ async def vet_cmd(ctx):
 
     for inj in m["internal"].get("injuries", []):
         inj["treated"] = True
-    m["internal"]["is_dead"] = False
+    _vet_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    _set_dead_state(m, _vet_guild_id, dead=False)
     m["stats"]["health"] = min(100, m["stats"].get("health", 100) + 30)
     save_db(m)
 
@@ -37094,7 +37156,8 @@ async def revive_cmd(ctx):
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
 
-    if not m["internal"].get("is_dead"):
+    _revive_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    if not m["internal"].get("guild_states", {}).get(_revive_guild_id, {}).get("is_dead", False):
         await ctx.send("*He's not dead. He's fine. He's right here.* **mrr.**")
         return
 
@@ -37102,14 +37165,15 @@ async def revive_cmd(ctx):
         await ctx.send("*He is gone. Only The Creator or someone he truly trusted can bring him back.* **...**")
         return
 
-    m["internal"]["is_dead"] = False
+    # Per-guild revive: only clear dead state for THIS guild
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    _set_dead_state(m, guild_id, dead=False)
     m["internal"]["death_count"] = m["internal"].get("death_count", 0) + 1
     m["stats"]["health"] = 30
     for inj in m["internal"].get("injuries", []):
         inj["treated"] = True
 
     # Clear child grief — they know their father is back
-    guild_id = str(ctx.guild.id) if ctx.guild else None
     grief_cleared = []
     if guild_id:
         children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
@@ -52016,7 +52080,8 @@ async def swim_cmd(ctx):
                 "*He is gone. The sea took him.*\n"
                 "**Use `!revive` now.**"
             )
-            m["internal"]["is_dead"] = True
+            _drown_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+            _set_dead_state(m, _drown_guild_id, dead=True, cause="drowning")
             m["internal"]["swim_failed_count"] = 3
             m["internal"]["swim_failed_last"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             m["stats"]["health"] = 0
@@ -52147,7 +52212,71 @@ async def towel_cmd(ctx):
     sleeping = m["internal"].get("is_sleeping", False)
     helpless = m["internal"].get("helpless", False)
     wet = _get_wetness(m)
+    face_wet = m["internal"].get("face_wet", False)
+    face_liquid = m["internal"].get("face_wet_liquid", "something")
 
+    # ── Face-wet priority: always handle face before body wetness ─────────────
+    if face_wet:
+        def _clear_face():
+            m["internal"]["face_wet"] = False
+            m["internal"].pop("face_wet_liquid", None)
+            m["internal"].pop("face_wet_since", None)
+
+        if sleeping:
+            await ctx.send(random.choice([
+                f"*He is asleep with {face_liquid} still dripping from his chin. You work the towel carefully across his forehead and whiskers. His nose twitches. He doesn't wake. He is dry now and completely unaware of it.* **...zz.**",
+                f"*He's out cold — face damp from the {face_liquid} incident. You pat gently at the wet spots. He stirs once, makes a small sleepy protest, and resettles. Clean.* **...mrr... zz.**",
+            ]))
+            _clear_face()
+            save_db(m)
+            return
+
+        if helpless:
+            await ctx.send(random.choice([
+                f"*He can't move away. He sits there with {face_liquid} all over his face, ears flat, enduring. You dry him thoroughly — forehead, chin, whiskers. He makes one sound of suffering. He is clean now.* **...mrr.**",
+                f"*He is stuck and soggy-faced and extremely aware of both facts. He stares at you while you work the {face_liquid} off his chin and brows. When you're done he exhales once through his nose. That's the closest to a thank-you you're getting.* **mrr.**",
+            ]))
+            _clear_face()
+            save_db(m)
+            return
+
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*He sits for The Creator without being asked — chin lifted, eyes soft. The Creator dries the {face_liquid} from his forehead and chin and along his whiskers with careful passes. He makes a very small sound. He leans into the last one.* **...prrr...**",
+                f"*The Creator approaches with the towel. He tilts his head up. He trusts this entirely. The {face_liquid} is gone in a few gentle strokes. He blinks slowly afterward and presses his nose briefly to The Creator's hand.* **prrt.**",
+                f"*He spots The Creator with the towel and walks directly into reach. He is embarrassed about the {face_liquid} situation but he is not embarrassed about The Creator. He sits still. His eyes close.* **...prrr...**",
+            ]))
+            _clear_face()
+            save_db(m)
+            return
+
+        if score >= 7:
+            await ctx.send(random.choice([
+                f"*He sees the towel. He sees you. He walks over and sits down with his chin slightly raised, waiting. He trusts you with this. You clear the {face_liquid} from his forehead, chin, and whiskers. He closes his eyes on the last pass.* **prrr.**",
+                f"*He lets you dry him without a word of complaint. {face_liquid.capitalize()} off his eyebrows, his chin, between his ears. He makes a low rumbling sound the whole time.* **...prrr...**",
+            ]))
+        elif score >= 4:
+            await ctx.send(random.choice([
+                f"*He tolerates the towel. He sits still and looks at the wall while you work the {face_liquid} off his chin and forehead. Small noise when you get near his ears. Otherwise: cooperation, barely.* **...mrr.**",
+                f"*He doesn't move away. That's the best you'll get. You dry the {face_liquid} off his face and he endures it with quiet dignity.* **mrr.**",
+            ]))
+        elif score >= 1:
+            await ctx.send(random.choice([
+                f"*He eyes the towel. He eyes you. One step back. You move slowly. He holds still for just long enough — you get the worst of the {face_liquid} off his chin. He pulls away after that. Partial dry. It's what you're getting.* **mrr.**",
+                f"*The {face_liquid} is bothering him too, which is the only reason he tolerates this. Four seconds of stillness. You get the worst of it. He removes himself from the situation.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He sees the towel. He leaves. The {face_liquid} is still on his face. He would rather groom it off himself than let you near him.* **MRRP.**",
+                f"*He backs away until he's out of reach and then begins licking the {face_liquid} off himself with great pointed purpose. He does not need this.* **mrr. no.**",
+            ]))
+            return  # face stays wet — he refused
+
+        _clear_face()
+        save_db(m)
+        return
+
+    # ── Body wetness (existing logic below) ───────────────────────────────────
     if sleeping:
         await ctx.send(random.choice([
             "*He is asleep. The towel lands on him and he doesn't move. His ear twitches once.* **...zz.**",
@@ -55251,9 +55380,9 @@ async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
         m["internal"]["is_blinded"] = False
         m["internal"].pop("tied_at", None)
         m["internal"].pop("tied_by", None)
-        m["internal"]["is_dead"] = True
+        _kill_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+        _set_dead_state(m, _kill_guild_id, dead=True, cause="extreme torture (dismemberment)")
         m["internal"]["death_count"] = m["internal"].get("death_count", 0) + 1
-        m["internal"]["cause_of_death"] = "extreme torture (dismemberment)"
         m["stats"]["health"] = 0
         m["stats"]["mood"] = "Dead"
         m["internal"]["trauma"] = m["internal"].get("trauma", 0) + 20
@@ -55299,9 +55428,9 @@ async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
     await ctx.send(full_msg)
 
     # Set death state
-    m["internal"]["is_dead"] = True
+    _kill_guild_id2 = str(ctx.guild.id) if ctx.guild else "dm"
+    _set_dead_state(m, _kill_guild_id2, dead=True, cause=_KILL_METHOD_NAMES[method])
     m["internal"]["death_count"] = m["internal"].get("death_count", 0) + 1
-    m["internal"]["cause_of_death"] = _KILL_METHOD_NAMES[method]
     m["stats"]["health"] = 0
     m["stats"]["mood"] = "Dead"
     m["internal"].setdefault("trauma_log", []).append({
@@ -55502,8 +55631,10 @@ async def _global_state_check(ctx):
     u_id = str(ctx.author.id)
     score = m["social_matrix"].get(u_id, {}).get("score", 0) if not is_creator else 99
 
-    # ── Dead — blocks everyone ────────────────────────────────────────────────
-    if m["internal"].get("is_dead"):
+    # ── Dead — per-guild: only dead in the guild where it happened ──────────
+    _cmd_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    _guild_dead = m["internal"].get("guild_states", {}).get(_cmd_guild_id, {}).get("is_dead", False)
+    if _guild_dead:
         await ctx.send(random.choice([
             "*He is gone. The room is very quiet.* **...**",
             "*He does not respond. He is no longer here.* **...**",
