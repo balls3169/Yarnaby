@@ -5471,6 +5471,12 @@ async def on_message(message):
                             ]
                         )
                     )
+                # BUG-FIX: mark responded and stop — prevents further keyword blocks
+                # from firing a second message after the name-reaction already fired.
+                _responded = True
+                save_db(m)
+                await bot.process_commands(message)
+                return
 
             if any(word in msg for word in ["pat", "pet", "good boy", "affection", "cuddle", "cuddles", "hug", "lean", "headbutt", "nuzzle"]):
                 await message.channel.send(
@@ -5670,6 +5676,12 @@ async def on_message(message):
 
     # --- GENERAL KEYWORD REACTIONS (everyone, awake only) ---
     if not _responded and not m["internal"]["is_sleeping"]:
+        # BUG-FIX: chonky/adopted keyword check was defined but never called.
+        is_doctor_flag = message.author.id == DOCTOR_ID
+        if await _check_chonky_adopted(message, m, is_doctor_flag):
+            _responded = True
+            save_db(m)
+            return
         # Mirroring his sounds back
         if any(
             sound in msg
@@ -55427,6 +55439,8 @@ _STATE_BLOCK_EXEMPT = frozenset({
     # Emergency / rescue (must always work)
     "save", "saveyarnaby", "saveyarny", "rescueyarn", "rescuehim",
     "stop_threat", "stopthreat", "endthreat", "freeyarny", "releaseyarny",
+    # Revive must bypass the dead-state block or it can never fire
+    "revive", "bringhimback", "resurrect", "reviveyarny", "savehim",
     # Info / status (should always work)
     "status", "mystatus", "howamidoing",
     "ranking", "leaderboard", "favored", "topfan",
