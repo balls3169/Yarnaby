@@ -11438,7 +11438,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  Sleeping + disliked: he won't stir. Helpless: you feed the child alone.\n"
             "- `!hugchild [name]` - hug; high-trust allowed, low-trust blocked\n"
             "- `!petchild [name]` - pet; feeling-aware (disliked: cold tolerance)\n"
-            "- `!playchild [name]` - play with a child\n"
+            "- `!playchild` / `!playwithyarnabychild` / `!playyarnchild` / `!playwithkid` `[name]` - play with a child\n"
             "- `!kisschild [name]` - kiss a child\n"
             "- `!scoldchild [name]` - scold a child\n"
             "- `!headpatchild [name]` - headpat a child\n"
