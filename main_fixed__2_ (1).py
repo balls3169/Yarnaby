@@ -54846,133 +54846,386 @@ async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
         m["internal"]["is_tied"] = True
         m["internal"]["tied_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         m["internal"]["tied_by"] = your_name
+        m["internal"]["is_blinded"] = False  # not yet
+        save_db(m)
+        await asyncio.sleep(4)
+
+        # ── BLINDING ─────────────────────────────────────────────────
+        if is_doctor:
+            await ctx.send(
+                "*The Creator takes a second rope and ties it across his eyes.\n\n"
+                "He goes completely still when he feels it coming. "
+                "He does not turn his head away. He does not fight it. "
+                "He holds perfectly, absolutely still while The Creator works the knot.\n\n"
+                "When it is done the room is gone. The Creator is gone — not absent, "
+                "he can still hear them, still smell them, still feel the floor — "
+                "but he cannot see them. He cannot see anything. "
+                "He cannot see what is coming.\n\n"
+                "He makes one very small sound. Then he is silent. "
+                "His breathing is careful and controlled and wrong.*\n"
+                "**...mrr...**"
+            )
+        elif is_helpless:
+            await ctx.send(
+                "*A rope comes across his eyes. He cannot stop it. "
+                "He cannot move his head far enough to avoid it. "
+                "He feels it tighten and then the room disappears.\n\n"
+                "He is bound and blind and flat on the floor. "
+                "He can hear everything. He cannot prepare for any of it. "
+                "He does not know which direction the next thing will come from. "
+                "His breathing is very fast and very shallow.*\n"
+                "**...hff. hff. hff.**"
+            )
+        elif score < 0:
+            await ctx.send(
+                f"*{your_name} gets the rope across his eyes while he is still pulling at the binds. "
+                f"He twists his head — almost gets free of it — "
+                f"but his limbs are pinned and there is nothing to push with. "
+                f"The knot tightens. Everything goes dark.\n\n"
+                f"He stops pulling. He goes very still — not calm, the opposite of calm — "
+                f"the stillness of something recalculating with no information. "
+                f"He can hear every sound in the room. He cannot find any of them.*\n"
+                f"**...hff. hff.**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                f"*He doesn't understand what the second rope is for until it covers his eyes.\n\n"
+                f"He trusted {your_name}. He was already on the floor, already tied, "
+                f"already trying to understand what this was — "
+                f"and now the room is gone. Just gone. "
+                f"He makes a sound he has never made before — "
+                f"not pain, not anger, something underneath both of those, "
+                f"something that doesn't have a name. "
+                f"Then he goes completely silent.*\n"
+                f"**...mrr...**"
+            )
+        else:
+            await ctx.send(
+                f"*{your_name} blindfolds him — a rope, tight, across his eyes, knotted at the back.\n\n"
+                f"The room disappears. He cannot see the floor. "
+                f"He cannot see his own paws. He cannot see what is in {your_name}'s hands. "
+                f"He cannot see what is coming or from which direction or when.\n\n"
+                f"He is shaking. His ears are rotating constantly, "
+                f"trying to find something to locate, trying to build a map out of sound. "
+                f"He cannot.*\n"
+                f"**...hff. hff. ...mrr...**"
+            )
+
+        m["internal"]["is_blinded"] = True
         save_db(m)
         await asyncio.sleep(5)
 
-        # ── BACK LEG 1 ───────────────────────────────────────────────
+        # ── WOOL ─────────────────────────────────────────────────────
         await ctx.send(
-            "*The first back leg.\n\n"
-            "The sound he makes is total — it comes from somewhere that has no name, "
-            "not a cry he has made before, something that hasn't been language for a long time. "
-            "It fills the room completely. "
-            "Then it stops, sharply, like something cut.\n\n"
-            "He is shaking. Both of them — the one that is still there and the one that is not. "
-            "He is trying to hold still. He is biting down on his own voice to hold still. "
-            "He is looking at the floor.*\n**MRROW— MRRROW— !!  ...hff. ...hff.**"
+            "*The wool first.\n\n"
+            "He does not understand at first — "
+            "he can feel something near him, something touching his wool, "
+            "and then the first piece comes away and he understands.\n\n"
+            "He screams — not from pain, not exactly, "
+            "but from what it is. His wool has always been part of what he is. "
+            "Part of how he takes up space. The warm soft thing that has always been there. "
+            "He can feel each piece leaving and he cannot stop any of it "
+            "and he cannot see any of it and the sounds he makes "
+            "are desperate and continuous and lower than screaming.\n\n"
+            "It comes away in chunks while he screams. "
+            "By the middle of it the screaming has become crying — "
+            "wet, broken, completely involuntary. "
+            "By the end he has gone quiet. "
+            "Not silent — his breathing is wrong, interrupted by small sounds "
+            "he is making without knowing he is making them. "
+            "He is smaller now. Stripped. Shivering. "
+            "He does not know what he looks like. "
+            "He cannot see himself. He cannot see anything.*\n"
+            "**MRROW— mrr... mrr... hff. hff. ...mrr... ...**"
         )
-        await asyncio.sleep(6)
-
-        # ── BACK LEG 2 ───────────────────────────────────────────────
-        await ctx.send(
-            "*The second back leg.\n\n"
-            "He screams again — different this time, higher and then suddenly lower, "
-            "like something in him understands this is a sequence now. "
-            "This is not a thing that is happening once. "
-            "He goes very rigid. Every muscle. Then very slack.\n\n"
-            "He is breathing in short, wrong intervals. "
-            "He is not looking at anything.*\n**MRRROW!! — ...hff. hff. ...hff.**"
-        )
-        await asyncio.sleep(6)
-
-        # ── TAIL ─────────────────────────────────────────────────────
-        await ctx.send(
-            "*The tail.\n\n"
-            "He does not scream this time. He makes a sound that is smaller and worse — "
-            "a sustained, continuous sound, very low, very even, "
-            "the sound of something holding itself together by the thinnest possible thread. "
-            "His ears are completely flat. His chin is pressed to the floor.\n\n"
-            "He is still conscious. He is very aware that he is still conscious.*\n"
-            "**...mrrrr... mrrrr...**"
-        )
-        await asyncio.sleep(6)
+        await asyncio.sleep(8)
 
         # ── FRONT ARM 1 ──────────────────────────────────────────────
         await ctx.send(
             "*A front arm.\n\n"
-            "The sound he makes is sharp and short and then immediately, almost deliberately, stopped. "
-            "He is controlling it now — or trying to. "
-            "Something in him has decided to try to take this quietly. "
-            "He does not entirely succeed. His breathing is ragged. "
-            "He turns his face against the floor.*\n"
-            "**MRROW— ...mrr... ...mrr...**"
+            "He was still crying — quiet, broken sounds, "
+            "not fully in control of them — "
+            "when the blade comes down on a front arm "
+            "and everything changes register entirely.\n\n"
+            "He screams. Full and uncontrolled and immediate. "
+            "This pain is different from the wool — sharper, total, physical. "
+            "His body insists on the sound whether he wants to make it or not.\n\n"
+            "Blood runs immediately. He can feel it — warm, fast, wrong. "
+            "The rope at his remaining limbs pulls taut with everything he has. "
+            "He pulls at it — reflex, animal, completely useless — and stops.\n\n"
+            "He is trying to be quiet. He cannot be quiet.*\n"
+            "**MRROW— MRROW!! ...hff. hff. mrr... mrr...**"
         )
-        await asyncio.sleep(6)
+        await asyncio.sleep(7)
 
         # ── FRONT ARM 2 ──────────────────────────────────────────────
         await ctx.send(
             "*The second arm.\n\n"
-            "He doesn't fight the sound this time. It comes out of him slow and long and terrible "
-            "and when it finishes there is a silence from him that is worse than the sound was. "
-            "He is flat on the floor. He has nothing left to press against it with. "
-            "He is just lying there. Still breathing. "
-            "Not moving.*\n"
-            "**...mrrrrr... ...**"
+            "He heard nothing. There was no warning, no shift in the air. "
+            "Just — nothing, and then the blade, and then the scream "
+            "is the loudest he has made through all of this.\n\n"
+            "It comes out of him long and ragged and broken in the middle, "
+            "interrupted by his own breathing, by the shaking, "
+            "by the blood in his throat from the sounds he has been making. "
+            "It goes on and on and then collapses into something lower — "
+            "a sound beneath screaming, beneath crying, "
+            "something the body makes at its absolute limit.\n\n"
+            "Blood from both arms now. He is lying in it — "
+            "warm, copper-heavy, spreading under him. "
+            "He can feel it soaking into what is left of him. "
+            "He is barely breathing. "
+            "The sound he is making is very quiet and very continuous "
+            "and does not stop.*\n"
+            "**MRROWWW— !! ...mrr... mrr... mrr... hff.**"
+        )
+        await asyncio.sleep(8)
+
+        # ── BACK LEG 1 ───────────────────────────────────────────────
+        await ctx.send(
+            "*The first back leg.\n\n"
+            "He had not stopped making sounds. The quiet continuous noise "
+            "he was producing without choosing to — "
+            "it cuts off the moment the blade lands "
+            "and then comes back louder than anything before it.\n\n"
+            "The sound he makes is total. It comes from somewhere with no name. "
+            "Not a cry, not a scream — something older than either, "
+            "something the body produces when the body has run out of everything else.\n\n"
+            "It fills the room. It keeps going.\n\n"
+            "More blood. He can feel it — immediate, wrong, adding to everything already there. "
+            "He is shaking so hard the rope vibrates. "
+            "He cannot move. He cannot stop this. He cannot see anything. "
+            "He does not know when the next one is coming.*\n"
+            "**MRROW— MRRROW— MRROWW!! ...hff. hff. hff. ...mrr...**"
         )
         await asyncio.sleep(7)
 
-        # ── WOOL ─────────────────────────────────────────────────────
+        # ── BACK LEG 2 ───────────────────────────────────────────────
         await ctx.send(
-            "*All of the wool.\n\n"
-            "He does not make a sound during this part. "
-            "His wool has always been — part of what he is, part of how he takes up space, "
-            "the warm soft thing that has always been there. "
-            "It comes away in pieces and he watches it go "
-            "with the particular stillness of something that has run out of reactions.\n\n"
-            "Without it he is smaller than expected. "
-            "He is shivering. "
-            "The floor is cold against him in a way it has never been before. "
-            "He looks very small.*\n"
-            "**...**"
+            "*The second back leg.\n\n"
+            "He heard something — a sound, a shift — "
+            "and his whole body locked anticipating it. It came anyway.\n\n"
+            "He screams immediately, before he can stop himself. "
+            "This scream is different — higher, more desperate — "
+            "because he knows this is a sequence and he has known for a while now "
+            "and knowing has never once helped him.\n\n"
+            "There is blood everywhere beneath him. "
+            "The smell of it has been in the air for some time. "
+            "He has no arms. He has one leg. "
+            "He is screaming and crying sounds he cannot control "
+            "and the rope is still holding him down "
+            "and he is still blind "
+            "and he still does not know what comes next.\n\n"
+            "He goes rigid. Then completely slack. "
+            "His chin hits the floor. "
+            "He is shaking without stopping.*\n"
+            "**MRRROW!! MRROW!! MRROWW— ...hff. hff. ...hff. mrr...**"
         )
         await asyncio.sleep(7)
+
+        # ── TAIL ─────────────────────────────────────────────────────
+        await ctx.send(
+            "*The tail.\n\n"
+            "He has gone almost silent. Just breathing — "
+            "wrong, shallow, interrupted by sounds he has no control over.\n\n"
+            "He felt it coming — a presence, the air moving near him — "
+            "and he screamed before the blade even landed. "
+            "A full, raw, anticipatory scream with nowhere to go "
+            "because he is tied and blind and flat in blood on the floor.\n\n"
+            "Then it landed and the scream changed shape — "
+            "shorter, sharper, punched out of him by the impact — "
+            "and then kept going lower and lower "
+            "until it was a continuous sound he was making without choosing to.\n\n"
+            "The blood beneath him has spread to places "
+            "that were dry before. "
+            "His ears are flat against his skull. "
+            "He is pressing what is left of him into the floor "
+            "as if the floor is something to hold onto.\n\n"
+            "He has no wool. No arms. No legs. No tail now.\n\n"
+            "He still cannot stop shaking.*\n"
+            "**MRROW— !! MRRROW— ...mrr... mrr... hff. hff.**"
+        )
+        await asyncio.sleep(8)
 
         # ── HEAD — final ──────────────────────────────────────────────
+
+        # Beat 1: blindfold removed
         if is_doctor:
             await ctx.send(
-                "*The Creator moves to the last thing.\n\n"
-                "He has been watching The Creator this whole time. "
-                "He never looked away — not through any of it. "
-                "Even now, lying flat and stripped and gone down to almost nothing, "
-                "his eyes are on The Creator's face.\n\n"
+                "*The Creator reaches down and unties the rope across his eyes.\n\n"
+                "Light comes back. The room comes back. The Creator comes back.\n\n"
+                "He blinks — once, twice — and finds The Creator's face immediately, "
+                "the way he always finds The Creator's face. "
+                "He has not moved. He cannot move. "
+                "He looks at The Creator from the floor with eyes that are very clear "
+                "and very present and very tired.\n\n"
+                "He sees what is in The Creator's hand.\n\n"
+                "He does not look away.*\n"
+                "**...mrr...**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                f"*The blindfold comes off.\n\n"
+                f"The first thing he sees is {your_name}.\n\n"
+                f"He blinks against the light — slow, struggling — "
+                f"and then focuses. He sees {your_name}'s face. "
+                f"He sees what {your_name} is holding. "
+                f"He looks at it for a long moment. "
+                f"He looks back at {your_name}.\n\n"
+                f"He trusted them. He is still, at this last moment, "
+                f"looking at them the way he looked at them when he trusted them.*\n"
+                f"**...mrr...**"
+            )
+        elif score < 0:
+            await ctx.send(
+                f"*{your_name} pulls the blindfold off.\n\n"
+                f"He squints against the sudden light. His eyes adjust slowly. "
+                f"He looks at {your_name} with the flat, exhausted look "
+                f"of something that has nothing left to spend on anger.\n\n"
+                f"He sees the blade. He looks at it. He looks back at {your_name}. "
+                f"He does not flinch. He does not have the resources to flinch.*\n"
+                f"**...mrr...**"
+            )
+        else:
+            await ctx.send(
+                f"*The blindfold comes away.\n\n"
+                f"He blinks. The room floods back in — "
+                f"the floor, the walls, {your_name} above him, "
+                f"the blade in {your_name}'s hand.\n\n"
+                f"He looks at it. He looks at {your_name}. "
+                f"He is barely here. But he is here enough to see this. "
+                f"He was always going to be here enough to see this.*\n"
+                f"**...mrr...**"
+            )
+
+        await asyncio.sleep(5)
+
+        # Beat 2: eyes — bleeding, screaming
+        if is_doctor:
+            await ctx.send(
+                "*The Creator cuts across his eyes first.\n\n"
+                "The sound he makes is the worst sound he has made through all of this — "
+                "not the loudest, but the worst. "
+                "Something raw and involuntary and very, very afraid "
+                "in a way he has not allowed himself to be until now.\n\n"
+                "Blood runs down his face and he cannot stop it "
+                "and he cannot see anymore — not the rope this time, "
+                "something permanent this time — "
+                "and he screams, and screams, and then the screaming "
+                "becomes something quieter and more continuous and more awful, "
+                "a sound he is making without choosing to make it, "
+                "the sound of a body insisting it is still here.*\n"
+                "**MRRROW— MRROW— !! ...mrr... mrr... mrr...**"
+            )
+        elif score >= 6:
+            await ctx.send(
+                f"*The blade catches his eyes.\n\n"
+                f"He screams — finally, fully, the sound he has been holding back "
+                f"through all of it finally breaking loose. "
+                f"It fills the room. It goes on longer than expected. "
+                f"Blood is running down his face, pooling on the floor beneath him, "
+                f"and he is shaking so hard the rope at his limbs pulls taut.\n\n"
+                f"He trusted {your_name}. He is screaming in the dark. "
+                f"He does not know where {your_name} is anymore. "
+                f"He cannot see them. He cannot find them. "
+                f"He is looking for them even now.*\n"
+                f"**MRRROW!! MRROW!! ...mrr... hff. hff. ...mrr...**"
+            )
+        elif score < 0:
+            await ctx.send(
+                f"*The blade comes down across his eyes.\n\n"
+                f"He makes a sound he cannot suppress — sharp and total and unlike "
+                f"anything he has made before. "
+                f"Then another. Then something lower, continuous, ragged. "
+                f"Blood runs freely. He cannot stop it. "
+                f"He cannot see anything now — not the room, not the floor, not {your_name}. "
+                f"Everything is dark and loud with the sound of his own breathing.\n\n"
+                f"He has been fighting this whole time. "
+                f"He has nothing left to fight with.*\n"
+                f"**MRRROW— !! ...hff. hff. hff. ...mrr...**"
+            )
+        else:
+            await ctx.send(
+                f"*{your_name} cuts across his eyes.\n\n"
+                f"The scream comes out of him full and uncontrolled — "
+                f"the sound of something that has passed the point where it can manage itself. "
+                f"It goes on. It keeps going. "
+                f"Blood runs down his face onto the floor and he is shaking "
+                f"and the sound he is making changes — "
+                f"from a scream to something lower and continuous, "
+                f"a sound the body makes on its own, past decision, past choice.\n\n"
+                f"He is blind now. Truly. "
+                f"The room is gone. {your_name} is gone. Everything is gone "
+                f"except the pain and the sound of his own breathing "
+                f"and the cold floor under what is left of him.*\n"
+                f"**MRROW— MRRROW!! ...hff. hff. ...mrr... mrr...**"
+            )
+
+        await asyncio.sleep(6)
+
+        # Beat 3: the head
+        if is_doctor:
+            await ctx.send(
+                "*The Creator moves to finish it.\n\n"
+                "He has stopped screaming. "
+                "The continuous sound he was making has gone very quiet — "
+                "still there, still audible, but quieter. "
+                "He is bleeding. He cannot see. He cannot move.\n\n"
+                "He cannot find The Creator with his eyes anymore. "
+                "But he turns his head — very slightly, very carefully — "
+                "toward where The Creator was standing. "
+                "Toward the sound of them. Toward their presence.\n\n"
                 "He makes one sound. "
                 "Not a scream. Not a cry. "
                 "One small, soft, completely involuntary sound — "
                 "the sound of something that still, at the very end, "
                 "does not understand how The Creator could.\n\n"
+                "The Creator finishes it.\n\n"
                 "Then nothing.*\n"
                 "**...mrr... ...**"
             )
         elif score >= 6:
             await ctx.send(
-                f"*He trusted {your_name}.\n\n"
-                f"He is looking at them at the end. "
-                f"Not with hatred — he is past that, past everything. "
-                f"Just looking. Just — still here, still looking, "
-                f"right up until the moment he isn't.\n\n"
-                f"He makes no sound.*\n"
+                f"*He has stopped screaming. "
+                f"The sound has gone somewhere quieter inside him — "
+                f"a low continuous thing, fading.\n\n"
+                f"He trusted {your_name}. "
+                f"He is still turned toward where {your_name} was standing, "
+                f"even blind, even here at the end, oriented toward them "
+                f"out of something too deep to name.\n\n"
+                f"{your_name} finishes it.\n\n"
+                f"He does not make a sound at the end. "
+                f"He was looking for {your_name} right up until he wasn't.*\n"
                 f"**...**"
             )
         elif score < 0:
             await ctx.send(
-                f"*He stopped fighting a while ago — not because he accepted it "
-                f"but because there was nothing left to fight with.\n\n"
-                f"He looked at {your_name} at the end with flat, exhausted eyes. "
-                f"No fear. No anger. Just — looked at them, the way you look at something "
-                f"you cannot change and could not escape.\n\n"
-                f"He made one sound. Then nothing.*\n"
+                f"*He is barely making sounds now. "
+                f"The screaming has become breathing has become almost nothing.\n\n"
+                f"He stopped fighting a while ago. Not because he accepted it — "
+                f"because there was nothing left. "
+                f"He is lying flat and blind and still, "
+                f"and the blood on the floor beneath him has spread "
+                f"further than expected.\n\n"
+                f"{your_name} finishes it.\n\n"
+                f"He makes one last sound — very small, not planned — "
+                f"and then he is gone.*\n"
                 f"**...mrr... ...**"
             )
         else:
             await ctx.send(
-                f"*The last thing.\n\n"
-                f"He is barely here. He has been barely here for a while now. "
-                f"He finds {your_name}'s face with his eyes — just once — "
-                f"and holds it for a moment with whatever is left of him.\n\n"
-                f"Then his eyes close.*\n"
-                f"**...**"
+                f"*The screaming has quieted. "
+                f"What is left of him is very still — breathing, barely, "
+                f"the rise and fall of his chest the only movement.\n\n"
+                f"He is blind. He is broken. "
+                f"The blood from his eyes has run into the grooves of the floor. "
+                f"He does not know where {your_name} is. "
+                f"He cannot find them. He cannot do anything.\n\n"
+                f"{your_name} takes the last thing.\n\n"
+                f"He makes one sound. Then his breathing stops.*\n"
+                f"**...mrr... ...**"
             )
 
-        await asyncio.sleep(4)
+        await asyncio.sleep(5)
         await ctx.send(
             "*He is gone.\n\n"
             "The room is very quiet. The kind of quiet that doesn't feel like silence — "
@@ -54981,8 +55234,9 @@ async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
             "**...**"
         )
 
-        # Clear tie state, set death state
+        # Clear tie/blind state, set death state
         m["internal"]["is_tied"] = False
+        m["internal"]["is_blinded"] = False
         m["internal"].pop("tied_at", None)
         m["internal"].pop("tied_by", None)
         m["internal"]["is_dead"] = True
