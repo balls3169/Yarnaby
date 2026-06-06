@@ -2603,7 +2603,9 @@ class Yarnaby(commands.Bot):
             elif (
                 not is_sleep_time()
                 and m["internal"]["is_sleeping"]
-                and not m["internal"].get("sleep_until")
+                and not m["internal"].get("sleep_until")        # BUG-FIX: skip if under forced nap
+                and not m["internal"].get("doctor_sleeping_together")  # BUG-FIX: skip if co-sleeping
+                and not m["internal"].get("unconscious_until")         # BUG-FIX: skip if unconscious
             ):
                 m["internal"]["is_sleeping"] = False
                 if channel:
@@ -27092,6 +27094,487 @@ async def drink_cmd(ctx, *, liquid: str = ""):
 
 
 # ==========================================
+# !eat -- the user eats something; Yarnaby may come to steal a piece
+# ==========================================
+@bot.command(name="eat")
+async def eat_cmd(ctx, *, item: str = ""):
+    """The user eats something. Yarnaby may react, investigate, steal, or ignore."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    name = ctx.author.display_name
+    await _add_reactions(ctx, m)
+
+    if not item:
+        await ctx.send("*`!eat [food]` -- eat something and see if Yarnaby comes to steal a piece.* **mrr?**")
+        return
+
+    item_clean = item.strip()
+    item_lower = item_clean.lower()
+
+    is_loved = any(w in item_lower for w in FEED_LOVES)
+    is_hated = any(w in item_lower for w in FEED_HATES)
+    is_toxic = any(w in item_lower for w in FEED_TOXIC)
+
+    # Check for special individual items
+    _EAT_SPECIAL = {
+        "catnip": [
+            f"*{name} puts their face into the catnip. Yarnaby watches this with enormous eyes. Something ancient stirs in him. He abandons all dignity and joins in immediately.* **MRROW! BRRP!**",
+            f"*{name} opens the catnip. That is all Yarnaby needs. He is already rolling.* **CHRRP! BRRP!**",
+        ],
+        "silver vine": [
+            f"*{name} handles the silver vine. Yarnaby does not wait. He is on it. He has earned this. He does not care that it belongs to {name}.* **MRRROW!**",
+        ],
+        "cucumber": [
+            f"*{name} produces a cucumber. Yarnaby turns around and finds it. He freezes. Every hair rises. He did not ask for this.* **HSS!**",
+            f"*{name} is eating cucumber. Yarnaby discovers this at close range. He is four feet in the air. He would like an explanation.* **HSS! brrp!**",
+        ],
+        "whole fish": [
+            f"*{name} has a whole fish. Yarnaby's body locks for two seconds. Then he moves toward {name} with a focus that is not open to negotiation.* **MRROW.**",
+            f"*The whole fish is out. Yarnaby is already there. He did not walk. He simply arrived.* **...PRRR...**",
+        ],
+        "sardine can": [
+            f"*{name} opens a sardine can. The sound alone brings Yarnaby at speed. He circles {name}'s hands with enormous urgency. He would like some. He would like all of it. He is not picky about which.* **prrrrr.**",
+        ],
+        "tuna can": [
+            f"*{name} opens a tuna can. The sound is a summons. Yarnaby materialises immediately and stares at {name}'s hands with the intensity of a creature whose entire world has narrowed to that can.* **PRRR.**",
+        ],
+        "cheese": [
+            f"*{name} has cheese. Yarnaby watches with great seriousness from across the room. He is not going to rush. He approaches with measured dignity. He would like some. He is asking correctly.* **...mrr...**",
+            f"*He positions himself near {name}'s cheese and looks at it. Then at {name}. Then at the cheese. Then at {name}. He has a position on this.* **mrr?**",
+        ],
+        "butter": [
+            f"*{name} has butter. Yarnaby is there before {name} has finished the sentence. He licks the butter. He licks it again. This is his now.* **...prrr...**",
+            f"*He finds {name}'s butter and immediately places his face into it. He is licking it. He will not stop.* **mrrrr.**",
+        ],
+        "ramen": [
+            f"*{name} has ramen. Yarnaby approaches the bowl with specific intent. He bats a noodle out. He watches it. He bats another. He is not stealing the ramen. He is reorganising it.* **chrrp!**",
+        ],
+        "watermelon": [
+            f"*{name} eats watermelon. Yarnaby investigates from a distance. There is water in a fruit. He bats the rind. It does not explain itself. He sits next to it looking wronged.* **...mrr?**",
+        ],
+        "popcorn": [
+            f"*{name} opens popcorn. Yarnaby discovers that popcorn comes in individual pieces and that individual pieces can be batted. He bats several. He does not eat them yet. He is sorting them first.* **chrrp!**",
+        ],
+        "corn": [
+            f"*{name} has corn. Yarnaby is not interested in eating it. He is interested in the structural format of corn. He bats it. He watches it roll. He chases it. The corn belongs to him now. He will not eat it. It is a toy.* **chrrp!**",
+        ],
+        "chicken nugget": [
+            f"*{name} has chicken nuggets. Yarnaby does not know what these are. He approaches. He sniffs one. He bites one. He now knows what chicken nuggets are. He sits down and waits for more.* **prrrt!**",
+        ],
+        "sushi": [
+            f"*{name} has sushi. Yarnaby goes directly for the fish component and extracts it with surgical calm. He eats the fish. He regards the rice. He eats the rice too. He has done an audit.* **...prrr...**",
+        ],
+        "mochi": [
+            f"*{name} has mochi. Yarnaby paws at it and it deforms. He pulls back. He paws it again. It is wrong in some way he cannot identify. He eats it in seven indignant bites.* **mrrp.**",
+        ],
+        "strawberry": [
+            f"*{name} has a strawberry. Yarnaby bats it once. Sniffs the cut end. Bats it again. Licks it. Makes a face. Licks it again. Does not eat it. Walks away with his opinion unresolved.* **mrrp?**",
+        ],
+        "truffle": [
+            f"*{name} has truffle. Yarnaby's nose finds it immediately. He circles {name} three times, reading the smell. He sits down very close. This is important. He is next to important things.* **...mrrrr...**",
+        ],
+        "live mouse": [
+            f"*{name} has a live mouse. Everything in Yarnaby fires at once. He is not eating with {name}. He is handling a much more pressing situation.* **...chrrr...**",
+        ],
+        "birthday cake": [
+            f"*{name} has birthday cake. Something is on fire. Yarnaby inches forward and sniffs the candles. He sneezes. He eats the frosting off the nearest edge anyway.* **brrp.**",
+        ],
+        "baklava": [
+            f"*{name} has baklava. The honey reaches Yarnaby before anything else does. He is beside {name} in moments, pressing close, making a low sound that communicates need with great dignity.* **...prrrrr...**",
+        ],
+        "lahmacun": [
+            f"*{name} opens the lahmacun. Yarnaby is already moving. He doesn't ask. He eats directly from {name}'s plate, crouched low, making small urgent sounds. He finishes his portion. He looks up. He would like more of {name}'s portion.* **PRRR. chrrp.**",
+        ],
+        "borek": [
+            f"*{name} has borek. The pastry smell gets Yarnaby first, then the cheese inside does the rest. He arrives at {name}'s side and sits very upright with his full attention on the borek. He is petitioning.* **prrr.**",
+        ],
+        "kofte": [
+            f"*{name} has kofte. Yarnaby produces a sound that is not quite a purr and not quite a growl and moves to {name} with complete purpose. He would like some. He is not subtle about this.* **prrrrr.**",
+        ],
+        "köfte": [
+            f"*{name} has kofte. Yarnaby produces a sound that is not quite a purr and not quite a growl and moves to {name} with complete purpose. He would like some. He is not subtle about this.* **prrrrr.**",
+        ],
+        "simit": [
+            f"*{name} has a simit. Yarnaby investigates the sesame seeds on the outside with his tongue. He licks several off. {name} still has most of the simit. He is working on this.* **prrr.**",
+        ],
+        "künefe": [
+            f"*{name} has künefe. Yarnaby approaches fast. It is warm. It has cheese. The cheese stretches when {name} pulls a piece and Yarnaby tracks the strand with enormous eyes. He bites it.* **PRRR.**",
+        ],
+        "corba": [
+            f"*{name} has soup. Yarnaby approaches the bowl and waits for it to cool with the patience of a creature who has been near hot things before and has learned. He then laps it with great care.* **prrr.**",
+        ],
+        "çorba": [
+            f"*{name} has soup. Yarnaby approaches the bowl and waits for it to cool with the patience of a creature who has been near hot things before and has learned. He then laps it with great care.* **prrr.**",
+        ],
+    }
+
+    # Check special items first
+    _special_response = None
+    for _key, _responses in _EAT_SPECIAL.items():
+        if _key in item_lower:
+            _special_response = random.choice(_responses)
+            break
+
+    # Dead / unconscious
+    if m["internal"].get("is_dead"):
+        await ctx.send(f"*{name} eats the **{item_clean}** alone. Yarnaby is gone. The food goes uncontested.* **...**")
+        return
+    if m["internal"].get("unconscious_until"):
+        await ctx.send(f"*{name} eats the **{item_clean}**. Yarnaby is unconscious nearby. He does not twitch.* **...**")
+        return
+
+    # Toxic
+    if is_toxic:
+        await ctx.send(random.choice([
+            f"*{name} starts eating the **{item_clean}**. Yarnaby's nose twitches from across the room. He gets up. He walks over. He smells it. His whole face closes. He turns around and leaves.* **hff.**",
+            f"*{name} eats **{item_clean}**. Yarnaby comes to check as he always does. He smells it and stops cold. He backs up two steps and sits down facing the wall. He wants nothing to do with this.* **...mrr.**",
+            f"*The **{item_clean}** reaches Yarnaby's nose from a distance. He stays exactly where he is. He has already decided. He looks at {name} with flat, still eyes and looks away.* **mrr.**",
+        ]))
+        return
+
+    # Sleeping
+    if sleeping:
+        if is_loved or _special_response:
+            await ctx.send(random.choice([
+                f"*{name} is eating **{item_clean}**. From somewhere in the room: one slow deep sniff. Then silence. Then another sniff. One eye opens. He is asleep. He is also extremely aware of what is happening. He files this under Unfinished Business.* **...zz. snff. ...zz.**",
+                f"*{name} opens the **{item_clean}**. Yarnaby, asleep in his spot, rotates one ear toward the smell without lifting his head. His tail tip flicks once. He does not wake. He does not forgive this either.* **...zz...**",
+                f"*The smell of **{item_clean}** crosses the room and finds him in his sleep. His nose wrinkles. His paws curl tighter. He makes a very small, very hungry sound and resettles, still asleep. He knows. He will remember.* **...snff. zz...**",
+                f"*He is asleep. The **{item_clean}** reaches him anyway. Both ears swivel forward simultaneously. His eyes stay closed. His tail tip twitches once. He is handling this internally.* **...zz. snff.**",
+            ]))
+        elif is_hated:
+            await ctx.send(random.choice([
+                f"*{name} eats **{item_clean}**. Yarnaby sleeps on, undisturbed. The smell registers briefly -- his nose wrinkles once in his sleep -- and then he resettles. Not for him, asleep or awake.* **...zz.**",
+                f"*The **{item_clean}** drifts toward him. One ear flicks back. He pulls slightly further into his curl. He stays asleep. He is not interested.* **...zz.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} eats the **{item_clean}**. Yarnaby sleeps on, completely undisturbed. No reaction. Not a twitch.* **...zz.**",
+                f"*He does not stir. The **{item_clean}** does not reach whatever he is dreaming about. He sleeps on.* **...zz.**",
+            ]))
+        return
+
+    # Helpless
+    if helpless:
+        if is_loved or _special_response:
+            await ctx.send(random.choice([
+                f"*{name} eats **{item_clean}** right in front of Yarnaby. He can smell it. He cannot reach it. He stares with an intensity that borders on offensive. He does not blink.* **...mrr. mrr. MRR.**",
+                f"*{name} is eating **{item_clean}**. Yarnaby is immobilised and watching every single bite with enormous suffering. He makes a small wounded sound. He makes it again. He is making his situation known.* **...mrrp. mrrp.**",
+                f"*The **{item_clean}** is right there. He can smell every component of it. He cannot go anywhere. He sits very still and stares at {name}'s hands with the quiet fury of a creature being wronged by circumstances.* **...mrr...**",
+                f"*Yarnaby watches {name} eat the **{item_clean}** from a distance of approximately two feet. He cannot close that distance. He watches every bite with open, unguarded longing. He has not looked away once.* **...mrrp.**",
+            ]))
+        elif is_hated:
+            await ctx.send(random.choice([
+                f"*{name} eats **{item_clean}**. Yarnaby, helpless and stuck, looks at the food and then away. He is glad he cannot reach it, in this one specific instance.* **...mrr.**",
+                f"*He smells the **{item_clean}** from where he cannot move and his face expresses a clear opinion. He looks at the wall. The wall is preferable.* **mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} eats the **{item_clean}**. Yarnaby, helpless and watching, does not look particularly interested. He observes without investment.* **...mrr.**",
+                f"*He watches {name} eat. He cannot do much else. The **{item_clean}** does not move him either way.* **mrr.**",
+            ]))
+        return
+
+    # Special item response (if matched) -- fire after sleep/helpless so those override
+    if _special_response:
+        await ctx.send(_special_response)
+        if is_loved:
+            m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 2)
+        save_db(m)
+        return
+
+    # Creator
+    if is_doctor:
+        if is_loved:
+            await ctx.send(random.choice([
+                f"*The Creator is eating **{item_clean}**. Yarnaby is beside them before the first bite lands -- not subtle, not pretending he wasn't already watching. He sits very close and makes one soft sound.* **...mrr...**",
+                f"*The Creator opens the **{item_clean}**. Yarnaby materialises at their elbow. He blinks slowly up at them. He places one careful paw on The Creator's knee.* **...prrr...**",
+                f"*He was already nearby. He is always nearby when The Creator eats. His nose twitches at the **{item_clean}** and he leans very slightly forward, barely perceptibly, toward it.* **...prrr...**",
+                f"*The smell of **{item_clean}** gets him immediately. He arrives at The Creator's side and presses against their arm, eyes on the food, purring steadily like this will help.* **prrr.**",
+            ]))
+            await asyncio.sleep(3)
+            await ctx.send(random.choice([
+                f"*The Creator gives him a piece. He takes it with great delicacy -- barely touching fingers -- retreats two steps to eat it properly, then comes back and presses against The Creator's leg. He would like the situation to continue.* **prrr.**",
+                f"*He accepts the offered piece with composed dignity, eats it in two quiet bites, and blinks slowly at The Creator. His purr is continuous and honest.* **prrr.**",
+                f"*He takes the piece carefully, backs up, eats it facing the wall with great seriousness. Returns immediately. Sits. His eyes are very round.* **prrr.**",
+            ]))
+            m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 3)
+        elif is_hated:
+            await ctx.send(random.choice([
+                f"*The Creator is eating **{item_clean}**. Yarnaby approaches out of loyalty -- because he always does -- and smells it. His face does something complicated. He stays anyway, looking at everything in the room except the food. He does not endorse this choice.* **...mrr.**",
+                f"*Yarnaby comes to The Creator as he always does. He smells the **{item_clean}** and his opinion is immediate and visible. He settles against their leg anyway. He is here for The Creator, not the food. The food is a mistake.* **mrr.**",
+                f"*He arrives, he smells, he makes a face. He stays. He presses his forehead against The Creator's arm and stares pointedly away from the **{item_clean}**. He is supportive. He is also judging.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The Creator eats **{item_clean}**. Yarnaby comes to them -- he always comes to them -- and inspects the food once with his nose. He does not ask for any. He settles close by. He is just here.* **...prrr...**",
+                f"*Yarnaby arrives at The Creator's side and gives the **{item_clean}** a single considered sniff. Not for him. He stays anyway, curled near The Creator's leg, eyes half-closed.* **prrr.**",
+                f"*He pads over because The Creator is there. He sniffs the food. Neutral. He sits beside The Creator and tucks his paws under himself. The food is fine. The Creator is better.* **...prrr...**",
+            ]))
+        save_db(m)
+        return
+
+    # Score-gated regular users
+    if is_loved:
+        if score >= 8:
+            await ctx.send(random.choice([
+                f"*{name} starts eating **{item_clean}**. Yarnaby is there in moments -- not subtle, not pretending. He sits at {name}'s side and makes one soft, direct sound. He would like some. He is asking.* **...mrr...**",
+                f"*The **{item_clean}** brings Yarnaby over immediately. He settles close to {name} and looks up with an expression not quite begging but in the same building.* **prrr.**",
+                f"*He smells it and comes, unhurried, like he was always heading this direction. He sits beside {name} and watches the **{item_clean}** with complete, unguarded interest.* **...prrr...**",
+            ]))
+            await asyncio.sleep(3)
+            await ctx.send(random.choice([
+                f"*He gets a piece. He takes it very carefully -- barely a touch -- and eats it neatly two feet away, then returns to sit by {name} like this was always the plan. He would do this all day.* **prrr.**",
+                f"*He accepts the offered piece with great composure, eats it in two bites, and leans briefly against {name}'s leg. He comes back immediately.* **mrr.**",
+                f"*The piece is taken with the delicacy of a creature who has manners when it matters. He eats it neatly, comes back, and sits close enough that {name} can feel his purr.* **prrr.**",
+            ]))
+            m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 2)
+            if u_id in m["social_matrix"]:
+                m["social_matrix"][u_id]["score"] = min(100, m["social_matrix"][u_id].get("score", 0) + 1)
+        elif score >= 5:
+            await ctx.send(random.choice([
+                f"*{name} is eating **{item_clean}**. Yarnaby notices. He gets up and comes over, sits at a polite distance, and watches with ears forward. He is not demanding anything. He is simply near the situation.* **...mrr.**",
+                f"*The **{item_clean}** gets his attention across the room. He walks over and settles near {name}, nose twitching. He makes a quiet sound. He's not asking. He's just present.* **mrr.**",
+            ]))
+            await asyncio.sleep(3)
+            if random.random() < 0.7:
+                await ctx.send(random.choice([
+                    f"*He inches slightly closer. He sniffs the air near {name}'s hand. He takes a small piece -- quickly, from the edge, cleanly -- and retreats two steps to eat it facing slightly away.* **mrr.**",
+                    f"*One careful paw comes up and rests on {name}'s knee for exactly one second. He is not doing anything. He is just noting his presence. He takes a piece while {name} is processing this.* **prrrt.**",
+                ]))
+                m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 1)
+            else:
+                await ctx.send(f"*He watches {name} finish the **{item_clean}** without moving. He wanted some. He made a choice not to pursue it today.* **...mrr.**")
+        elif score >= 3:
+            _takes = random.random() < 0.45
+            await ctx.send(random.choice([
+                f"*{name} is eating **{item_clean}**. Yarnaby's nose twitches. He looks over. He considers the distance between himself and the food and between himself and {name}. He comes halfway.* **...mrr.**",
+                f"*The smell of **{item_clean}** reaches Yarnaby and he gets up, comes most of the way across the room, and sits down. He is watching. He has not decided yet.* **mrr.**",
+            ]))
+            await asyncio.sleep(3)
+            if _takes:
+                await ctx.send(random.choice([
+                    f"*He commits. He closes the remaining distance quickly and takes a piece from the edge before retreating to eat it with his back turned. He was never not going to do this.* **mrr.**",
+                    f"*He moves in fast, takes a small piece, eats it three feet away facing the wall. He does not acknowledge that this happened.* **prrrt.**",
+                ]))
+                m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 1)
+            else:
+                await ctx.send(random.choice([
+                    f"*He watches {name} eat the rest of the **{item_clean}** from where he stopped. He wanted some. He decided the distance was the right call.* **...mrr.**",
+                    f"*He stays halfway across the room and watches until it's gone. He had opinions about this. He kept them to himself.* **mrr.**",
+                ]))
+        elif score >= 1:
+            await ctx.send(random.choice([
+                f"*Yarnaby's nose twitches from across the room. He looks toward {name} and the **{item_clean}**. He stays where he is. He wants it. He is not going near {name} for it.* **...mrr.**",
+                f"*He clocks the **{item_clean}** immediately. His ears angle forward. He looks at {name}. He looks at the food. He looks away. He has made a decision about priorities.* **mrr.**",
+                f"*The smell reaches him fine. The willingness to approach {name} for it does not. He sits and watches from distance and does not come.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} eats the **{item_clean}** undisturbed. Yarnaby is aware. He smells it. He does not come. His position on {name} outweighs his position on the food.* **...mrr.**",
+                f"*The **{item_clean}** is exactly the kind of thing Yarnaby would normally cross a room for. He ignores it. He ignores {name}. He has principles.* **mrrp.**",
+                f"*He smells it. He knows what it is. He does not move. He stares at a point on the wall and stays there while {name} eats the whole thing.* **...mrr.**",
+            ]))
+
+    elif is_hated:
+        if score >= 5:
+            await ctx.send(random.choice([
+                f"*{name} eats **{item_clean}**. Yarnaby comes over -- he always checks -- and sniffs it properly. His face shifts. He takes one step back and looks at {name} like they've made a personal error. He does not leave. He just stays nearby and expresses disappointment.* **mrr.**",
+                f"*He investigates the **{item_clean}** with his nose and immediately regrets it. He withdraws with quiet dignity, sits nearby, and looks at {name} with the calm judgement of someone who expected better.* **...mrr.**",
+            ]))
+        elif score >= 2:
+            await ctx.send(random.choice([
+                f"*{name} eats the **{item_clean}**. Yarnaby looks over. His nose tells him everything he needs to know from where he is. He does not come closer.* **mrr.**",
+                f"*He smells the **{item_clean}** from across the room and decides his current location is fine. He looks briefly at {name} and then at the middle distance. No.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} eats **{item_clean}**. Yarnaby doesn't bother getting up. He already knows. He looks at {name} once and looks away with the expression of a creature for whom this changes nothing.* **mrr.**",
+                f"*The **{item_clean}** smell reaches him and he moves to a different spot, slightly further away. Both {name} and the food are best experienced from a distance.* **...mrr.**",
+            ]))
+
+    else:  # neutral food
+        if score >= 5:
+            if random.random() < 0.65:
+                await ctx.send(random.choice([
+                    f"*{name} eats **{item_clean}**. Yarnaby wanders over and performs a thorough sniff inspection. He blinks. He is not moved either way. He leaves. The verdict: adequate.* **mrr.**",
+                    f"*He notices {name} eating **{item_clean}** and comes to see what it is. One sniff. His ears settle back to neutral. He walks away, unimpressed, unhurt.* **...mrr.**",
+                    f"*He investigates the **{item_clean}** with a single careful nose-touch, determines it is not worth pursuing, and returns to his spot. He is not judging. He is just not interested.* **mrr.**",
+                ]))
+            else:
+                await ctx.send(f"*{name} eats the **{item_clean}** undisturbed. Yarnaby glances over once and resettles. Nothing here.* **...mrr.**")
+        elif score >= 2:
+            if random.random() < 0.35:
+                await ctx.send(random.choice([
+                    f"*Yarnaby looks toward {name} and the **{item_clean}** briefly. He sniffs the air from where he is. He decides the information is sufficient without going closer.* **...mrr.**",
+                    f"*He registers the **{item_clean}** from a distance. His ears angle toward {name} for a moment. He resettles without getting up.* **mrr.**",
+                ]))
+            else:
+                await ctx.send(f"*{name} eats the **{item_clean}**. Yarnaby takes no particular notice.* **...mrr.**")
+        else:
+            await ctx.send(f"*{name} eats the **{item_clean}** completely undisturbed. Yarnaby is elsewhere in spirit.* **...mrr.**")
+
+    save_db(m)
+
+
+# ==========================================
+# !onion -- user cuts onions; Yarnaby cries (it's the onions)
+# ==========================================
+@bot.command(name="onion")
+async def onion_cmd(ctx):
+    """Cut onions near Yarnaby. He will cry. It is the onions."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    name = ctx.author.display_name
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(f"*{name} cuts onions. No one reacts. Yarnaby is gone.* **...**")
+        return
+
+    if sleeping:
+        await ctx.send(random.choice([
+            f"*{name} begins cutting onions. The smell drifts through the room. Yarnaby, asleep, wrinkles his nose in slow motion. One eye scrunches. A single tear runs down his cheek without him waking. He does not know this is happening. He is somewhere else and apparently it is sad there too.* **...zz...**",
+            f"*The onion fumes reach him mid-sleep. His nose twitches. His face contorts slightly. He sniffles -- once, quietly -- and pulls deeper into his curl. He is crying a little in his sleep. It is the onions. He is not aware of the onions.* **...snff... zz.**",
+            f"*{name} is cutting onions. Yarnaby sleeps on. But slowly -- very slowly -- his eyes begin to water. He does not wake. A small tear tracks down his fur. He makes a tiny grieving sound. He is dreaming of nothing sad. It is purely the onions.* **...mmr... zz.**",
+        ]))
+        return
+
+    if helpless:
+        await ctx.send(random.choice([
+            f"*{name} cuts onions nearby. Yarnaby cannot leave. The fumes find him immediately. His eyes start to water. He blinks rapidly, ears back, absolutely furious about this. He is crying. He would like everyone to know it is the onions. It is solely the onions.* **mrr-- snff-- MRR.**",
+            f"*He is helpless and now he is also crying. The onion fumes are merciless. Tears run freely down his face while he maintains eye contact with {name}, expression radiating outrage. He cannot wipe his eyes. He cannot leave. He can only suffer with dignity.* **...snff. mrr. SNFF.**",
+            f"*Trapped and now teary-eyed, Yarnaby endures the onion fumes with the expression of a creature wronged by the universe at a structural level. His eyes stream. He sniffles hard. He blinks. More tears. He has not looked away from {name} once.* **mrr-- snff-- mrr.**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator begins cutting onions. Yarnaby is beside them in moments -- because he always comes to The Creator -- and immediately his eyes start to water. He blinks. He blinks again. He looks up at The Creator with glistening glass eyes and an expression of profound betrayal.* **...snff. mrr.**",
+            f"*Yarnaby arrives at The Creator's side as he always does. Then the onion hits. His nose wrinkles. His eyes well up. He sits very still and lets the tears run, looking up at The Creator the entire time. He is not leaving. He is crying. These two facts coexist.* **snff... prrr... snff.**",
+            f"*The Creator is cutting onions. Yarnaby, devoted and present, sits nearby and proceeds to cry. His eyes stream. He blinks rapidly. He leans against The Creator's leg anyway, sniffling quietly, absolutely committed to staying.* **...snff. snff. mrr.**",
+        ]))
+        save_db(m)
+        return
+
+    if score >= 6:
+        await ctx.send(random.choice([
+            f"*{name} starts cutting onions. Yarnaby is nearby when the fumes hit. His eyes go glassy. He blinks. Blinks again. A tear runs down. He looks at {name} with an expression of complete sincerity: *I am not sad. I want you to know that. It is the onions.* He keeps sitting there.* **...snff. mrr.**",
+            f"*The onion reaches Yarnaby mid-loaf. His eyes start streaming before he knows what's happening. He sits up, blinks several times, and looks around for the source. He looks at {name}. He looks at the onion. He understands now. He is still crying. He would like a moment.* **snff-- ...mrr.**",
+            f"*Yarnaby takes the onion fumes directly to the face. His eyes water immediately. He makes a small, startled *mrp* and then sits very still and cries with great composure, blinking slowly, deeply committed to not making this a big thing.* **...mrp. snff. snff.**",
+        ]))
+    elif score >= 3:
+        await ctx.send(random.choice([
+            f"*{name} cuts onions. The fumes drift. Yarnaby's eyes water. He blinks. He sniffles once. He looks at {name} and then looks away, because he is absolutely not going to let {name} see him cry, which is difficult because he is currently crying.* **...snff. mrr.**",
+            f"*The onion smoke finds Yarnaby and his eyes immediately start streaming. He blinks hard, then harder. He turns his head away from {name} so they won't see, which doesn't help, which he knows, which makes it worse.* **snff-- mrr.**",
+            f"*His eyes water. He sniffles. He gets up and moves to a slightly different spot, which has the exact same amount of onion fumes. He cries there instead, facing the wall.* **...snff. mrrp.**",
+        ]))
+    elif score >= 1:
+        await ctx.send(random.choice([
+            f"*The onion fumes reach Yarnaby across the room. He looks over. His eyes start to water. He is annoyed about this and annoyed about {name} and annoyed that he cannot stop his eyes from streaming.* **mrr. snff. MRR.**",
+            f"*He clocks the onion situation from a distance. The fumes arrive. He sniffs, his eyes tear up, and he gets up and moves to the furthest corner. He is crying over there. He is not happy about it.* **snff-- mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{name} cuts onions. Yarnaby is as far from them as possible and still his eyes are streaming. He is crying. He is also glaring. The glare and the tears are happening simultaneously and he does not see the irony.* **SNFF. MRR. SNFF.**",
+            f"*The onion fumes don't respect his feelings about {name}. He sits in the corner, eyes streaming, furious. He is crying against his will at someone he doesn't like. This is the worst thing that has ever happened to him.* **mrr. SNFF. mrr.**",
+        ]))
+
+    save_db(m)
+
+
+# ==========================================
+# !finger -- put a finger near his mouth; he may suckle like a kitten
+# ==========================================
+@bot.command(name="finger")
+async def finger_cmd(ctx):
+    """Put a finger near Yarnaby's mouth. He may suckle. Depends on his trust in you."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+    name = ctx.author.display_name
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The finger goes unacknowledged.* **...**")
+        return
+
+    # Sleeping -- he may suckle without waking
+    if sleeping:
+        await ctx.send(random.choice([
+            f"*{name} puts a finger near his mouth. He is asleep. His nose twitches. Then, slowly, with great instinctual purpose, his lips close around it. He begins to suckle very gently in his sleep, eyes shut, expression utterly content. He does not wake. He has no idea this is happening.* **...prrr... prrr...**",
+            f"*{name} offers the finger. He is deeply asleep. After a moment his head nudges toward it on instinct and his mouth finds it without him opening his eyes. He suckles quietly, fast asleep, making a sound like a very small and satisfied engine.* **...prrr...**",
+            f"*He is out. But some ancient kitten-instinct still running in the background finds the finger immediately. He latches on gently in his sleep and does not let go for quite a while. He is purring. He does not know he is purring.* **...prrr... prrr...**",
+        ]))
+        return
+
+    # Helpless -- can't move away; reacts based on score
+    if helpless:
+        if score >= 3:
+            await ctx.send(random.choice([
+                f"*Yarnaby is helpless and {name} puts a finger near his mouth. He considers his options. He has no options. He takes the finger anyway. He suckles with the quiet dignity of someone who has decided this is fine actually.* **...prrr... prrr...**",
+                f"*He can't go anywhere. The finger arrives. He turns his head slightly -- not away, just evaluating -- and then his mouth closes around it gently. He suckles. He looks at the wall. He is thinking about many things.* **...prrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} puts a finger near his mouth. He is helpless and he knows it. He turns his head away as far as he can. The finger follows. He makes a very small, very unhappy sound. He does not open his mouth.* **mrr. no.**",
+                f"*He cannot leave. He expresses this injustice by pressing his lips together and staring at {name} with profound reproach. The finger does not get in.* **...mrr.**",
+            ]))
+        return
+
+    # Creator
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator offers a finger. Yarnaby blinks at it. He blinks at The Creator. He takes the finger immediately and suckles with complete, unselfconscious contentment -- eyes closed, ears soft, purring loud enough to feel. He is not thinking about anything. He is just here.* **prrr... prrr... prrr...**",
+            f"*Without hesitation -- without even really deciding -- his mouth closes around The Creator's finger. He suckles slowly and rhythmically, head drooping a little, the way he used to as a very young thing. His purr fills the space.* **prrrrr...**",
+            f"*The Creator's finger finds him and he latches on gently, naturally, like it was always going to happen. He suckles for a long moment, eyes half-closed, somewhere soft and old and comfortable. He knows The Creator is there. That's the whole point.* **...prrr... prrr...**",
+        ]))
+        save_db(m)
+        return
+
+    # Score 8+ -- completely trusts, takes it immediately
+    if score >= 8:
+        await ctx.send(random.choice([
+            f"*{name} offers the finger. Yarnaby blinks at it, blinks at {name}, and then just takes it. He suckles gently and without embarrassment, eyes drifting closed, purring steadily. He is not making this weird. He is simply doing a thing.* **prrr... prrr...**",
+            f"*He sees the finger and his mouth is already opening. He latches on soft and slow, suckles for a long moment with his eyes shut, and makes the most unpretentious sound imaginable.* **prrrrr...**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*{name} puts a finger near his mouth. Yarnaby eyes it. He eyes {name}. There's a long pause -- three whole seconds of consideration -- and then he takes it. He suckles quietly, not looking at anyone, purring just barely loud enough to hear.* **...prrr...**",
+            f"*He looks at the finger. He looks at {name}. He looks at the finger again. He makes a decision and closes his mouth around it gently, suckles for a moment, and then lets go and grooms his paw like nothing happened.* **...prrr. mrr.**",
+        ]))
+    elif score >= 2:
+        _takes = random.random() < 0.40
+        if _takes:
+            await ctx.send(random.choice([
+                f"*{name} offers the finger. Yarnaby stares at it for a long time. He is visibly undecided. He takes it -- quickly, almost against his better judgement -- suckles for exactly three seconds, then pulls back and looks away.* **...mrr. prrr. mrr.**",
+                f"*He doesn't want to. He does it anyway. Some instinct older than his opinions about {name} takes the finger and suckles briefly before he recovers and retreats a step.* **mrr. prrr. mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{name} offers a finger near his mouth. Yarnaby looks at it. He pulls back slightly. Not quite no -- more like not yet, not this person.* **...mrr.**",
+                f"*He sniffs the finger from a distance. He makes a small uncertain sound and turns his head aside. He's not comfortable enough.* **mrr.**",
+            ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{name} puts a finger near his mouth. Yarnaby leans back immediately. He looks at the finger and then at {name} with an expression that says this is not something he's going to do with you.* **mrr. no.**",
+            f"*He moves his head away from the finger before it's even close. He makes a flat, quiet sound. He is not interested.* **...mrr.**",
+        ]))
+
+    save_db(m)
+
+
+# ==========================================
 # !bubblebath - bath with bubbles
 # ==========================================
 @bot.command(name="bubblebath", aliases=["bubble_bath", "foambath", "bubblywater"])
@@ -48859,6 +49342,123 @@ async def blanketchild_cmd(ctx, *, name: str = ""):
             f"*He picks **{cname}** up, blanket and all, and relocates them to his own spot. "
             f"He wraps himself around the outside of the blanket bundle and stares at you.* **hff.**"
         )
+
+
+# -- childplay ------------------------------------------------------------------
+@bot.command(name="childplay")
+async def childplay_cmd(ctx, *, name: str = ""):
+    """Let one of Yarnaby's children play. He watches, joins, or ignores based on feeling."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = _get_children(m, guild_id)
+    sleeping = m["internal"].get("is_sleeping", False)
+    helpless = m["internal"].get("helpless", False)
+
+    if not name.strip():
+        await _child_not_found(ctx, name, children)
+        return
+
+    child = _find_child(children, name)
+    if not child:
+        await _child_not_found(ctx, name, children)
+        return
+
+    cname = child["name"]
+    feeling = child.get("feeling", "neutral")
+    child_score = child.get("score", 0)
+
+    # -- Dead ---------------------------------------------------------------
+    if m["internal"].get("is_dead"):
+        await ctx.send(f"***{cname}** plays alone. Yarnaby is gone. The room is quieter than it should be.* **...**")
+        return
+
+    # -- Sleeping -----------------------------------------------------------
+    if sleeping:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*Yarnaby is asleep. **{cname}** starts playing nearby anyway -- carefully, quietly, the way they know to. At some point his tail drifts across the floor on its own. **{cname}** grabs it. He doesn't wake. His tail twitches once. **{cname}** lets go. They play with it again.* **...zz. prrr...**",
+                f"*He sleeps. **{cname}** plays beside him, a little quieter than usual. They press against his wool once. He exhales slowly and curls slightly around them without waking. They stay there and play in the warmth.* **...zz. prrr...**",
+                f"*His eyes are closed but **{cname}** plays right beside his face and at some point he opens one eye -- just one -- watches for a moment, and closes it again. His purr deepens slightly.* **...prrr... zz.**",
+            ]))
+        elif feeling == "neutral":
+            await ctx.send(random.choice([
+                f"*Yarnaby sleeps. **{cname}** plays at a respectful distance, glancing over occasionally. He doesn't stir. His tail tip flicks once when **{cname}** gets loud. **{cname}** gets quieter.* **...zz.**",
+                f"*He's out. **{cname}** plays nearby and keeps it reasonable. At some point they try to use his tail as a toy. His tail moves away on its own. They find something else.* **...zz.**",
+            ]))
+        else:  # disliked
+            await ctx.send(random.choice([
+                f"*He is asleep. **{cname}** plays somewhere in the room. He doesn't react to them awake -- he certainly doesn't react asleep. **{cname}** is on their own.* **...zz.**",
+                f"***{cname}** makes noise playing. Yarnaby's ear rotates toward the sound. He does not wake up for **{cname}**.* **...zz.**",
+            ]))
+        return
+
+    # -- Helpless -----------------------------------------------------------
+    if helpless:
+        if feeling == "adored":
+            await ctx.send(random.choice([
+                f"*He can't move to join them but he watches **{cname}** play with complete, focused attention -- ears forward, eyes tracking every movement, tail tapping the floor slowly. He makes a soft sound when **{cname}** does something particularly good.* **...mrr. prrr...**",
+                f"*He is stuck and **{cname}** is playing just out of reach. He watches with enormous patience and a very clear wish to be part of it. When **{cname}** tumbles near him he nudges them gently with his nose, the only thing he can do.* **prrr.**",
+            ]))
+        elif feeling == "neutral":
+            await ctx.send(random.choice([
+                f"*Yarnaby watches **{cname}** play from where he's stuck. He's engaged but passive -- ears up, eyes following. He looks like he's supervising. He might be supervising.* **...mrr.**",
+                f"*He can't go anywhere so he watches **{cname}**. His tail moves. **{cname}** notices and grabs it. He lets them, just this once.* **...mrr.**",
+            ]))
+        else:  # disliked
+            await ctx.send(random.choice([
+                f"*He is helpless and **{cname}** is playing nearby and he cannot leave. He looks at the opposite wall with great determination.* **...mrr.**",
+                f"*He watches **{cname}** play only because he has no other option. His expression communicates very little warmth about this arrangement.* **...mrr.**",
+            ]))
+        return
+
+    # -- Adored -------------------------------------------------------------
+    if feeling == "adored":
+        await ctx.send(random.choice([
+            f"***{cname}** starts playing. Yarnaby watches for exactly three seconds before he gets up and comes over. He bats a toy across the floor toward **{cname}**. He is absolutely not playing. He is facilitating. There is a difference. He bats it again.* **prrr.**",
+            f"*He watches **{cname}** for a moment, tail flicking, and then lowers himself into a crouch. His pupils widen. He pounces -- gently, barely touching -- and **{cname}** shrieks happily. He pounces again. He has fully committed to this now.* **chrrp! prrr.**",
+            f"***{cname}** plays. Yarnaby positions himself in the middle of the game area and lies down, making himself the obstacle. **{cname}** has to play around him. He considers this helping.* **prrr.**",
+            f"*He joins immediately -- ears forward, tail high, playing with **{cname}** with the kind of gentle patience he reserves only for a few. When **{cname}** piles on top of him he doesn't move them. He just keeps purring.* **prrr... prrr...**",
+            f"*He chases **{cname}** in a slow, deliberate loop around the room, always just almost catching them, letting them get away, beginning again. **{cname}** is delighted. He is being very careful. He does not show how much he is enjoying this.* **chrrp. prrr.**",
+        ]))
+        child["score"] = min(100, child_score + 2)
+        m["stats"]["mood"] = "Content"
+
+    # -- Neutral ------------------------------------------------------------
+    elif feeling == "neutral":
+        _joins = random.random() < 0.55
+        if _joins:
+            await ctx.send(random.choice([
+                f"*Yarnaby watches **{cname}** play from a distance, ears half-forward. After a while he gets up, walks over, and bats at whatever **{cname}** is playing with once. He sits back. He's not playing. He just wanted to be nearby.* **mrr.**",
+                f"*He moves closer while **{cname}** plays -- not joining exactly, just relocating. He settles nearby and watches. If **{cname}** brings the toy to him he interacts with it briefly before losing interest.* **...mrr.**",
+                f"*He pads over to where **{cname}** is playing and sits in the middle of everything. **{cname}** plays around him. He observes. Occasionally he reaches out a paw. He is present. That is the most he offers today.* **mrr.**",
+            ]))
+            child["score"] = min(100, child_score + 1)
+        else:
+            await ctx.send(random.choice([
+                f"*Yarnaby is aware **{cname}** is playing. He doesn't get up. He watches from where he is -- ears angled over, not fully committed -- and then looks away. **{cname}** is fine.* **...mrr.**",
+                f"***{cname}** plays. Yarnaby stays where he is. He's not ignoring them -- his ears track the sounds -- but he doesn't move to join. He just lets them get on with it.* **...mrr.**",
+            ]))
+
+    # -- Disliked -----------------------------------------------------------
+    else:
+        _tolerates = random.random() < 0.3
+        if _tolerates:
+            await ctx.send(random.choice([
+                f"***{cname}** plays nearby. Yarnaby doesn't engage but he doesn't leave either. He sits at a distance and watches with flat, unreadable eyes. He is tolerating this. It is the most he will give.* **...mrr.**",
+                f"*He stays in the room while **{cname}** plays. He looks at them occasionally -- not warmly, but not with hostility. He is doing the bare minimum of parental presence and he knows it.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"***{cname}** starts playing. Yarnaby gets up and goes somewhere else. He doesn't look back.* **mrr.**",
+                f"*He sees **{cname}** playing and decides he needs to be in a different room. He pads out without ceremony.* **...mrr.**",
+                f"*He was already leaving when **{cname}** started. The timing is coincidental. He has things to do elsewhere. The things are vague but important.* **mrr.**",
+            ]))
+
+    save_db(m)
 
 
 # ── treatchild ───────────────────────────────────────────────────────────────
