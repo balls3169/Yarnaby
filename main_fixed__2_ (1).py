@@ -54130,7 +54130,7 @@ async def holdchild_cmd(ctx, *, name: str = ""):
 
 
 # ── hidechild ────────────────────────────────────────────────────────────────
-@bot.command(name="hidechild", aliases=["hidekid", "concealchild", "tuckawayschild", "tuckkid", "tuckchildaway"])
+@bot.command(name="hidechild", aliases=["hidekid", "concealchild", "tuckawayschild", "tuckchildaway"])
 async def hidechild_cmd(ctx, *, name: str = ""):
     """Hide one of Yarnaby's children somewhere safe — he watches."""
     m = bot.db
