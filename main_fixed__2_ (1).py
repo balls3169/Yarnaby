@@ -5078,6 +5078,33 @@ async def on_message(message):
 
         m["internal"]["doctor_last_seen"] = now.strftime("%Y-%m-%d %H:%M:%S")
 
+        # --- NAME DETECTION (must run first, before any passive/random blocks) ---
+        if (
+            not m["internal"]["is_sleeping"]
+            and any(name in msg for name in ["1166", "yarnaby", "yarny", "yarn", "naby"])
+            and not msg.startswith(("yarn!", "!"))
+        ):
+            _responded = True
+            save_db(m)
+            await message.channel.send(
+                random.choice(
+                    [
+                        f"*He perks up, his yarn-tail wagging. He trots to your feet and pouts.* {stat_bar(m)}",
+                        f"*His ears shoot straight up. He scrambles over and stares at you, waiting.* {stat_bar(m)}",
+                        f"*He lets out a small chirp and pads toward you, nudging your hand with his head.* {stat_bar(m)}",
+                        f"*He freezes mid-action, then slowly turns to face you with wide glass eyes.* {stat_bar(m)}",
+                        f"*A happy little trill escapes him. He circles your feet once before sitting down.* {stat_bar(m)}",
+                        f"*He hears it and immediately drops whatever he was doing. He trots over, tail raised, and pouts up at you.* {stat_bar(m)}",
+                        f"*He bounces over immediately - a little too fast, a little too eager. He pretends that didn't happen.* {stat_bar(m)}",
+                        f"*He lets out a bright, short CHIRP and presses his head into your hand before you even reach for him.* {stat_bar(m)}",
+                        f"*He materializes from wherever he was and sits at your feet, glass eyes locked on you. He's ready. For what? Anything.* {stat_bar(m)}",
+                        f"*His whole posture changes immediately. Tail up, ears forward, a little trill. He's here. He's so here.* {stat_bar(m)}",
+                    ]
+                )
+            )
+            await bot.process_commands(message)
+            return
+
         if doctor_offline_mins >= 240:
             await message.channel.send(
                 random.choice(
@@ -5535,6 +5562,23 @@ async def on_message(message):
                 "last_seen": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "milestones_reached": [],
             }
+            # New user said his name specifically — greet them by name first
+            if (
+                not m["internal"]["is_sleeping"]
+                and any(name in msg for name in ["1166", "yarnaby", "yarny", "yarn", "naby"])
+            ):
+                save_db(m)
+                await message.channel.send(
+                    random.choice(
+                        [
+                            f"*Yarnaby's head turns toward {message.author.display_name}. He hasn't seen this one before. He stares for a long moment — glass eyes unblinking — then lets out a slow, cautious trill. He's deciding.* **...mrr...**",
+                            f"*He hears his name from an unfamiliar voice. He goes very still, then swivels his ears forward. He looks at {message.author.display_name} for a long time. New. He files this away.* **...mrp...**",
+                            f"*New voice, new face. Yarnaby doesn't move — he just watches {message.author.display_name} from where he sits. His tail curls around his paws. He's paying attention.* **...mrr...**",
+                        ]
+                    )
+                )
+                await bot.process_commands(message)
+                return
             await message.channel.send(
                 random.choice(
                     [
@@ -32804,8 +32848,8 @@ async def hiding_cmd(ctx):
         "somewhere in the factory that he will not disclose",
     ]
     spot = random.choice(HIDE_SPOTS)
-    m["internal"]["hiding_spot"] = spot
-    m["internal"]["is_hiding"] = True
+    m["internal"]["yarnaby_hiding_spot"] = spot
+    m["internal"]["yarnaby_hiding"] = True
     save_db(m)
     await ctx.send(
         f"*Yarnaby looks around. He has a look. He pads off purposefully. "
@@ -32831,21 +32875,23 @@ async def seekyarny_cmd(ctx):
         return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
-    if not m["internal"].get("is_hiding"):
+    if not m["internal"].get("yarnaby_hiding"):
         await ctx.send("*He is not hiding right now. He is right here. He has always been right here.* **mrr.**")
         return
 
-    spot = m["internal"].get("hiding_spot", "somewhere")
+    spot = m["internal"].get("yarnaby_hiding_spot", "somewhere")
 
     if is_doctor:
-        m["internal"]["is_hiding"] = False
+        m["internal"]["yarnaby_hiding"] = False
+        m["internal"]["yarnaby_hiding_spot"] = None
         save_db(m)
         await ctx.send(
             f"*The Creator finds him immediately — or maybe he let himself be found. "
             f"He was **{spot}**. He emerges and presses against The Creator's leg.* **prrr.**"
         )
     elif score >= 5:
-        m["internal"]["is_hiding"] = False
+        m["internal"]["yarnaby_hiding"] = False
+        m["internal"]["yarnaby_hiding_spot"] = None
         save_db(m)
         await ctx.send(
             f"*After some searching, you find him. He was **{spot}**. "
