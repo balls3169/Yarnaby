@@ -1575,6 +1575,12 @@ async def _add_reactions(ctx, m):
                 await ctx.message.add_reaction("💤")
             except Exception:
                 pass
+        is_dead = bool(m["internal"].get("is_dead", False))
+        if is_dead:
+            try:
+                await ctx.message.add_reaction("💀")
+            except Exception:
+                pass
         is_helpless = bool(m["internal"].get("helpless", False))
         if is_helpless:
             try:
@@ -4538,6 +4544,14 @@ async def on_message(message):
     m = bot.db
     u_id = str(message.author.id)
     now = datetime.now()
+
+    # --- GLOBAL DISABLE GUARD ---
+    # !disable turns off absolutely everything. Only !turnbackon (Creator only) bypasses this.
+    if m["internal"].get("bot_disabled"):
+        _cmd = message.content.strip().lower()
+        if _cmd in ("!turnbackon",) and message.author.id == DOCTOR_ID:
+            await bot.process_commands(message)
+        return
 
     # --- PER-SERVER STATE ---
     # Each guild gets its own state for sleeping, mood, etc.
@@ -7534,6 +7548,14 @@ async def play(ctx, duration: Optional[str] = None):
 
     if m["internal"]["is_sleeping"]:
         await ctx.send("*Yarnaby is asleep. He cannot play right now.*")
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He turns his head toward you. His eyes track you. He does not get up. He wants to. You can see it. He cannot.* **...mrr...**",
+            "*His tail twitches once — reflex, not intent. He is watching the spot you want to play in. He cannot reach it right now.* **...mrr...**",
+            "*He is on the floor, entirely still. He would love to play. He is noting this for later.* **...mrr...**",
+        ]))
         return
 
     # Non-Doctor: check relationship before allowing play
@@ -11282,6 +11304,12 @@ async def nod_cmd(ctx):
     if m["internal"]["is_sleeping"]:
         await ctx.send("*Yarnaby is asleep. No nodding back.*")
         return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*His head dips — barely. A nod that costs him something.* **...mrr...**",
+            "*He nods. Once. Very slowly. His eyes stay on you.* **...mrr...**",
+        ]))
+        return
     is_doctor = ctx.author.id == DOCTOR_ID
     score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
     if is_doctor or score >= 0:
@@ -11306,15 +11334,31 @@ async def shake_head_cmd(ctx):
     if m["internal"]["is_sleeping"]:
         await ctx.send("*Yarnaby is asleep. He doesn't react.*")
         return
-    await ctx.send(
-        random.choice(
-            [
-                "*Yarnaby shakes his head right back at you, ears flopping.*",
-                "*A small, sharp shake. He's mirroring you.*",
-                "*He blinks. Then a firm head-shake. Acknowledged.*",
-            ]
-        )
-    )
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*His head moves — very slightly, just enough to count. He shakes it once.* **...mrr...**",
+            "*He manages one small, slow shake. It's all there is right now.* **...mrr...**",
+        ]))
+        return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*Yarnaby shakes his head back — dramatically, ears flying. Then fixes The Creator with a satisfied stare.* **chrrp.**",
+            "*He shakes his head right back, then tilts it and shakes again. He is very committed to this interaction.* **prrr.**",
+        ]))
+    elif score >= 3:
+        await ctx.send(random.choice([
+            "*Yarnaby shakes his head right back at you, ears flopping.*",
+            "*A small, sharp shake. He's mirroring you.*",
+            "*He blinks. Then a firm head-shake. Acknowledged.*",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He watches your head shake. He does not shake back. He stares.* **...mrr.**",
+            "*His ear flicks. That is all.* **mrr.**",
+        ]))
 
 
 @bot.command(name="help", aliases=["yarnhelp", "yarnaby_help", "helpyarny", "commandlist"])
@@ -14589,6 +14633,14 @@ async def carry_cmd(ctx):
         )
         return
 
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*You lift him. He does not help. He does not resist. He is just weight in your arms, warm and still, his head resting wherever it ends up.* **...mrr...**",
+            "*He lets you pick him up. He has no opinion on this currently. He is cargo.* **...mrr...**",
+            "*He is carried. He stares at the ceiling from your arms. He is somewhere else.* **...mrr...**",
+        ]))
+        return
+
     if is_doctor:
         await ctx.send(
             random.choice([
@@ -14660,6 +14712,14 @@ async def play_dead_cmd(ctx):
         await ctx.send("*He's already flat. He already IS dead. (He's asleep.)*")
         return
 
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He is already down. There is no playing about it. He looks at you from the floor.* **...mrr...**",
+            "*He does not need to perform this. He is living it.* **...mrr...**",
+            "*He tilts his head at the request. He is already as close to dead as he gets without being dead. He declines.* **...mrr...**",
+        ]))
+        return
+
     remaining = _cooldown_remaining(m, f"play_dead:{u_id}", 60)
     if remaining > 0:
         await ctx.send(f"*He's already used up his one performance for now. (~{remaining}s)*")
@@ -14709,6 +14769,14 @@ async def chase_cmd(ctx):
 
     if m["internal"]["is_sleeping"]:
         await ctx.send("*He's asleep. He cannot run laps in his sleep. He is trying. His paws are twitching. **prrr...***")
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*His pupils dilate a little. His tail flicks once, hard — reflex. He does not get up. He watches the room and stays where he is.* **...mrr...**",
+            "*He knows. He can feel the zoomies building behind his eyes. He cannot go anywhere. He sits very still and it passes.* **...mrr...**",
+            "*He glances at the far wall. Then he looks at his own paws. He does not run.* **...mrr...**",
+        ]))
         return
 
     if not is_doctor:
@@ -14818,6 +14886,13 @@ async def hide_cmd(ctx):
         await ctx.send("*He's already in the deepest hide of all. (He's asleep.)*")
         return
 
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He would very much like to disappear right now. He stays where he is. He cannot move.* **...mrr...**",
+            "*He looks at the gap under the desk. He looks at the floor between him and it. He does not go.* **...mrr...**",
+        ]))
+        return
+
     if m["internal"].get("yarnaby_hiding"):
         spot = m["internal"].get("yarnaby_hiding_spot", "somewhere")
         await ctx.send(
@@ -14875,6 +14950,13 @@ async def seek_cmd(ctx):
             "*A faint snore. He is not available.* **...zz.**",
             "*He is asleep. His ear twitches once, then stills.* **...zz.**",
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He is right here. He is not hiding. He could not hide if he tried.* **...mrr...**",
+            "*He raises one paw slightly. Found him. He was always here.* **...mrr...**",
         ]))
         return
 
@@ -14939,6 +15021,19 @@ async def scribble_cmd(ctx, *, recipient: Optional[str] = None):
 
     if m["internal"]["is_sleeping"]:
         await ctx.send("*He's asleep. The letter will have to wait.*")
+        return
+
+    if m["internal"].get("helpless", False):
+        if is_doctor:
+            await ctx.send(random.choice([
+                "*He cannot get up to get paper. He stares at The Creator for a long moment. He looks at his own paw. He cannot write right now. He is sorry.* **...mrr...**",
+                "*He makes a very small, very effortful movement — reaching toward where he keeps his paper — and stops. He can't reach it from here. He lies back down.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He is not in a letter-writing state right now. He cannot even reach the paper.* **...mrr...**",
+                "*He blinks at you. He is on the floor. Letters are not happening today.* **...mrr...**",
+            ]))
         return
 
     remaining = _cooldown_remaining(m, f"letter:{u_id}", 300)
@@ -15110,6 +15205,15 @@ async def favorite_cmd(ctx):
             ])
         )
         return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He looks toward his hoard from where he is. He cannot go to it. He knows which one. He always knows which one.* **...mrr...**",
+            "*His eyes drift to the corner where his favorite lives. He does not move. He tells you nothing. But he keeps looking.* **...mrr...**",
+        ]))
+        return
     inv = m.get("inventory", {})
     if not inv:
         await ctx.send("*He pads to his secret corner and turns in a circle. There's nothing here yet. He has no favorite.*")
@@ -15142,6 +15246,9 @@ async def favorite_cmd(ctx):
 async def show_cmd(ctx, *, item: str = ""):
     """Have Yarnaby proudly show off a specific item from his hoard."""
     m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     await _add_reactions(ctx, m)
     if m["internal"]["is_sleeping"]:
         await ctx.send(random.choice([
@@ -15150,6 +15257,12 @@ async def show_cmd(ctx, *, item: str = ""):
             "*A faint snore. He is not available.* **...zz.**",
             "*He is asleep. His ear twitches once, then stills.* **...zz.**",
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He looks toward his hoard. He cannot get up to retrieve anything from it.* **...mrr...**",
+            "*His eyes go to the hoard corner. He looks back at you. His paws stay where they are.* **...mrr...**",
         ]))
         return
     inv = m.get("inventory", {})
@@ -15377,6 +15490,12 @@ async def sulk_cmd(ctx):
     await _add_reactions(ctx, m)
     if m["internal"]["is_sleeping"]:
         await ctx.send("*He's asleep. He cannot sulk on demand right now.*")
+        return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He is already sulking. It is built in. It is a structural feature of his current situation.* **...mrr...**",
+            "*He looks at you from the floor with an expression that is, technically, a sulk. He did not need to perform it.* **...mrr...**",
+        ]))
         return
     update_mood(m)
     mood = m["stats"].get("mood", "Content")
@@ -15895,6 +16014,14 @@ async def tickle_cmd(ctx, *, spot: Optional[str] = None):
         ]))
         return
 
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*Your fingers find the spot. He twitches — a brief, involuntary thing — and then goes still again. He does not laugh. He is very focused on not moving.* **...mrr...**",
+            "*He would normally have opinions about this. Right now he holds still and the twitch happens and that is all.* **...mrr...**",
+            "*His paw moves. It's reflex. He looks at his own paw like it betrayed him. He does not laugh.* **...mrr...**",
+        ]))
+        return
+
     score = 99 if is_creator else m["social_matrix"].get(u_id, {}).get("score", 0)
     if score <= -4 and not is_trusted:
         await ctx.send(random.choice([
@@ -16164,6 +16291,14 @@ async def groom_cmd(ctx, *, spot: str = ""):
         await ctx.send("*Yarnaby is asleep. You decide not to disturb him right now.*")
         return
 
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He holds still as you work on his wool. He doesn't help. He doesn't resist. He is a cooperative object.* **...mrr...**",
+            "*He lets you groom him. His eyes drift half-closed. He is somewhere between present and very far away.* **...mrr...**",
+            "*Your hands move through his wool and he sits there and it is, quietly, one of the more comforting things happening to him right now.* **...mrr...**",
+        ]))
+        return
+
     # --- BRUSH GATE: check if a brush/comb has been gifted ---
     inv = m.get("inventory", {})
     has_brush = any(
@@ -16382,6 +16517,12 @@ async def birthday_cmd(ctx):
             ])
         )
         return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He blinks slowly. The date matters to him even now. He holds up one paw — December. Somewhere in there.* **...mrr...**",
+            "*He looks at the question with quiet eyes. December 24th. He knows. He always knows.* **...mrr...**",
+        ]))
+        return
     today = datetime.now(timezone.utc).replace(tzinfo=None) + ISTANBUL_OFFSET
     bday_this_year = datetime(today.year, CREATION_DATE_MONTH, CREATION_DATE_DAY)
     if today.date() > bday_this_year.date():
@@ -16426,6 +16567,14 @@ async def miss_cmd(ctx):
             "*A faint snore. He is not available.* **...zz.**",
             "*He is asleep. His ear twitches once, then stills.* **...zz.**",
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He nods. He is nodding from the floor. His eyes are wet. He doesn't stop nodding.* **...mrr...**",
+            "*The question reaches him. He turns his face away slightly. He nods once — small, certain.* **...mrr...**",
+            "*He always misses. Right now, missing is the biggest thing happening in him, and there is a lot of room for it.* **...mrr...**",
         ]))
         return
 
@@ -16510,6 +16659,15 @@ async def draw_cmd(ctx, *, prompt: Optional[str] = None):
     if m["internal"].get("is_sleeping"):
         await ctx.send("*He's asleep. The art muses are also asleep. Try again later.*")
         return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He looks at his paw. He cannot hold anything right now. He cannot draw.* **...mrr...**",
+            "*He blinks at the request. He knows what he would draw. He cannot pick up the paper.* **...mrr...**",
+        ]))
+        return
     prompt = (prompt or "").strip() or "something random"
     file_path, art_text = _art_prompt_to_art(prompt)
     entry = {
@@ -16547,6 +16705,12 @@ async def seeart_cmd(ctx):
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
         ]))
         return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He moves his eyes toward the gallery corner. He cannot retrieve anything. He looks back.* **...mrr...**",
+            "*He blinks once at the question. The art is there. He is here. He cannot bridge that gap right now.* **...mrr...**",
+        ]))
+        return
     _ensure_art_defaults(m)
     if not m["art_gallery"]:
         await ctx.send("*He hasn't made any drawings yet. Ask him to `!draw` something first.*")
@@ -16566,6 +16730,23 @@ async def bath_cmd(ctx):
 
     if m["internal"]["is_sleeping"]:
         await ctx.send("*Yarnaby is asleep. A bath would be cruel.*")
+        return
+
+    if m["internal"].get("helpless", False):
+        if is_doctor:
+            m["stats"]["cleanliness"] = 0
+            save_db(m)
+            await ctx.send(random.choice([
+                "*He cannot help. He holds still as The Creator tends to him. His wool comes out clean. He is grateful in a way he cannot currently express.* **...mrr...**",
+                "*He lets The Creator do everything. He does not protest. He emerges cleaner. He presses his forehead against The Creator's hand once, very briefly.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He cannot get away from the bath. He also cannot lean into it. He holds still and endures it. His wool is cleaner, at least.* **...mrr...**",
+                "*He has no energy to fight this. You bathe him. He sits there. His wool is clean. He looks at you afterward with tired, neutral eyes.* **...mrr...**",
+            ]))
+            m["stats"]["cleanliness"] = 0
+            save_db(m)
         return
 
     cur = m["stats"].get("cleanliness", 0)
@@ -16615,6 +16796,12 @@ async def health_cmd(ctx):
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
         ]))
         return
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*He sits very still and lets you check on him. He is very good at sitting still right now.* **...mrr...**",
+            "*He holds himself together for the check. He wants you to know he is managing.* **...mrr...**",
+        ]))
+        # fall through — still show health stats
     health = m["stats"].get("health", 100)
     temp = m["stats"].get("temperature", "warm")
 
@@ -16760,6 +16947,30 @@ async def blanket_cmd(ctx):
                 "*He is asleep. The words reach him as a distant murmur.*",
             ])
         )
+        return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    if m["internal"].get("helpless", False):
+        if is_doctor:
+            m["stats"]["temperature"] = "warm"
+            save_db(m)
+            await ctx.send(random.choice([
+                "*He holds still as The Creator wraps him. He presses into the warmth as much as he can without moving much. A very faint sound.* **...prrr...**",
+                "*The blanket goes around him and he does not move. He can feel it. He is grateful for it. He says nothing but his ears shift forward a little.* **...prrr...**",
+            ]))
+        elif score >= 5:
+            m["stats"]["temperature"] = "warm"
+            save_db(m)
+            await ctx.send(random.choice([
+                "*He lets you wrap him. He doesn't have the energy to resist and you are trusted enough that he wouldn't anyway. He leans into the warmth.* **...mrr...**",
+                "*The blanket settles around him. He breathes. He is warmer. He looks up once, briefly.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*You try to wrap him. He turns his head away slightly. He is not accepting warmth from you right now, even helpless as he is.* **mrr.**",
+                "*He endures the attempt. He cannot stop you. He does not lean in.* **...mrr.**",
+            ]))
         return
     temp = m["stats"].get("temperature", "warm")
 
@@ -17035,6 +17246,24 @@ async def soup_cmd(ctx):
             ])
         )
         return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    if m["internal"].get("helpless", False):
+        if is_doctor or score >= 3:
+            m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 50) - 4)
+            m["stats"]["health"] = min(100, m["stats"].get("health", 100) + 10)
+            save_db(m)
+            await ctx.send(random.choice([
+                "*The bowl is held near him. He manages, barely, to lap at it. His nose touches the surface of the broth. He keeps going. Slow.* **...mrr...**",
+                "*He drinks what he can from where he is. The warmth reaches him. Something in him unclenches, very slightly.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He turns his face from the bowl. He will not accept this from you, even now.* **...mrr.**",
+                "*He looks at the soup. He looks at you. He looks away.* **mrr.**",
+            ]))
+        return
     temp = m["stats"].get("temperature", "warm")
     health = m["stats"].get("health", 100)
 
@@ -17204,6 +17433,14 @@ async def vidgame_cmd(ctx, *, game_name: Optional[str] = None):
             "*A faint snore. He is not available.* **...zz.**",
             "*He is asleep. His ear twitches once, then stills.* **...zz.**",
             "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(random.choice([
+            "*His eyes drift to the screen. He cannot hold the controller right now. He watches the game idly.* **...mrr...**",
+            "*He looks at his paws. He looks at the controller. He does not pick it up.* **...mrr...**",
+            "*He knows what he would pick. He cannot play right now. He will remember this later.* **...mrr...**",
         ]))
         return
 
@@ -18451,7 +18688,7 @@ async def fbtotal_cmd(ctx):
 
 
 @bot.command(name="mimic", aliases=["copy", "echo"])
-async def mimic_cmd(ctx):
+async def mimic_cmd(ctx, *, text: str = ""):
     """Have Yarnaby mimic a word, phrase, or message in his own non-verbal way."""
     if not text.strip():
         await ctx.send("*He tilts his head. Mimic what?*")
@@ -20238,7 +20475,7 @@ async def grudge_cmd(ctx):
 # !grievance [@user] - surfaces a specific past grievance
 # ==========================================
 @bot.command(name="grievance", aliases=["hisgrievance", "whatdidtheydo", "holdingagainst", "stillremember", "whathappenedwith"])
-async def grievance_cmd(ctx):
+async def grievance_cmd(ctx, *, target: str = ""):
     """Yarnaby surfaces a specific grievance he's been holding - a bad food, a toxic attempt, a repeated offence."""
     m = bot.db
     u_id = str(ctx.author.id)
@@ -20493,7 +20730,7 @@ async def favored_cmd(ctx):
 # !milestones [@user] - personal milestone progress
 # ==========================================
 @bot.command(name="milestones", aliases=["myprogress", "myrank", "mystanding", "trustlevel", "howfarami", "progress"])
-async def milestones_cmd(ctx):
+async def milestones_cmd(ctx, *, target: str = ""):
     """Show how many trust milestones you (or someone else) have reached with Yarnaby."""
     m = bot.db
     u_id = str(ctx.author.id)
@@ -23071,7 +23308,7 @@ async def journal_cmd(ctx):
 
 
 @bot.command(name="remember", aliases=["recall", "whoisthis", "tellmeabout"])
-async def remember_cmd(ctx):
+async def remember_cmd(ctx, *, target: str = ""):
     """Yarnaby recalls what he knows about someone."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -23791,7 +24028,7 @@ async def teach_cmd(ctx, *, content: Optional[str] = None):
 
 
 @bot.command(name="forget", aliases=["makehimforget", "removeword", "unlearn", "deleteconcept", "clearword"])
-async def forget_cmd(ctx):
+async def forget_cmd(ctx, *, concept: str = ""):
     """Creator only: make Yarnaby forget something he was taught."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -25635,7 +25872,7 @@ async def dreamlog_cmd(ctx):
 
 
 @bot.command(name="promise", aliases=["swear", "vow"])
-async def promise_cmd(ctx):
+async def promise_cmd(ctx, *, text: str = ""):
     if not text.strip():
         await ctx.send("*Promise what? He is listening very seriously.* **mrr?**")
         return
@@ -25658,7 +25895,7 @@ async def promise_cmd(ctx):
 
 
 @bot.command(name="comfort_other", aliases=["comfortuser", "comfortthem"])
-async def comfort_other_cmd(ctx):
+async def comfort_other_cmd(ctx, target: discord.Member = None):
     target = target or ctx.author
     await ctx.send(f"*Yarnaby pads to **{target.display_name}** and sits close enough to be felt, not so close that it demands anything. He stays.* **prrr.**")
 
@@ -28281,7 +28518,7 @@ async def cleanwool_cmd(ctx):
 # !forget @user - forget a specific user
 # ==========================================
 @bot.command(name="forgetuser", aliases=["erasememory", "wipeuser", "forgetperson"])
-async def forgetuser_cmd(ctx):
+async def forgetuser_cmd(ctx, target: discord.Member = None, *, name: str = ""):
     """Creator only: forget a specific user."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He tilts his head. Only The Creator can make him forget.* **mrr.**")
@@ -31856,7 +32093,7 @@ async def gift_history_cmd(ctx):
 
 # !stalking — he silently follows someone
 @bot.command(name="stalking", aliases=["followhim", "followyarny", "yarnfollow", "tailing"])
-async def stalking_cmd(ctx):
+async def stalking_cmd(ctx, target: discord.Member = None):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
@@ -37791,6 +38028,51 @@ async def revive_cmd(ctx):
             f"{'They get up and go looking.' if len(grief_cleared) == 1 else 'They get up and go looking.'}* **...mrr?**"
         )
 
+    # ── Mofu visited during death — special reunion moment ─────────────────
+    if m["internal"].pop("mofu_visited_while_dead", False):
+        save_db(m)
+        await asyncio.sleep(4)
+        await ctx.send(random.choice([
+            "*The door opens.*\n\n"
+            "*Mofu walks in — the way he always walks in, like he belongs everywhere.*\n\n"
+            "*He stops when he sees Yarnaby move.*\n\n"
+            "*He was here before. He saw what was here. He came back anyway.*\n\n"
+            "*He walks over and sits beside Yarnaby — not close, just near — and he puts his head down. "
+            "He stays like that for a long time. Yarnaby doesn't say anything. "
+            "He doesn't need to. Mofu already knows everything.* **...prrr...**",
+
+            "*Mofu comes back.*\n\n"
+            "*He said he would.*\n\n"
+            "*He finds Yarnaby — alive this time, breathing, here — "
+            "and he stops in the middle of the room and looks at him for a long time. "
+            "Then he pads over and puts his nose against Yarnaby's nose.*\n\n"
+            "*He headbutts him. Once. Gentle. Final.*\n\n"
+            "*He settles beside him and begins to purr. He does not explain himself. He doesn't have to.* **...prrr. prrr. prrr...**",
+
+            "*The door.*\n\n"
+            "*Mofu.*\n\n"
+            "*He was here when Yarnaby was gone. He sat with him. He left slowly.*\n\n"
+            "*Now Yarnaby is here and Mofu walks straight to him without hesitation "
+            "and lies down against his side and closes his eyes.*\n\n"
+            "*He stayed before. He's staying now. That's what Mofu does.* **...prrr...**",
+
+            "*Mofu walks in quietly.*\n\n"
+            "*Yarnaby opens his eyes and finds him immediately — the way he always finds Mofu, "
+            "like something in him knows.*\n\n"
+            "*Mofu stops when their eyes meet. He looks at Yarnaby for one long moment.*\n\n"
+            "*Then he walks over and grooms Yarnaby's ears — slowly, carefully — "
+            "the way he did before, beside him, when everything was wrong.*\n\n"
+            "*He keeps going. He doesn't stop. He is here and Yarnaby is here and that is enough.* **...prrr...**",
+
+            "*Something brings Mofu back today specifically.*\n\n"
+            "*He comes in and finds Yarnaby where he left him, but different now — "
+            "present, awake, breathing in the way that means alive.*\n\n"
+            "*Mofu sits down directly in front of him and does the slow blink.*\n\n"
+            "*Yarnaby does the slow blink back.*\n\n"
+            "*Neither of them says anything. There is nothing to say. "
+            "This is what they said.* **...prrr. prrr...**",
+        ]))
+
 
 # ==========================================
 # !revivechild [name] — Creator-only
@@ -38169,6 +38451,1129 @@ async def childfeeling_cmd(ctx, *, name: str = ""):
         ]),
     }
     await ctx.send(RESPONSES.get(feeling, "*He blinks.* **mrr.**"))
+
+
+# ── !childlog / !childhistory ──────────────────────────────────────────────────
+
+@bot.command(name="childlog", aliases=["childhistory"])
+async def childlog_cmd(ctx, *, name: str = ""):
+    """Show a timeline of recent interactions with one of Yarnaby's children."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+
+    if not children:
+        await ctx.send("*He has no children in this server yet.* **mrr.**")
+        return
+
+    if not name.strip():
+        # Show all children with recent activity count
+        lines = ["**📋 Child Interaction Log**\n"]
+        for c in children:
+            cname = c["name"]
+            log = c.get("interaction_log", [])
+            feeling = c.get("feeling", "neutral")
+            feeling_icon = {"adored": "💛", "neutral": "⬜", "disliked": "🔸"}.get(feeling, "⬜")
+            status = "💀 dead" if c.get("dead") else ("😵 fainted" if c.get("fainted") else "✅ alive")
+            lines.append(
+                f"{feeling_icon} **{cname}** — {status} — {len(log)} interaction{'s' if len(log) != 1 else ''} recorded"
+            )
+            if log:
+                last = log[-1]
+                lines.append(f"  └ last: `{last['action']}` by **{last['by']}** at {last['at']}")
+        lines.append(f"\n*Use `!childlog [name]` for full timeline.*")
+        await ctx.send("\n".join(lines))
+        return
+
+    child = _find_child(children, name)
+    if not child:
+        await _child_not_found(ctx, name, children)
+        return
+
+    cname = child["name"]
+    log = child.get("interaction_log", [])
+    feeling = child.get("feeling", "neutral")
+    trauma = child.get("trauma", 0)
+    feeling_icon = {"adored": "💛", "neutral": "⬜", "disliked": "🔸"}.get(feeling, "⬜")
+    status = "💀 dead" if child.get("dead") else ("😵 fainted" if child.get("fainted") else "✅ alive")
+
+    # Opening flavour
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*He looks up when **{cname}**'s name is spoken. He is still while you read.* **...mrr.**",
+            f"*He watches The Creator look through **{cname}**'s history. He says nothing.*",
+        ]))
+    elif score >= 6:
+        await ctx.send(f"*He allows you to look at **{cname}**'s record. He watches your face.* **mrr.**")
+    else:
+        await ctx.send(f"*He watches you look through **{cname}**'s history. He doesn't stop you.* **...mrr.**")
+
+    await asyncio.sleep(1)
+
+    header = (
+        f"{feeling_icon} **{cname}** — {status}\n"
+        f"Feeling: **{feeling}** | Trauma: **{trauma}** | "
+        f"Child score: **{child.get('child_score', 0)}** | "
+        f"Age: **{child.get('age', 'unknown')}**"
+    )
+    await ctx.send(header)
+
+    if not log:
+        await ctx.send("*No interactions have been recorded for this child yet.*")
+        return
+
+    await asyncio.sleep(1)
+
+    # Show last 15 entries
+    ACTION_ICONS = {
+        "warm":    "💛",
+        "neutral": "⬜",
+        "scold":   "🔸",
+        "startle": "⚡",
+    }
+    entries_to_show = log[-15:]
+    chunk = ["**Recent interactions (newest last):**"]
+    for entry in entries_to_show:
+        icon = ACTION_ICONS.get(entry.get("action", "neutral"), "▫️")
+        note = f" — `{entry['note']}`" if entry.get("note") else ""
+        chunk.append(f"{icon} `{entry['at']}` **{entry['by']}** — {entry['action']}{note}")
+
+    await ctx.send("\n".join(chunk))
+
+    hidden = len(log) - len(entries_to_show)
+    if hidden > 0:
+        await ctx.send(f"*...and {hidden} earlier interaction{'s' if hidden != 1 else ''} not shown.* **mrr.**")
+
+
+# ── !childtrauma ───────────────────────────────────────────────────────────────
+
+@bot.command(name="childtrauma")
+async def childtrauma_cmd(ctx, *, name: str = ""):
+    """Show one child's trauma record, or all children's trauma overview."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    children = m["internal"].get("guild_states", {}).get(guild_id, {}).get("children", [])
+
+    if not children:
+        await ctx.send("*He has no children in this server yet.* **mrr.**")
+        return
+
+    def _trauma_tier(pts):
+        if pts == 0:   return "None",     "⬜", "Unbothered. Nothing has marked them yet."
+        if pts <= 3:   return "Low",      "🟩", "Mild. They carry it quietly."
+        if pts <= 7:   return "Moderate", "🟨", "Present. They flinch sometimes. They remember."
+        if pts <= 14:  return "Serious",  "🟧", "Heavy. It's in how they move now."
+        if pts <= 24:  return "Severe",   "🟥", "Deep. They are changed by this."
+        return             "Critical",   "💀", "This child has seen and felt too much. They are not the same."
+
+    if not name.strip():
+        # Overview of all children
+        if is_doctor:
+            await ctx.send("*He is still while you look at all of them.*")
+        elif score >= 5:
+            await ctx.send("*He lets you see this. He watches while you do.* **mrr.**")
+        else:
+            await ctx.send("*He looks at you for a moment. He doesn't stop you from looking.* **...mrr.**")
+        await asyncio.sleep(1)
+
+        lines = ["**🩹 Child Trauma Overview**\n"]
+        any_trauma = False
+        for c in children:
+            cname = c["name"]
+            pts = c.get("trauma", 0)
+            tier, emoji, _ = _trauma_tier(pts)
+            feeling = c.get("feeling", "neutral")
+            feeling_icon = {"adored": "💛", "neutral": "⬜", "disliked": "🔸"}.get(feeling, "⬜")
+            dead = c.get("dead")
+            status = " *(dead)*" if dead else (" *(fainted)*" if c.get("fainted") else "")
+            lines.append(f"{emoji} {feeling_icon} **{cname}**{status} — {tier} ({pts} pts)")
+            if pts > 0:
+                any_trauma = True
+                notes = []
+                if c.get("grieving_father"):
+                    notes.append("witnessed father's death")
+                if c.get("father_kill_trauma"):
+                    notes.append(f"kill trauma: {c['father_kill_trauma']}")
+                if c.get("fainted"):
+                    notes.append("fainted from shock")
+                if notes:
+                    lines.append(f"  └ {', '.join(notes)}")
+
+        if not any_trauma:
+            lines.append("\n*None of them carry anything yet. That can change.*")
+        await ctx.send("\n".join(lines))
+        await asyncio.sleep(1)
+        await ctx.send("*Use `!childtrauma [name]` for a full breakdown on one child.*")
+        return
+
+    child = _find_child(children, name)
+    if not child:
+        await _child_not_found(ctx, name, children)
+        return
+
+    cname = child["name"]
+    pts = child.get("trauma", 0)
+    tier, emoji, tier_desc = _trauma_tier(pts)
+    feeling = child.get("feeling", "neutral")
+
+    # Opening flavour — mirrors !trauma command
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*He looks toward **{cname}** when The Creator asks. He is still while they look.* **...mrr.**",
+            f"*He lets The Creator see what **{cname}** carries. He doesn't move.*",
+        ]))
+    elif score >= 6:
+        await ctx.send(f"*He allows you to look at what **{cname}** carries. He watches your face.* **mrr.**")
+    elif score >= 2:
+        await ctx.send(f"*He doesn't stop you from looking at **{cname}**'s record.* **...mrr.**")
+    else:
+        await ctx.send(f"*He watches you from across the room. He doesn't comment.* **...mrr.**")
+
+    await asyncio.sleep(1)
+
+    feeling_icon = {"adored": "💛", "neutral": "⬜", "disliked": "🔸"}.get(feeling, "⬜")
+    status = "💀 dead" if child.get("dead") else ("😵 fainted" if child.get("fainted") else "✅ alive")
+
+    header = (
+        f"{emoji} **{cname}** — {status}\n"
+        f"**Trauma Level: {tier}** {emoji}\n"
+        f"*{tier_desc}*\n"
+        f"*(Trauma score: {pts})*\n"
+        f"Yarnaby's feeling toward them: {feeling_icon} **{feeling}**"
+    )
+    await ctx.send(header)
+    await asyncio.sleep(1.5)
+
+    if pts == 0:
+        await ctx.send(f"*Nothing has been recorded against **{cname}** yet. They are unmarked. For now.*")
+        return
+
+    # Specific trauma entries
+    entries = []
+    if child.get("grieving_father"):
+        entries.append(("💀", "Witnessed Yarnaby's death", child.get("fainted_at", "unknown date")))
+    if child.get("father_kill_trauma"):
+        method = child["father_kill_trauma"]
+        entries.append(("🔴", f"Father killed by: {method}", child.get("fainted_at", "unknown date")))
+    if child.get("fainted"):
+        entries.append(("😵", f"Fainted from shock (at {child.get('fainted_at', 'unknown')})", ""))
+    injuries = child.get("injuries", [])
+    for inj in injuries[-5:]:
+        entries.append(("🟧", f"Injury: {inj.get('type', 'unknown')} by {inj.get('by', 'unknown')}", inj.get("at", "")))
+
+    # Only show heavy trauma to low-trust users
+    for icon, detail, at in entries:
+        if not is_doctor and score < 3:
+            continue
+        timestamp = f" *({at[:10]})*" if at else ""
+        await ctx.send(f"{icon} {detail}{timestamp}")
+        await asyncio.sleep(random.uniform(2.0, 3.5))
+
+    await asyncio.sleep(1.5)
+    if tier in ("Severe", "Critical"):
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*He finds **{cname}** after you read this and sits near them. He doesn't explain why.* **...prrr.**",
+                f"*He looks at **{cname}** when The Creator is done reading. He presses his head against them once. Just once.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He watches you finish reading. He says nothing. He finds **{cname}** shortly after.* **...mrr.**",
+                f"*He is very still when you put this down. He knows what **{cname}** carries. He has always known.* **...mrr.**",
+            ]))
+    elif tier in ("Moderate", "Serious"):
+        await ctx.send(f"*He watches you read it. He doesn't look away.* **mrr.**")
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# !yarnabyfriend — a visiting cat arrives. could be good. could be bad.
+# !friends — see Yarnaby's friend list, with feelings and status.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CAT_TYPES = [
+    ("orange tabby", "🟠"),
+    ("black cat", "🖤"),
+    ("grey cat", "🩶"),
+    ("white cat", "🤍"),
+    ("calico cat", "🌈"),
+    ("tortoiseshell cat", "🍂"),
+    ("tuxedo cat", "🎩"),
+    ("brown tabby", "🟤"),
+    ("blue-grey cat", "💙"),
+    ("ginger cat", "🔥"),
+    ("siamese cat", "🏔️"),
+    ("spotted cat", "🐾"),
+]
+
+_CAT_NAMES = [
+    "Biscuit", "Mango", "Smudge", "Pepper", "Flint", "Cinder", "Toast",
+    "Cobalt", "Rook", "Marble", "Ash", "Pebble", "Fern", "Thorn",
+    "Soot", "Ember", "Slate", "Pip", "Hazel", "Clove",
+]
+
+# Mofu — the special ragdoll. always the same.
+_MOFU = {
+    "name": "Mofu",
+    "type": "ragdoll",
+    "emoji": "🤍",
+    "special": True,
+}
+
+def _get_friends(m, guild_id):
+    return m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {}).setdefault("cat_friends", [])
+
+def _find_friend(friends, name):
+    n = name.strip().lower()
+    for f in friends:
+        if n in f["name"].lower():
+            return f
+    return None
+
+
+_GOOD_EVENTS = [
+    ("play",        lambda cn, ct: random.choice([
+        f"*{cn} the {ct} shows up with a bottle cap and drops it at Yarnaby's feet. He stares at it. He picks it up. He drops it back. They go back and forth like this for twenty minutes. Neither explains. Both are having the best time.* **chrrp.**",
+        f"*{cn} the {ct} pounces on Yarnaby's tail. Yarnaby pretends to be offended. He is not offended. He lets {cn} do it three more times.* **mrr. mrr. mrr.**",
+        f"*{cn} the {ct} rolls onto their back and shows their belly at Yarnaby. Yarnaby considers this for a long moment. He rolls onto his back too. They lie there, side by side, belly-up, in the middle of the room.* **...prrr...**",
+        f"*{cn} the {ct} brings Yarnaby a crumpled piece of foil. It is the best thing Yarnaby has ever seen. They bat it between them for a full hour. It disappears under a shelf. They both stare at the shelf for several minutes. The foil is gone. The memory lives.* **chrrp. chrrp.**",
+    ])),
+    ("nap",         lambda cn, ct: random.choice([
+        f"*{cn} the {ct} falls asleep against Yarnaby without warning. Yarnaby looks down at them. He does not move. He settles. He puts his chin on top of {cn}'s head. They are both asleep within minutes.* **...prrr...**",
+        f"*{cn} the {ct} curls up in the warmest patch of light and {cn} is already half-asleep. Yarnaby comes to investigate. He circles once. He curls around {cn}. He is asleep before the circle is finished.* **...prrr...**",
+        f"*Yarnaby and {cn} the {ct} somehow end up napping side by side without either of them meaning to. Neither acknowledges this when they wake up. Both were warm. That is enough.* **...mrr...**",
+    ])),
+    ("groom",       lambda cn, ct: random.choice([
+        f"*{cn} the {ct} starts grooming Yarnaby's ears without asking. Yarnaby goes very still. He allows this. He closes his eyes. He is small and content and he will not say so.* **...prrr...**",
+        f"*Yarnaby grooms {cn} the {ct}'s head very seriously, like there is a correct way to do this and he is the only one who knows it. {cn} submits entirely. Neither of them speaks.* **...mrr...**",
+    ])),
+    ("gift",        lambda cn, ct: random.choice([
+        f"*{cn} the {ct} brings Yarnaby something — a pebble, a twist of wire, a dried leaf — and sets it in front of him. Yarnaby sniffs it. He adds it to his hoard. He looks back at {cn} for a moment. Something quiet passes between them.* **chrrp.**",
+        f"*{cn} the {ct} drops a small feather at Yarnaby's paws and walks away. Yarnaby picks it up. He adds it to the hoard under his favourite shelf. He knows who it's from.* **...mrr...**",
+    ])),
+    ("sit together", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} comes and sits near Yarnaby — not touching, just near. They watch the same wall. They are thinking about different things. They are glad the other is there.* **...mrr...**",
+        f"*{cn} the {ct} and Yarnaby sit in the same shaft of light. Neither speaks. Neither moves. This lasts a long time. It is one of the best afternoons either of them has had.* **...prrr...**",
+    ])),
+]
+
+_EVIL_EVENTS = [
+    ("steal inventory", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} sneaks into Yarnaby's hoard while he's distracted and makes off with three items — a button, a small coin, and something wrapped in foil that Yarnaby has had for years. Yarnaby notices immediately. His tail goes rigid. His ears go flat.* **MRROW.**",
+        f"*{cn} the {ct} knocks items out of Yarnaby's hoard one by one, slowly, maintaining eye contact. Yarnaby watches every single one hit the floor. His eye twitches.* **...hff. MRROW.**",
+    ])),
+    ("antagonise children", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} finds Yarnaby's children and hisses at them — not playfully. The children scatter. Yarnaby hears it from the other room. He arrives at speed.* **HSSSS. MRROW.**",
+        f"*{cn} the {ct} corners one of the children and bats at them aggressively. The child makes a small scared sound. Yarnaby is there before the second sound.* **MRROW. HSSSS.**",
+    ])),
+    ("try to kidnap a child", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} picks up one of Yarnaby's children by the scruff and begins walking toward the door. Yarnaby does not blink. He is there in two strides. He takes the child back. He looks at {cn} for a very long time.* **...MRROW.**",
+        f"*{cn} the {ct} has one of Yarnaby's children in their mouth and is clearly going somewhere with this. Yarnaby intercepts them. He retrieves the child. He sets them down. He turns back to {cn}. His expression has changed.* **...HSS. MRROW.**",
+    ])),
+    ("scratch hoard items", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} starts scratching and chewing items from Yarnaby's hoard. This is intentional. This is targeted. Yarnaby watches one of his favourite things get ruined.* **...hff... MRROW.**",
+        f"*{cn} the {ct} pulls items out of Yarnaby's hoard and drags them across the floor. Not for fun. For destruction. Yarnaby's ear twitches once. That's all the warning there is.* **HSSS.**",
+    ])),
+    ("pee on hoard", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} deliberately marks Yarnaby's hoard. Yarnaby watches this happen. He blinks once. He blinks twice. His tail has gone completely still, which is worse than if it were moving.* **...MRROW.**",
+        f"*{cn} the {ct} claims Yarnaby's hoard corner as their own in the most direct possible way. Yarnaby does not react immediately. He stares at the wall for several seconds. That's the bad sign.* **...HSS.**",
+    ])),
+]
+
+_TOO_EVIL_EVENTS = [
+    ("threaten children", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} stands over Yarnaby's children and makes it very clear — in the language all cats understand — that they could end this if they wanted to. The children freeze. The room goes cold.* **...**",
+        f"*{cn} the {ct} looks at Yarnaby's children one by one, then looks back at Yarnaby. The message is not subtle. This is a threat. Yarnaby has heard it.* **...**",
+    ])),
+    ("threaten to burn hoard", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} finds the corner where Yarnaby keeps everything he has ever loved, and knocks over the candle nearby. They look at Yarnaby. They look at the flame. They look at Yarnaby again.* **...**",
+        f"*{cn} the {ct} has a lighter. Yarnaby does not know where {cn} got a lighter. {cn} is near the hoard. The lighter is open. Yarnaby goes completely still.* **...**",
+    ])),
+    ("attempt to kill a child", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} moves toward Yarnaby's children with something in their eyes that is not play. It is not ambiguous. Yarnaby sees it before anyone else does.* **...**",
+        f"*{cn} the {ct} pins one of Yarnaby's children. This is not a game. Yarnaby can see the difference. He has seen the difference before. He is already moving.* **...**",
+    ])),
+    ("claim Yarnaby's territory as their own", lambda cn, ct: random.choice([
+        f"*{cn} the {ct} begins marking every inch of Yarnaby's space — his sleeping spot, his hoard corner, the doorway, the shelf. Systematically. Completely. Like Yarnaby is already gone.* **...**",
+        f"*{cn} the {ct} sits in Yarnaby's spot and looks at him. They do not move. They stare. This is a declaration. Yarnaby hears it clearly.* **...**",
+    ])),
+]
+
+_BEHEADING_LINES = [
+    lambda cn, ct: (
+        f"*Yarnaby is very still for a long time after {cn} the {ct} crosses the line. He looks at his children. He looks at his hoard. He looks at {cn}.*\n\n"
+        f"*He makes a decision.*\n\n"
+        f"*It is brief. It is final. {cn} the {ct} is no longer a problem.*\n\n"
+        f"*He sits down afterward. He doesn't explain. His children don't ask. Everyone already knows.* **...mrr.**"
+    ),
+    lambda cn, ct: (
+        f"*There is a moment — just one — where Yarnaby could have let it go. He could have driven {cn} the {ct} out, sent them away, let them leave with their life.*\n\n"
+        f"*He chose differently.*\n\n"
+        f"*{cn} the {ct} is gone. The territory is clean. He returns to where his children are and sits near them. He doesn't look back.* **...prrr.**"
+    ),
+    lambda cn, ct: (
+        f"*{cn} the {ct} made a threat. Yarnaby heard it. He filed it.*\n\n"
+        f"*Then he acted on what he filed.*\n\n"
+        f"*He brings nothing back from the encounter. He goes to his hoard and sits. His children come to him one by one. He lets them.* **...mrr.**"
+    ),
+]
+
+_MOFU_EVENTS = [
+    lambda: random.choice([
+        "*Mofu arrives without announcement — the way he always does. He walks in, finds Yarnaby, and sits down beside him like no time has passed. Yarnaby's whole posture changes. He doesn't make a sound. He just... settles. Mofu settles too. The room is calmer than it was.* **...prrr...**",
+        "*Mofu shows up. That's it. That's enough. Yarnaby's ears come forward and stay there.* **chrrp.**",
+        "*Mofu walks in and immediately goes to Yarnaby's napping spot and sits in it, in Yarnaby's spot, without asking. Yarnaby stares at him. Mofu stares back, ragdoll-calm, unreadable. Yarnaby lies down beside him. This is, apparently, fine.* **...mrr... prrr...**",
+    ]),
+    lambda: random.choice([
+        "*Mofu rolls onto his back and exposes his belly. Yarnaby looks at the belly. He looks at Mofu's face. He looks at the belly again. He gives it one single, careful pat. Mofu's eyes close. Yarnaby's tail curls.* **...prrr...**",
+        "*Mofu stretches out against Yarnaby and begins purring immediately, like a machine that was just switched on. Yarnaby doesn't move. He doesn't need to. Mofu found him and that's enough.* **...prrr... prrr...**",
+        "*Mofu does the slow blink. Yarnaby does the slow blink back. This is everything. This is the whole relationship.* **...prrr...**",
+    ]),
+    lambda: random.choice([
+        "*Mofu belly-rubs Yarnaby with the confidence of someone who has never once been told no. Yarnaby makes a sound he would never make in front of anyone else. A full, embarrassing, completely involuntary purr.* **PRRR. prrr. prrr.**",
+        "*Mofu headbutts Yarnaby once, gently, right between the ears. Yarnaby headbutts back. They stay like that for a moment, foreheads touching, both purring quietly.* **...prrr...**",
+        "*Mofu grooms Yarnaby's ears with the kind of patience that suggests this has happened many times and will happen many more. Yarnaby's eyes close completely. He goes boneless. He is being taken care of and he is letting it happen.* **...prrr...**",
+    ]),
+    lambda: random.choice([
+        "*Mofu brings Yarnaby a soft thing — a piece of fleece, a worn-down toy — and drops it next to him without comment. Yarnaby picks it up, sniffs it, and adds it to his hoard in the spot he keeps for the best things. He doesn't say anything. Mofu already knows.* **chrrp.**",
+        "*Mofu and Yarnaby spend the afternoon in the same square of sunlight, not touching, not speaking, completely at ease. This is friendship at its most fundamental. This is what it looks like when it's real.* **...prrr...**",
+        "*Mofu shows Yarnaby something he found — a feather, a small smooth stone — and Yarnaby examines it seriously, like it's the most important thing that's happened today. Mofu watches him with those calm ragdoll eyes. Both of them are content.* **mrr. chrrp.**",
+    ]),
+    lambda: random.choice([
+        "*At some point Mofu simply starts chasing Yarnaby's tail. Yarnaby pretends he doesn't know Mofu is there. He moves the tail. Mofu pounces. Yarnaby moves it again. This goes on for a while. Neither of them admits they are playing.* **chrrp. mrr. chrrp.**",
+        "*Mofu initiates a wrestling match by throwing himself sideways at Yarnaby with no warning. Yarnaby catches him, rolls him, pins him. Mofu goes completely limp — ragdoll protocol — and Yarnaby immediately lets go and pretends nothing happened. Mofu immediately does it again.* **MRROW. chrrp. mrr.**",
+        "*They race each other down the corridor for no reason. Mofu wins. Yarnaby will not be addressing this.* **chrrp. chrrp.**",
+    ]),
+    lambda: random.choice([
+        "*Mofu comes in and goes directly to Yarnaby's hoard corner, sniffs the whole thing carefully, and then sits beside it like a guard. Yarnaby watches this from across the room. He decides this is acceptable. He comes and sits on the other side. They guard it together.* **...mrr.**",
+        "*Mofu inspects every item in Yarnaby's hoard with his nose — methodically, thoroughly, one by one. Yarnaby watches and does not intervene. When Mofu is satisfied, he sits back. Yarnaby sits beside him. A full audit. Passed.* **...prrr.**",
+        "*Mofu finds the item Yarnaby keeps in the very back of the hoard — the one he never brings out. He sniffs it. He looks at Yarnaby. He sets his paw on it, gently. Yarnaby makes a sound — very quiet, very small. He doesn't take it away. He lets Mofu keep his paw there.* **...mrr...**",
+    ]),
+    lambda: random.choice([
+        "*Mofu and Yarnaby sit on opposite sides of the room doing nothing. Mofu's eyes close partway. Yarnaby's ears are forward and relaxed. They are doing nothing together and that is the whole point.* **...prrr...**",
+        "*Mofu falls asleep sitting upright and starts listing to the side. He lists until he is leaning fully against Yarnaby. Yarnaby glances down at him. He doesn't move. He adjusts his own position so Mofu won't fall.* **...prrr...**",
+        "*Yarnaby falls asleep first. Mofu sits beside him and watches the room. He doesn't sleep. He just watches. He is keeping watch while Yarnaby is under.* **...mrr.**",
+    ]),
+    lambda: random.choice([
+        "*Mofu chirps at something only he can see. Yarnaby looks up, follows Mofu's gaze, sees nothing. Looks back at Mofu. Mofu chirps again. Yarnaby tilts his head. He has decided to simply trust Mofu on this one.* **mrr? chrrp.**",
+        "*Mofu brings Yarnaby a live moth he caught somewhere and releases it on the floor between them. They both watch it. It flies away. They both watch it go. This was a gift. This was the whole gift.* **chrrp. mrr.**",
+        "*Mofu finds something on the floor — a small piece of foil, a bottle cap — and bats it over to Yarnaby. Yarnaby bats it back. Mofu bats it back. They do this for longer than either would admit.* **chrrp. chrrp. mrr.**",
+    ]),
+    lambda: random.choice([
+        "*Mofu, unprompted, introduces himself to each of Yarnaby's children one by one — sniffing their heads, blinking slowly, letting them sniff him back. The children are curious and a little shy. Yarnaby watches from the doorway. He does not interfere. He is watching Mofu meet his family and he is trying not to show what he is feeling.* **...prrr...**",
+        "*One of Yarnaby's children climbs onto Mofu and falls asleep there. Mofu goes completely still — ragdoll instinct — and looks at Yarnaby with enormous calm eyes. Yarnaby looks back. They have an entire conversation with their faces. Mofu does not move until the child wakes.* **...mrr... prrr...**",
+        "*Mofu plays with Yarnaby's children — patient and gentle, the way he is with everything. Yarnaby watches from nearby. He could join. He doesn't. He watches Mofu with his children and something in his chest is very full and very quiet.* **...prrr...**",
+    ]),
+    lambda: random.choice([
+        "*At some point Mofu simply presses his forehead against Yarnaby's side and stays there. He doesn't purr. He doesn't move. He just stays. Yarnaby puts his chin on top of Mofu's head. They stay like that until one of them has to move, and neither of them moves for a long time.* **...mrr...**",
+        "*Mofu tucks himself under Yarnaby's chin — fully under, tucked in — and goes boneless. Yarnaby looks down at the ragdoll currently using him as a bed. He closes his eyes. He starts to purr.* **...prrr. prrr. prrr...**",
+        "*Yarnaby and Mofu sit facing each other, close enough that their noses are almost touching. This lasts a very long time. Neither one moves. Whatever this is, it is between them.* **...prrr...**",
+    ]),
+]
+
+
+@bot.command(name="yarnabyfriend")
+async def yarnabyfriend_cmd(ctx):
+    """A cat comes to visit. Could go well. Could go very badly."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    guild_state = m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {})
+    friends = guild_state.setdefault("cat_friends", [])
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*He is asleep. No guests tonight.* **...zz.**")
+        return
+
+    if m["internal"].get("is_dead"):
+        # Mofu might still visit — he doesn't know yet
+        if random.random() < 0.35:
+            cause = m["internal"].get("cause_of_death", "").lower()
+            m["internal"]["mofu_visited_while_dead"] = True
+            save_db(m)
+            await ctx.send(
+                "*The door opens.*\n\n"
+                "*Mofu walks in. He always walks in like he belongs here. He's looking for Yarnaby.*\n\n"
+                "*He finds him.*  🤍"
+            )
+            await asyncio.sleep(4)
+
+            if "extreme torture" in cause or "dismemberment" in cause:
+                await ctx.send(random.choice([
+                    "*Mofu stops.*\n\n*He does not approach. He does not make a sound. His ears go flat — not in aggression, just in the pure, animal refusal to process what is in front of him.*\n\n*He is gone in under a second. The door doesn't even close behind him. He does not come back today.* **...**",
+                    "*Mofu sees what is there.*\n\n*He does not blink. He does not move. Then he turns around and leaves at a speed that looks like something breaking.*\n\n*Whatever Mofu saw, he will not forget it. The door swings open in his wake. The factory is very quiet.* **...**",
+                    "*He finds the room.*\n\n*He is gone before the door finishes opening. Not running — something past running. The kind of fast that happens when a thing is simply too much.*\n\n*Mofu does not come back today.* **...**",
+                ]))
+
+            elif "beheading" in cause:
+                await ctx.send(random.choice([
+                    "*Mofu sees him.*\n\n*He freezes in the doorway — one paw still lifted mid-step — and his entire body goes rigid. His ears are flat. His eyes are wide. He makes no sound.*\n\n*He backs up one step. Two steps. His eyes don't leave Yarnaby. He turns and he walks away fast, and his tail is low, and he does not look back.*\n\n*He is scared. He has never been scared of a room before.* **...**",
+                    "*Mofu walks in and stops.*\n\n*He stands there for a long time. Looking.*\n\n*His fur rises — all of it, slowly, the way fur rises when the body knows something the mind hasn't processed yet. He makes a single, small, broken sound.*\n\n*He leaves. He does not run. He walks, stiffly, like something in him has stopped working right.* **...**",
+                ]))
+
+            elif "poison" in cause:
+                await ctx.send(random.choice([
+                    "*Mofu finds him on the floor and goes still.*\n\n*He sniffs the air. He pads closer. He sniffs again — Yarnaby's fur, his face, his breathing. Or the place where breathing should be.*\n\n*He lies down beside him. He waits. He has waited for Yarnaby before.*\n\n*He waits a long time.*\n\n*At some point — quietly, without drama — Mofu understands. He doesn't move right away. He stays beside him a little longer, one paw touching Yarnaby's side.*\n\n*Then he stands up. He sits near the door. He looks at Yarnaby from there, once, for a long time.*\n\n*He leaves. He looks back from the threshold.* **...mrr...**",
+                    "*Mofu thinks he's sleeping.*\n\n*He walks over, circles once, and curls up against him the way he always does — the comfortable, automatic way, like a thing you've done a hundred times.*\n\n*He waits for the warmth to shift. For the breathing to change.*\n\n*He waits a long time.*\n\n*Something is wrong. He can smell it now. He nudges Yarnaby once. Nothing.*\n\n*Mofu is very still for a very long time after that.* **...**",
+                    "*Mofu finds him and thinks he is just deeply asleep.*\n\n*He settles in next to him, tucked close, and begins grooming his ears the way he does.*\n\n*He stops.*\n\n*He lifts his head. He sniffs. He sniffs again.*\n\n*He makes a sound that has no word for it — low, quiet, final. He puts his head down on Yarnaby's side. He stays there a long time before he gets up.* **...mrr...**",
+                ]))
+
+            elif "slaughter" in cause:
+                await ctx.send(random.choice([
+                    "*Mofu comes in and reads the room before he sees Yarnaby.*\n\n*He sees Yarnaby.*\n\n*He stands over him for a long moment. His jaw tightens. His tail is completely still.*\n\n*He sits beside him — not close, just near — and he stays there. He doesn't look away. He doesn't leave.*\n\n*After a long time he touches his nose to Yarnaby's fur, once, and then he goes to the door and he sits there, facing out, like he's guarding.*\n\n*He guards for a while.* **...**",
+                    "*Mofu walks in fast — he always walks in like he owns the place.*\n\n*He stops fast.*\n\n*He looks. His ears go back. Not afraid — something harder than afraid. He looks at whoever is still in this room, if anyone is, with eyes that are very still and very clear.*\n\n*He stays beside Yarnaby. He will not be moved from this spot.* **...**",
+                ]))
+
+            elif "torture" in cause:
+                await ctx.send(random.choice([
+                    "*Mofu finds him.*\n\n*He knows immediately. He doesn't need to check. He sits down beside Yarnaby without being asked and he is very, very still.*\n\n*He stays a long time.*\n\n*He doesn't groom him. He doesn't nudge him. He just stays. The way you stay with something that is gone but that deserved to not be alone after.* **...**",
+                    "*Mofu comes in and finds him and sits down and doesn't leave.*\n\n*He puts his head against Yarnaby's side.*\n\n*He stays there until the room gets dark.*\n\n*He is still there when the room gets light again.* **...mrr...**",
+                    "*Mofu finds him and goes very quiet in a way Mofu almost never is.*\n\n*He lies down beside him. He puts one paw on him.*\n\n*He stays. He doesn't know what else to do. He stays.* **...**",
+                ]))
+
+            else:
+                # Unknown / generic cause
+                await ctx.send(random.choice([
+                    "*Mofu finds him.*\n\n*He lies down beside him and stays there a long time.*\n\n*He doesn't explain himself. He just stays.* **...**",
+                    "*Mofu walks in looking for Yarnaby.*\n\n*He finds him.*\n\n*He is very still for a long time. Then he sits near the door and looks back at Yarnaby once.*\n\n*He leaves quietly.* **...**",
+                ]))
+
+            await asyncio.sleep(3)
+            await ctx.send(
+                "*Mofu will come back.*\n*Not today. But he will come back.* **...**"
+            )
+        return
+
+    # ── MOFU: special chance (20%) ─────────────────────────────────────────
+    is_mofu = random.random() < 0.20
+
+    if is_mofu:
+        cat_name = "Mofu"
+        cat_type = "ragdoll"
+        cat_emoji = "🤍"
+
+        await ctx.send(
+            "*The door opens — or maybe it was already open. Mofu walks in.*\n\n"
+            "*He is a ragdoll. White and soft and completely, infuriatingly calm. He walks like someone who belongs everywhere.*\n\n"
+            f"*He finds Yarnaby.* **...mrr?**"
+        )
+        await asyncio.sleep(3)
+
+        event_fn = random.choice(_MOFU_EVENTS)
+        await ctx.send(event_fn())
+        await asyncio.sleep(2)
+
+        # Update/add Mofu in friends list
+        mofu_entry = _find_friend(friends, "Mofu")
+        if not mofu_entry:
+            friends.append({
+                "name": "Mofu",
+                "type": "ragdoll",
+                "emoji": "🤍",
+                "feeling": "best friend",
+                "visits": 1,
+                "killed": False,
+                "special": True,
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": "The ragdoll. Best friend. Always welcome.",
+            })
+        else:
+            mofu_entry["visits"] = mofu_entry.get("visits", 0) + 1
+            mofu_entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            mofu_entry["feeling"] = "best friend"
+
+        save_db(m)
+        await ctx.send(
+            "*Eventually Mofu leaves the way he came — quietly, without ceremony.*\n"
+            "*Yarnaby watches the door for a moment after he's gone.*\n"
+            "*He goes back to what he was doing. He is slightly warmer for the rest of the day.* **...prrr...**"
+        )
+        return
+
+    # ── REGULAR CAT VISITOR ────────────────────────────────────────────────
+    cat_type_tuple = random.choice(_CAT_TYPES)
+    cat_type, cat_emoji = cat_type_tuple
+    cat_name = random.choice(_CAT_NAMES)
+    # Avoid reusing a name already in friends
+    existing_names = [f["name"] for f in friends]
+    attempts = 0
+    while cat_name in existing_names and attempts < 10:
+        cat_name = random.choice(_CAT_NAMES)
+        attempts += 1
+
+    await ctx.send(
+        f"*A {cat_type} appears at the edge of the factory. They haven't been here before.*\n\n"
+        f"*Yarnaby notices them. He doesn't move yet. He watches.*\n\n"
+        f"*The cat's name is **{cat_name}**.*  {cat_emoji}"
+    )
+    await asyncio.sleep(3)
+
+    # ── DETERMINE OUTCOME ─────────────────────────────────────────────────
+    # 45% good, 35% evil, 20% too evil
+    roll = random.random()
+
+    if roll < 0.45:
+        # GOOD
+        event_type, event_fn = random.choice(_GOOD_EVENTS)
+        await ctx.send(event_fn(cat_name, cat_type))
+        await asyncio.sleep(2)
+
+        # Determine feeling
+        feeling_roll = random.random()
+        if feeling_roll < 0.5:
+            feeling = "likes"
+        elif feeling_roll < 0.85:
+            feeling = "loves"
+        else:
+            feeling = "neutral"
+
+        end_lines = {
+            "loves": f"*{cat_name} leaves eventually. Yarnaby watches them go. He hopes they come back.* **...prrr.**",
+            "likes": f"*{cat_name} leaves. Yarnaby watches the door for a moment, then goes back to his things.* **mrr.**",
+            "neutral": f"*{cat_name} wanders off. Yarnaby doesn't watch them leave.* **...mrr.**",
+        }
+        await ctx.send(end_lines[feeling])
+
+        # Update friends list
+        entry = _find_friend(friends, cat_name)
+        if not entry:
+            friends.append({
+                "name": cat_name,
+                "type": cat_type,
+                "emoji": cat_emoji,
+                "feeling": feeling,
+                "visits": 1,
+                "killed": False,
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
+        else:
+            entry["visits"] = entry.get("visits", 0) + 1
+            entry["feeling"] = feeling
+            entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    elif roll < 0.80:
+        # EVIL
+        event_type, event_fn = random.choice(_EVIL_EVENTS)
+        await ctx.send(event_fn(cat_name, cat_type))
+        await asyncio.sleep(2)
+
+        # Yarnaby's response — he drives them out but doesn't kill
+        await ctx.send(random.choice([
+            f"*Yarnaby positions himself between {cat_name} and everything that matters. His posture says: you are leaving now. {cat_name} reads the posture. {cat_name} leaves.* **...MRROW.**",
+            f"*Yarnaby escorts {cat_name} out with his teeth near their scruff and his eyes dead serious. {cat_name} does not fight this. They go. They do not look back.* **HSS. MRROW.**",
+            f"*Yarnaby stands in the doorway until {cat_name} is gone. Just stands there. Watching. Making sure they are actually gone.* **...mrr.**",
+        ]))
+        await asyncio.sleep(2)
+        await ctx.send(
+            f"*{cat_name} is gone. Yarnaby does a slow circuit of the factory — checking the hoard, checking the children, checking every corner.*\n"
+            f"*Everything is accounted for. He settles. He will remember {cat_name}'s face.* **...mrr.**"
+        )
+
+        entry = _find_friend(friends, cat_name)
+        if not entry:
+            friends.append({
+                "name": cat_name,
+                "type": cat_type,
+                "emoji": cat_emoji,
+                "feeling": "dislikes",
+                "visits": 1,
+                "killed": False,
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": f"Caused trouble ({event_type}). Driven out.",
+            })
+        else:
+            entry["feeling"] = "dislikes"
+            entry["visits"] = entry.get("visits", 0) + 1
+            entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    else:
+        # TOO EVIL → beheading
+        event_type, event_fn = random.choice(_TOO_EVIL_EVENTS)
+        await ctx.send(event_fn(cat_name, cat_type))
+        await asyncio.sleep(3)
+
+        # Build-up
+        await ctx.send(random.choice([
+            f"*Yarnaby doesn't react immediately. He looks at {cat_name}. He looks at what {cat_name} is threatening. He looks back at {cat_name}.*\n\n*Something settles in him. Something very old and very decided.* **...**",
+            f"*{cat_name} has made a mistake. They don't know it yet. Yarnaby knows. He has already made the decision. He is simply walking toward it now.* **...**",
+            f"*The room goes quiet. Even the children go quiet. Yarnaby stands up.*\n\n*He looks at {cat_name} for a long time. He has already decided. This part is just the last moment before it.* **...**",
+        ]))
+        await asyncio.sleep(4)
+
+        behead_fn = random.choice(_BEHEADING_LINES)
+        await ctx.send(behead_fn(cat_name, cat_type))
+        await asyncio.sleep(2)
+
+        await ctx.send(
+            f"*{cat_name} the {cat_type} is gone.*\n"
+            f"*The factory is quiet.*\n"
+            f"*His children come to him. He sits with them for a while.* **...prrr...**"
+        )
+
+        entry = _find_friend(friends, cat_name)
+        if not entry:
+            friends.append({
+                "name": cat_name,
+                "type": cat_type,
+                "emoji": cat_emoji,
+                "feeling": "killed",
+                "visits": 1,
+                "killed": True,
+                "killed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": f"Executed. Reason: {event_type}.",
+            })
+        else:
+            entry["feeling"] = "killed"
+            entry["killed"] = True
+            entry["killed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            entry["note"] = f"Executed. Reason: {event_type}."
+
+    save_db(m)
+
+
+# ── !friends ───────────────────────────────────────────────────────────────────
+
+@bot.command(name="friends")
+async def friends_cmd(ctx):
+    """Show Yarnaby's cat friends list — who he loves, likes, dislikes, and who he's killed."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    friends = m["internal"].get("guild_states", {}).get(guild_id, {}).get("cat_friends", [])
+
+    if not friends:
+        await ctx.send(
+            "*He hasn't had any cat visitors yet. He is alone in the factory.*\n"
+            "*Use `!yarnabyfriend` to see who shows up.* **...mrr.**"
+        )
+        return
+
+    if m["internal"].get("is_dead"):
+        # Still show the list — it's a record — but acknowledge the state
+        await ctx.send("*He is dead. These are the cats he knew.* **...**")
+    elif is_doctor:
+        await ctx.send("*He sits still while The Creator looks through who has visited him.* **...mrr.**")
+    elif score >= 5:
+        await ctx.send("*He allows you to look at this.* **mrr.**")
+    else:
+        await ctx.send("*He watches while you look.* **...mrr.**")
+
+    await asyncio.sleep(1)
+
+    # Group by feeling
+    FEELING_ORDER = ["best friend", "loves", "likes", "neutral", "dislikes", "killed"]
+    FEELING_ICONS = {
+        "best friend": "💛⭐",
+        "loves":       "💛",
+        "likes":       "🟩",
+        "neutral":     "⬜",
+        "dislikes":    "🔸",
+        "killed":      "💀",
+    }
+    FEELING_LABELS = {
+        "best friend": "Best Friend",
+        "loves":       "Loves",
+        "likes":       "Likes",
+        "neutral":     "Neutral",
+        "dislikes":    "Dislikes / Banned",
+        "killed":      "Executed",
+    }
+
+    grouped = {f: [] for f in FEELING_ORDER}
+    for friend in friends:
+        feeling = friend.get("feeling", "neutral")
+        if feeling not in grouped:
+            feeling = "neutral"
+        grouped[feeling].append(friend)
+
+    total = len(friends)
+    await ctx.send(f"**🐾 Yarnaby's Visitor Record** — {total} cat{'s' if total != 1 else ''} met\n")
+
+    for feeling in FEELING_ORDER:
+        group = grouped[feeling]
+        if not group:
+            continue
+
+        icon = FEELING_ICONS[feeling]
+        label = FEELING_LABELS[feeling]
+        header = f"{icon} **{label}** ({len(group)})"
+        lines = [header]
+
+        for f in group:
+            fname = f["name"]
+            ftype = f["type"]
+            femoji = f.get("emoji", "🐱")
+            visits = f.get("visits", 1)
+            last = f.get("last_seen", "unknown")[:10]
+            note = f.get("note", "")
+            special_tag = " *(special)*" if f.get("special") else ""
+
+            line = f"  {femoji} **{fname}** the {ftype}{special_tag} — {visits} visit{'s' if visits != 1 else ''} — last seen {last}"
+            if note and (is_doctor or score >= 4):
+                line += f"\n    └ *{note}*"
+            if feeling == "killed":
+                killed_at = f.get("killed_at", "")[:10]
+                line += f"\n    └ *Executed {killed_at}*"
+            lines.append(line)
+
+        await ctx.send("\n".join(lines))
+        await asyncio.sleep(1)
+
+    # Closing
+    killed_count = len(grouped["killed"])
+    loves_count = len(grouped["loves"]) + len(grouped["best friend"])
+    if killed_count >= 3:
+        await ctx.send(
+            f"*He has ended {killed_count} of them. He does not regret any of it. He would do it again.* **...mrr.**"
+        )
+    elif loves_count >= 2:
+        await ctx.send(
+            f"*He has let {loves_count} of them mean something to him. This is not nothing.* **...prrr...**"
+        )
+    else:
+        await ctx.send("*He remembers all of them. He doesn't always show it.* **...mrr.**")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# !yarnabyanimalfriend — a non-cat animal wanders into the factory.
+# Same good / evil / too-evil structure as !yarnabyfriend.
+# Mofu (20%) overrides as usual.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_ANIMAL_TYPES = [
+    ("dog",         "🐶", "it"),
+    ("hedgehog",    "🦔", "it"),
+    ("lizard",      "🦎", "it"),
+    ("frog",        "🐸", "it"),
+    ("rabbit",      "🐰", "it"),
+    ("crow",        "🐦‍⬛", "it"),
+    ("pigeon",      "🐦", "it"),
+    ("rat",         "🐀", "it"),
+    ("fox",         "🦊", "it"),
+    ("turtle",      "🐢", "it"),
+    ("parrot",      "🦜", "it"),
+    ("squirrel",    "🐿️", "it"),
+    ("ferret",      "🦡", "it"),
+    ("duck",        "🦆", "it"),
+    ("bat",         "🦇", "it"),
+]
+
+_ANIMAL_NAMES = [
+    "Crumbs", "Pebble", "Soot", "Dusty", "Pip", "Gnash", "Flint",
+    "Smudge", "Rook", "Grit", "Twig", "Burr", "Thorn", "Hazel",
+    "Cobble", "Rustle", "Cinder", "Slate", "Bramble", "Dusk",
+]
+
+_ANIMAL_GOOD_EVENTS = [
+    ("explore together", lambda an, at: random.choice([
+        f"*{an} the {at} noses around the factory carefully — sniffing corners, investigating the hoard from a respectful distance — and Yarnaby follows at exactly three steps behind, also sniffing the same corners, as if doing a parallel audit.* **mrr.**",
+        f"*{an} the {at} finds a particularly good patch of sunlight and sits in it. Yarnaby considers this for a moment and then sits in the adjacent patch of sunlight. They are not sharing. They are both just in the sun.* **...mrr.**",
+        f"*{an} the {at} is very interested in something in the corner. Yarnaby is now also very interested in the thing in the corner. Neither of them knows what it is. They investigate it together with complete seriousness.* **mrr? mrr.**",
+    ])),
+    ("offer something", lambda an, at: random.choice([
+        f"*{an} the {at} brings something and sets it down near Yarnaby — a seed, a pebble, a small piece of bark. Yarnaby sniffs it slowly. He picks it up and carries it to the hoard. He doesn't say anything. He doesn't need to.* **chrrp.**",
+        f"*{an} the {at} offers Yarnaby something they found. Yarnaby isn't sure what it is. He takes it anyway. He considers it. He adds it to the hoard in the spot he keeps for interesting things.* **...mrr.**",
+        f"*{an} the {at} drops something at Yarnaby's paws and looks up at him. Yarnaby looks at the thing. He looks at {an}. He picks it up and examines it carefully. He keeps it. This was, apparently, a correct offering.* **mrr.**",
+    ])),
+    ("nap nearby", lambda an, at: random.choice([
+        f"*{an} the {at} falls asleep in the warmest corner of the factory. Yarnaby walks past them three times pretending he has somewhere to be. On the fourth pass, he lies down nearby. He is just resting. He is not napping with the {at}. He happens to also be napping.* **...prrr...**",
+        f"*{an} the {at} curls up somewhere near Yarnaby's hoard and goes still. Yarnaby looks at them for a long moment. He lies down between them and the hoard — not blocking them, just present. He is keeping watch. He falls asleep keeping watch.* **...mrr...**",
+        f"*{an} the {at} goes to sleep. Yarnaby goes to sleep too. The factory is quiet. This is a perfectly good afternoon.* **...prrr...**",
+    ])),
+    ("play", lambda an, at: random.choice([
+        f"*{an} the {at} bats at Yarnaby's tail. Yarnaby looks at his tail. He looks at {an}. He moves the tail. {an} bats at it again. He moves it a second time. This continues.* **chrrp. mrr.**",
+        f"*{an} the {at} and Yarnaby have discovered that chasing each other around the large hoard shelf is extremely good. Neither of them stops for a long time. Neither of them is tired. They are both lying on the floor. They are fine.* **chrrp. chrrp. mrr.**",
+        f"*{an} the {at} finds a piece of foil somewhere in the factory and drops it in front of Yarnaby. This is, Yarnaby decides, one of the best days he has had in a while.* **chrrp. chrrp.**",
+    ])),
+    ("sit together", lambda an, at: random.choice([
+        f"*{an} the {at} comes and sits near Yarnaby — not crowding him, just near. They watch the same patch of wall. Neither speaks. This is enough.* **...mrr.**",
+        f"*{an} the {at} and Yarnaby end up next to each other without either of them entirely planning it. They stay there. The afternoon passes.* **...prrr...**",
+        f"*{an} the {at} is very calm. Yarnaby, near the calm {at}, is also calm. This may be cause and effect. Yarnaby does not examine it. He simply stays.* **...mrr.**",
+    ])),
+]
+
+_ANIMAL_EVIL_EVENTS = [
+    ("raid hoard", lambda an, at: random.choice([
+        f"*{an} the {at} is rummaging in Yarnaby's hoard. Not investigating — rummaging. Taking things. Moving things. Making a mess. Yarnaby's ear rotates toward the sound.* **...MRROW.**",
+        f"*{an} the {at} is trying to carry something out of Yarnaby's hoard. Something Yarnaby has had for a long time. Yarnaby notices. He is already moving.* **MRROW.**",
+        f"*{an} the {at} knocks hoard items aside to get to the ones underneath. Deliberate. Purposeful. Wrong. Yarnaby arrives like a thunderclap.* **HSS. MRROW.**",
+    ])),
+    ("chase children", lambda an, at: random.choice([
+        f"*{an} the {at} has decided Yarnaby's children are prey or a game or both. They are chasing one of them around the factory. The child makes a scared sound. Yarnaby is there before the second sound.* **MRROW. HSS.**",
+        f"*{an} the {at} corners one of Yarnaby's children against the wall. This is not playing. The child looks scared. Yarnaby comes around the corner and sees this.* **MRROW.**",
+    ])),
+    ("mark territory aggressively", lambda an, at: random.choice([
+        f"*{an} the {at} is claiming every surface of Yarnaby's factory — methodically, completely. Yarnaby watches. His tail has gone completely still. That is the dangerous sign.* **...HSS.**",
+        f"*{an} the {at} has decided this place belongs to them now. They are making this very clear in ways Yarnaby finds deeply unacceptable. Yarnaby is walking toward them.* **...MRROW.**",
+    ])),
+    ("destroy something", lambda an, at: random.choice([
+        f"*{an} the {at} is chewing on something from Yarnaby's collection. Yarnaby hears the sound. He identifies the sound. He arrives.* **MRROW. MRROW.**",
+        f"*{an} the {at} has knocked Yarnaby's hoard shelf and things are falling. They are not helping pick them up. Yarnaby's eye twitches.* **HSS. MRROW.**",
+    ])),
+]
+
+_ANIMAL_TOO_EVIL_EVENTS = [
+    ("threaten the children", lambda an, at: random.choice([
+        f"*{an} the {at} has Yarnaby's children cornered and the intention in their eyes is not ambiguous. The children are very still. Yarnaby has seen this before. He moves.* **...**",
+        f"*{an} the {at} makes a move toward Yarnaby's children that has no other interpretation. There is one moment of stillness in the room — just one — before Yarnaby responds.* **...**",
+    ])),
+    ("threaten to destroy the hoard", lambda an, at: random.choice([
+        f"*{an} the {at} stands in the middle of Yarnaby's hoard and looks at him. They begin knocking things. One by one. Slowly. Looking at Yarnaby between each one. This is a message.* **...**",
+        f"*{an} the {at} has found something in Yarnaby's hoard that they could break. They are considering it openly, looking at him. Yarnaby goes completely still.* **...**",
+    ])),
+    ("attack a child", lambda an, at: random.choice([
+        f"*{an} the {at} attacks one of Yarnaby's children. This happens in an instant. Yarnaby was there in less than one.* **...**",
+        f"*{an} the {at} reaches for one of Yarnaby's children with clear intent. Yarnaby sees it happen. He is already at full speed.* **...**",
+    ])),
+    ("claim the factory", lambda an, at: random.choice([
+        f"*{an} the {at} has claimed every inch of Yarnaby's factory. His sleeping spot, his hoard, his shelves. They move as if Yarnaby is already gone. Yarnaby is not gone.* **...**",
+        f"*{an} the {at} sits in Yarnaby's spot and looks at him without blinking. This is a declaration. It has been heard.* **...**",
+    ])),
+]
+
+_ANIMAL_BEHEADING_LINES = [
+    lambda an, at: (
+        f"*Yarnaby stands very still for a long time after {an} the {at} crosses the line.*\n\n"
+        f"*He looks at his children. He looks at his hoard. He looks at {an}.*\n\n"
+        f"*He makes a decision. It is not complicated. It takes no time.*\n\n"
+        f"*It is brief. It is final. {an} the {at} is no longer a concern.*\n\n"
+        f"*He returns to where his children are and sits near them. He doesn't explain. Nobody asks.* **...mrr.**"
+    ),
+    lambda an, at: (
+        f"*{an} the {at} made the kind of threat that does not get a second chance.*\n\n"
+        f"*Yarnaby filed it.*\n\n"
+        f"*Then he acted on what he filed.*\n\n"
+        f"*He brings nothing back from the encounter. He goes to his hoard and sits. "
+        f"His children come to him one by one. He lets them.* **...mrr.**"
+    ),
+    lambda an, at: (
+        f"*There was one moment — just one — where Yarnaby could have driven {an} away and left it at that.*\n\n"
+        f"*He didn't.*\n\n"
+        f"*{an} the {at} is gone. The factory is clean. He sits in the middle of the room "
+        f"and his children come to him and he doesn't move for a long time.* **...prrr.**"
+    ),
+]
+
+def _get_animal_friends(m, guild_id):
+    return m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {}).setdefault("animal_friends", [])
+
+def _find_animal_friend(friends, name):
+    n = name.strip().lower()
+    for f in friends:
+        if n in f["name"].lower():
+            return f
+    return None
+
+
+@bot.command(name="yarnabyanimalfriend")
+async def yarnabyanimalfriend_cmd(ctx):
+    """A non-cat animal wanders into the factory. Could go well. Could go very badly."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    guild_state = m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {})
+    friends = guild_state.setdefault("animal_friends", [])
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*He is asleep. Whoever is out there will have to wait.* **...zz.**")
+        return
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The factory is empty.* **...**")
+        return
+
+    # ── MOFU OVERRIDE (20%) ────────────────────────────────────────────────
+    if random.random() < 0.20:
+        await ctx.send(
+            "*Something comes through the factory door.*\n\n"
+            "*But it's not an animal. It's Mofu.*\n\n"
+            "*He walks in — white, calm, completely at ease — finds Yarnaby, and sits down beside him "
+            "like there was nowhere else he was ever going to go.* **...prrr...**"
+        )
+        await asyncio.sleep(3)
+        event_fn = random.choice(_MOFU_EVENTS)
+        await ctx.send(event_fn())
+        await asyncio.sleep(2)
+        mofu_entry = _find_friend(friends, "Mofu")
+        if not mofu_entry:
+            friends.append({
+                "name": "Mofu", "type": "ragdoll", "emoji": "🤍",
+                "feeling": "best friend", "visits": 1, "killed": False,
+                "special": True, "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": "The ragdoll. Best friend. Always welcome.",
+            })
+        else:
+            mofu_entry["visits"] = mofu_entry.get("visits", 0) + 1
+            mofu_entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            mofu_entry["feeling"] = "best friend"
+        save_db(m)
+        await ctx.send(
+            "*Mofu leaves the way he always does — quietly, without ceremony.*\n"
+            "*Yarnaby watches the door after he's gone. Just for a moment.* **...prrr...**"
+        )
+        return
+
+    # ── PICK ANIMAL ────────────────────────────────────────────────────────
+    animal_type_tuple = random.choice(_ANIMAL_TYPES)
+    animal_type, animal_emoji, animal_pronoun = animal_type_tuple
+    animal_name = random.choice(_ANIMAL_NAMES)
+    existing_names = [f["name"] for f in friends]
+    attempts = 0
+    while animal_name in existing_names and attempts < 10:
+        animal_name = random.choice(_ANIMAL_NAMES)
+        attempts += 1
+
+    await ctx.send(
+        f"*Something has found its way into the factory.*\n\n"
+        f"*Yarnaby hears it before he sees it. He goes still. He waits.*\n\n"
+        f"*A {animal_type} appears from somewhere in the shadows. "
+        f"Its name is **{animal_name}**.*  {animal_emoji}"
+    )
+    await asyncio.sleep(3)
+
+    await ctx.send(
+        f"*Yarnaby observes {animal_name} the {animal_type} very carefully. "
+        f"He has opinions about {animal_type}s. He is forming more opinions right now.* **...mrr.**"
+    )
+    await asyncio.sleep(2)
+
+    # ── DETERMINE OUTCOME: 45% good, 35% evil, 20% too evil ───────────────
+    roll = random.random()
+
+    if roll < 0.45:
+        # GOOD
+        event_type, event_fn = random.choice(_ANIMAL_GOOD_EVENTS)
+        await ctx.send(event_fn(animal_name, animal_type))
+        await asyncio.sleep(2)
+
+        feeling_roll = random.random()
+        if feeling_roll < 0.45:
+            feeling = "likes"
+        elif feeling_roll < 0.80:
+            feeling = "loves"
+        else:
+            feeling = "neutral"
+
+        end_lines = {
+            "loves": (
+                f"*{animal_name} leaves eventually. Yarnaby watches them go from the doorway.*\n"
+                f"*He stays there a moment after they've gone. He hopes they come back.* **...prrr.**"
+            ),
+            "likes": (
+                f"*{animal_name} wanders off. Yarnaby watches until they're out of sight.*\n"
+                f"*He goes back to his things. He is slightly pleased about this.* **mrr.**"
+            ),
+            "neutral": (
+                f"*{animal_name} leaves. Yarnaby doesn't track them.*\n"
+                f"*He goes back to what he was doing.* **...mrr.**"
+            ),
+        }
+        await ctx.send(end_lines[feeling])
+
+        entry = _find_animal_friend(friends, animal_name)
+        if not entry:
+            friends.append({
+                "name": animal_name, "type": animal_type, "emoji": animal_emoji,
+                "feeling": feeling, "visits": 1, "killed": False,
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
+        else:
+            entry["visits"] = entry.get("visits", 0) + 1
+            entry["feeling"] = feeling
+            entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    elif roll < 0.80:
+        # EVIL
+        event_type, event_fn = random.choice(_ANIMAL_EVIL_EVENTS)
+        await ctx.send(event_fn(animal_name, animal_type))
+        await asyncio.sleep(2)
+
+        await ctx.send(random.choice([
+            f"*Yarnaby plants himself between {animal_name} and everything that matters. "
+            f"His posture is very clear. {animal_name} reads it. {animal_name} leaves.* **...MRROW.**",
+            f"*Yarnaby escorts {animal_name} out — directly, with purpose, no ambiguity. "
+            f"{animal_name} goes. Yarnaby watches until they're gone.* **HSS. MRROW.**",
+            f"*Yarnaby stands in the doorway until {animal_name} is well clear of the factory. "
+            f"He watches the whole time.* **...mrr.**",
+        ]))
+        await asyncio.sleep(2)
+        await ctx.send(
+            f"*{animal_name} is gone. Yarnaby does a slow lap of the factory — "
+            f"checking the hoard, checking the children, checking every corner.*\n"
+            f"*Everything is accounted for. He settles.* **...mrr.**"
+        )
+
+        entry = _find_animal_friend(friends, animal_name)
+        if not entry:
+            friends.append({
+                "name": animal_name, "type": animal_type, "emoji": animal_emoji,
+                "feeling": "dislikes", "visits": 1, "killed": False,
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": f"Caused trouble ({event_type}). Driven out.",
+            })
+        else:
+            entry["feeling"] = "dislikes"
+            entry["visits"] = entry.get("visits", 0) + 1
+            entry["last_seen"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    else:
+        # TOO EVIL → dealt with
+        event_type, event_fn = random.choice(_ANIMAL_TOO_EVIL_EVENTS)
+        await ctx.send(event_fn(animal_name, animal_type))
+        await asyncio.sleep(3)
+
+        await ctx.send(random.choice([
+            f"*Yarnaby doesn't react immediately. He looks at {animal_name}. "
+            f"He looks at what {animal_name} is threatening. "
+            f"He looks back at {animal_name}.*\n\n"
+            f"*Something settles in him. Something old and decided.* **...**",
+            f"*{animal_name} has made a mistake. They don't know it yet. "
+            f"Yarnaby has already made the decision. He is walking toward it now.* **...**",
+            f"*The room goes quiet. Even the children go quiet.*\n\n"
+            f"*Yarnaby stands up. He looks at {animal_name} for a long time. "
+            f"He has already decided.* **...**",
+        ]))
+        await asyncio.sleep(4)
+
+        behead_fn = random.choice(_ANIMAL_BEHEADING_LINES)
+        await ctx.send(behead_fn(animal_name, animal_type))
+        await asyncio.sleep(2)
+
+        await ctx.send(
+            f"*{animal_name} the {animal_type} is gone.*\n"
+            f"*The factory is quiet.*\n"
+            f"*His children come to him. He sits with them.* **...prrr...**"
+        )
+
+        entry = _find_animal_friend(friends, animal_name)
+        if not entry:
+            friends.append({
+                "name": animal_name, "type": animal_type, "emoji": animal_emoji,
+                "feeling": "killed", "visits": 1, "killed": True,
+                "killed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "note": f"Executed. Reason: {event_type}.",
+            })
+        else:
+            entry["feeling"] = "killed"
+            entry["killed"] = True
+            entry["killed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            entry["note"] = f"Executed. Reason: {event_type}."
+
+    save_db(m)
 
 
 @bot.command(name="ask_creator", aliases=["askcreator", "requestcreator", "creatorask", "permissionrequest"])
@@ -43095,33 +44500,58 @@ async def purge_cmd(ctx, amount: int = 0, member: discord.Member = None):
 
 # ── Lockdown ───────────────────────────────────────────────────────────────────
 
-@bot.command(name="lockdown", aliases=["lock", "lockthis", "lockchannel", "channellock"])
+@bot.command(name="lockchannel", aliases=["lockdown"])
 async def lockdown_cmd(ctx):
-    """Yarnaby goes into personal lockdown — he hides and won't engage until unlocked."""
+    """Lock the current channel and put Yarnaby in lockdown."""
     m = bot.db
+
+    # --- Discord channel lock ---
+    if ctx.guild:
+        if not ctx.channel.permissions_for(ctx.guild.me).manage_channels:
+            await ctx.send("*He can't lock this channel — he doesn't have permission to manage it.* **mrr.**")
+            return
+        overwrite = ctx.channel.overwrites_for(ctx.guild.default_role)
+        overwrite.send_messages = False
+        try:
+            await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+        except Exception as e:
+            await ctx.send(f"*Something went wrong locking the channel: {e}* **mrr.**")
+            return
+
     await _add_reactions(ctx, m)
-    if m["internal"].get("is_sleeping"):
-        await ctx.send("*He is already asleep. He does not respond.* **...zz.**")
-        return
     m["internal"]["lockdown"] = True
     save_db(m)
     await ctx.send(random.choice([
         "*Yarnaby goes very still. His ears flatten. He looks at something only he can see — then, quietly and deliberately, he walks to the nearest small enclosed space and gets inside it. "
-        "He is not coming out. He is in lockdown. Use `!unlock` to end this.* **...mrr.**",
+        "The channel is locked. He is not coming out. Use `!unlock` to end this.* **...mrr.**",
         "*Something shifts in him. He pads to the corner — slowly, low to the ground — and sits with his back to the wall. His eyes are wide. He's not running. He's just... done. "
-        "He won't respond until things calm down. Use `!unlock` when it's safe.* **...grr...**",
+        "The channel is locked. He won't respond until things calm down. Use `!unlock` when it's safe.* **...grr...**",
         "*He freezes mid-step. Then he goes somewhere small and dark — under a shelf, behind something solid — and stays there. "
-        "Yarnaby is in lockdown. He'll stay there until someone he trusts tells him it's okay. Use `!unlock`.* **...mrr.**",
+        "The channel is locked. Yarnaby is in lockdown. Use `!unlock`.* **...mrr.**",
     ]))
 
 
-@bot.command(name="unlock", aliases=["unlockthis", "unlockchannel", "channelunlock", "openup"])
+@bot.command(name="unlock")
 async def unlock_cmd(ctx):
-    """Tell Yarnaby it's safe — ends his lockdown state."""
+    """Unlock the current channel and bring Yarnaby out of lockdown."""
     m = bot.db
+
+    # --- Discord channel unlock ---
+    if ctx.guild:
+        if not ctx.channel.permissions_for(ctx.guild.me).manage_channels:
+            await ctx.send("*He can't unlock this channel — he doesn't have permission to manage it.* **mrr.**")
+            return
+        overwrite = ctx.channel.overwrites_for(ctx.guild.default_role)
+        overwrite.send_messages = None  # Reset to default (inherited)
+        try:
+            await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+        except Exception as e:
+            await ctx.send(f"*Something went wrong unlocking the channel: {e}* **mrr.**")
+            return
+
     await _add_reactions(ctx, m)
     if not m["internal"].get("lockdown"):
-        await ctx.send("*He isn't hiding anywhere. He's just... here.* **mrr.**")
+        await ctx.send("*He isn't hiding anywhere. He's just... here. (Channel permissions reset.)* **mrr.**")
         return
     m["internal"]["lockdown"] = False
     save_db(m)
@@ -43130,15 +44560,59 @@ async def unlock_cmd(ctx):
         await ctx.send(
             "*The Creator's voice. He hears it. One ear turns toward the sound — then the other. "
             "He emerges slowly from wherever he was, pads straight to The Creator, and presses his head "
-            "against them without a word. He is okay now.* **...prrr...**"
+            "against them without a word. The channel is open again. He is okay now.* **...prrr...**"
         )
     else:
         await ctx.send(random.choice([
             "*A familiar voice. He listens for a long moment from wherever he is hiding. Then — slowly — he emerges. "
-            "He looks around. He seems to decide things are okay. He sits down.* **...mrr.**",
+            "He looks around. He seems to decide things are okay. The channel is open. He sits down.* **...mrr.**",
             "*He hears you. After a pause, he comes out — low, careful, watching the room. "
-            "Then he straightens up, gives his fur a single smooth, and looks at you like nothing happened.* **mrr.**",
+            "Then he straightens up, gives his fur a single smooth, and looks at you like nothing happened. Channel's open.* **mrr.**",
         ]))
+
+
+# ── Global disable / re-enable ────────────────────────────────────────────────
+
+@bot.command(name="disable")
+async def disable_cmd(ctx):
+    """Creator only: completely power Yarnaby off — total silence, no responses to anyone."""
+    if ctx.author.id != DOCTOR_ID:
+        # Looks like nothing happened — completely invisible to non-Creator
+        return
+    m = bot.db
+    if m["internal"].get("bot_disabled"):
+        await ctx.send("*He's already off.* **...**")
+        return
+    m["internal"]["bot_disabled"] = True
+    save_db(m)
+    await ctx.send(
+        random.choice([
+            "*Yarnaby goes very still. His glass eyes dim slowly, like a light fading out. He doesn't look at anyone. He doesn't move. He is simply... not here anymore.* **...**",
+            "*Something behind his eyes switches off. He sits down where he is, tucks his tail around his paws, and goes completely quiet. He will not answer. He will not react. He is locked.* **...**",
+            "*He blinks once — long and slow — and then stops. Everything stops. He is off.* **...**",
+        ])
+    )
+
+
+@bot.command(name="turnbackon")
+async def turnbackon_cmd(ctx):
+    """Creator only: power Yarnaby back on. Invisible to everyone else."""
+    if ctx.author.id != DOCTOR_ID:
+        # Looks like an invalid/unknown command to everyone else — no response at all
+        return
+    m = bot.db
+    if not m["internal"].get("bot_disabled"):
+        await ctx.send("*He's already on.* **mrr.**")
+        return
+    m["internal"]["bot_disabled"] = False
+    save_db(m)
+    await ctx.send(
+        random.choice([
+            "*Something flickers. His eyes refocus — slow, then sharp. His ears come forward. He looks around the room like he's taking stock of everything he missed. He's back.* **...mrr...**",
+            "*He inhales. His wool settles. He blinks at The Creator — once, twice — and then his tail lifts and curls at the tip. He is awake. He is here.* **chrrp.**",
+            "*The stillness breaks. He shakes himself out, pads a small circle, and sits down facing the room. Like nothing happened. Like he was never gone. He was gone.* **mrr.**",
+        ])
+    )
 
 
 # ── Slowmode ───────────────────────────────────────────────────────────────────
@@ -45768,6 +47242,21 @@ async def _child_not_found(ctx, name: str, children: list):
         await ctx.send(f"*He looks up. He doesn't recognise that name. His children here: {names}.* **mrr.**")
 
 
+def _log_child_interaction(child: dict, action: str, by: str, note: str = ""):
+    """Append an interaction entry to a child's log. Keeps the last 30 entries."""
+    log = child.setdefault("interaction_log", [])
+    entry = {
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "action": action,
+        "by": by,
+    }
+    if note:
+        entry["note"] = note
+    log.append(entry)
+    if len(log) > 30:
+        child["interaction_log"] = log[-30:]
+
+
 @bot.command(name="hugchild", aliases=["hugyarnchild", "hugkid", "childhug"])
 async def hugchild_cmd(ctx, *, name: str = ""):
     """Hug one of Yarnaby's children."""
@@ -48077,7 +49566,7 @@ async def bellyrubchild_cmd(ctx, *, name: str = ""):
     await _child_react(ctx, child, m, action="warm")
 
 
-@bot.command(name="cuddlechild", aliases=["cuddlekid", "holdchild", "holdkid", "snugglekid", "snugglechild"])
+@bot.command(name="cuddlechild", aliases=["cuddlekid", "holdkid", "snugglekid", "snugglechild"])
 async def cuddlechild_cmd(ctx, *, name: str = ""):
     """Cuddle one of Yarnaby's children."""
     m = bot.db
@@ -48864,6 +50353,35 @@ async def _child_react(ctx, child: dict, m: dict, action: str = "warm"):
     feeling = child.get("feeling", "neutral")
     child_score = child.get("child_score", 0)
     pursuing = child.get("pursuing", False)
+
+    # --- LOG THIS INTERACTION ---
+    _log_child_interaction(
+        child,
+        action=action,
+        by=ctx.author.display_name,
+        note=f"via !{ctx.invoked_with}" if ctx.invoked_with else "",
+    )
+
+    # --- EMOJI REACTIONS (child-aware: sleep / dead / helpless / creator / score / child state) ---
+    try:
+        _is_doc = ctx.author.id == DOCTOR_ID
+        _u_score = 99 if _is_doc else m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+        if _is_doc:
+            await ctx.message.add_reaction("👑")
+        if m["internal"].get("is_sleeping"):
+            await ctx.message.add_reaction("💤")
+        if m["internal"].get("is_dead"):
+            await ctx.message.add_reaction("💀")
+        if m["internal"].get("helpless"):
+            await ctx.message.add_reaction("🤕")
+        if child.get("dead"):
+            await ctx.message.add_reaction("🪦")
+        if child.get("fainted"):
+            await ctx.message.add_reaction("😵")
+        if not _is_doc and _u_score >= 4:
+            await ctx.message.add_reaction("⭐")
+    except Exception:
+        pass
 
     def _set_score(delta):
         new_score = max(-10, min(10, child_score + delta))
@@ -52095,7 +53613,7 @@ async def ragebait_cmd(ctx, *, bait_type: str = ""):
 # NEW CHILD COMMANDS
 # ==========================================
 
-@bot.command(name="cuddlychild", aliases=["cuddlykid", "nosechild", "nosekid2", "sniffchild"])
+@bot.command(name="cuddlychild", aliases=["cuddlykid", "nosechild", "nosekid2"])
 async def nuzzlechild_cmd(ctx, *, name: str = ""):
     """Nuzzle one of Yarnaby's children."""
     m = bot.db
@@ -52192,6 +53710,738 @@ async def showchild_cmd(ctx, *, name: str = ""):
 # Infection risk increases with severity.
 # Also wired into health/death system.
 # ==========================================
+
+
+# ── whisperchild ─────────────────────────────────────────────────────────────
+@bot.command(name="whisperchild", aliases=["whispertokid", "whispertochild", "softwordschild", "murmurchild"])
+async def whisperchild_cmd(ctx, *, name: str = ""):
+    """Whisper something gently to one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He watches you lean toward **{cname}**. He cannot intercept. He logs the interaction.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator leans down and whispers to **{cname}**. Yarnaby stays very still nearby, ears forward, catching none of it. He wants to. He trusts The Creator entirely. He still wants to know.* **prrr.**",
+            f"*He watches The Creator whisper to **{cname}** and something in him warms so completely that he has to look away. He pads closer and presses against The Creator's ankle, very quietly.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You lean toward **{cname}** and whisper. Yarnaby watches your face, not your hands. He is reading your expression for intent. He decides you are being gentle. He allows it.* **mrr.**",
+            f"*He sees you lower your voice for **{cname}** and his tail moves once — a small, involuntary approval.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He steps between you and **{cname}** before you get close enough to whisper. He is not being hostile — he is being a wall.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He picks **{cname}** up and moves them across the room. Whatever you were going to say, **{cname}** will not hear it.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── storychild ───────────────────────────────────────────────────────────────
+@bot.command(name="storychild", aliases=["readtochild", "readchildstory", "tellstorychild", "storyforchild", "bedtimechild"])
+async def storychild_cmd(ctx, *, name: str = ""):
+    """Read a story to one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot settle **{cname}** himself right now. He watches you read to them from across the room, very still.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator begins a story for **{cname}**. Yarnaby comes over without invitation and lies down beside them both, very close, and stays there for the entire reading. He has heard the story before. He stays for the telling.* **prrr.**",
+            f"*He watches The Creator read to **{cname}** and pads over silently. He tucks himself against **{cname}**'s side and listens. He doesn't move until the story ends.* **prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You begin the story and **{cname}** settles in. Yarnaby comes and sits nearby — not between you, not intervening — just present, his tail wrapped around his paws, listening.* **mrr.**",
+            f"*He lets you read. He even comes a little closer by the third sentence. **{cname}** is interested. He approves of the interest.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He watches from across the room while you read to **{cname}**. He doesn't move. He doesn't interfere. He just watches.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He collects **{cname}** before you've finished the first sentence. He reads to **{cname}** himself. You are welcome to leave.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── drawchild ────────────────────────────────────────────────────────────────
+@bot.command(name="drawchild", aliases=["drawforkid", "makepicturechild", "artforkid", "artchild", "drawakid"])
+async def drawchild_cmd(ctx, *, name: str = ""):
+    """Draw something for one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot hold a pen. He watches you draw for **{cname}** and the expression on his face is complicated.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator draws for **{cname}**. Yarnaby comes immediately to see, nosing past **{cname}**'s shoulder to look. He has to look. He studies the picture with enormous, serious eyes.* **prrr.**",
+            f"*He watches The Creator draw for **{cname}** and leans against them both from the side. It is possible he is trying to help. It is more likely he just wants to be next to this moment.* **prrr.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*You draw for **{cname}** and Yarnaby comes to see. He sniffs the paper once. He nods — just once — and retreats. Approved.* **mrr.**",
+            f"*He lets you make art for **{cname}**. He even looks at it. He has opinions. He keeps them to himself. **{cname}** seems pleased.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(
+            f"*He takes the paper before **{cname}** can see it. He is not reading it. He is not letting anyone read it.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+
+# ── chasechild ───────────────────────────────────────────────────────────────
+@bot.command(name="chasechild", aliases=["runchild", "runwithkid", "chasekid", "playchasechild", "playchaseakid"])
+async def chasechild_cmd(ctx, *, name: str = ""):
+    """Play chase with one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He watches **{cname}** run past him and cannot follow. He reaches out one paw as **{cname}** goes by. He is there in spirit.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator chases **{cname}** and Yarnaby immediately joins. He is large and fast and terrible at pretending not to enjoy this. He is the worst 'it' in history — he catches everyone.* **prrr! chrrp!**",
+            f"*He watches The Creator and **{cname}** run for approximately one second before launching himself into the chase. He goes very fast. He forgets to be dignified.* **prrr!**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You chase **{cname}** and Yarnaby's head swivels to track it. Then he gets up, slowly, and joins — not chasing you, exactly, but running alongside. He cannot resist.* **mrr! chrrp!**",
+            f"*He watches you and **{cname}** run and his tail starts lashing involuntarily. He joins after three seconds. He was always going to join.* **mrr!**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*You start chasing **{cname}** and Yarnaby is on his feet immediately — not playing, just inserting himself between you. **{cname}** is fine. He is just making sure.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He collects **{cname}** mid-run and holds them against his chest. The chase is over.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── protectchild ─────────────────────────────────────────────────────────────
+@bot.command(name="protectchild", aliases=["guardchild", "guardkid", "shieldchild", "shieldkid", "standoverchild", "coverchild"])
+async def protectchild_cmd(ctx, *, name: str = ""):
+    """Stand protectively in front of one of Yarnaby's children — he notices."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot stand in front of **{cname}** right now. He looks at you doing it and is very quiet for a moment.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator steps in front of **{cname}**. Yarnaby watches. Something in him recognises this — the shape of it, the stance. He pads over and stands beside The Creator, facing the same direction. Two guards. He is very serious about this.* **prrr.**",
+            f"*He sees The Creator shield **{cname}** and makes a low, warm sound deep in his chest. He comes to stand beside The Creator. He wanted to do this himself. He is glad someone else did it first.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You step in front of **{cname}** and Yarnaby stops. He reads your stance. He reads it correctly. He makes a quiet, specific sound and moves to stand beside you.* **mrr.**",
+            f"*He watches you protect **{cname}** and his tail goes very still. He is deciding something. He comes to stand beside you. He has decided.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*You step toward **{cname}** and he gets there first. He is in front of **{cname}** before you finish the motion. He understood what you were going for. He beat you to it.* **mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He does not know why you're moving toward **{cname}** and he does not wait to find out. He is a wall.* **hff.**"
+        )
+    if score >= 7 or is_doctor:
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = min(
+                m["social_matrix"][u_id].get("score", 0) + 1,
+                100
+            )
+        from db import save_db
+        save_db(m)
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── napwithchild ─────────────────────────────────────────────────────────────
+@bot.command(name="napwithchild", aliases=["sleepwithkid", "napkid", "naptimechild", "sleepchild", "sleepwithchild", "napwithkid"])
+async def napwithchild_cmd(ctx, *, name: str = ""):
+    """Nap together with one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He is already down. **{cname}** comes and curls against him. This is, actually, happening. He does not stop it.* **...prrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator and **{cname}** settle down together. Yarnaby watches for approximately four seconds before lying down beside them both. He will be here. He is always here.* **prrr.**",
+            f"*He watches The Creator coax **{cname}** into a nap and comes to lie against them both, large and warm, his breathing slowing to match theirs.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You and **{cname}** settle. Yarnaby comes over after a moment and lies down nearby. He is not joining. He is just... nearby. **{cname}** inches toward him in their sleep.* **mrr.**",
+            f"*He allows this. He even comes close enough that **{cname}** ends up between you and him, tucked warmly. He had no intention of this happening. It happened.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He lets **{cname}** nap with you, but he stays close. He is watching.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He collects **{cname}** before the nap begins. He naps with **{cname}** himself. You are not included.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── warnchild ────────────────────────────────────────────────────────────────
+@bot.command(name="warnchild", aliases=["warnkid", "cautionchild", "cautionkid", "telltochild", "warnyarnchild"])
+async def warnchild_cmd(ctx, *, name: str = ""):
+    """Warn one of Yarnaby's children about something."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He makes a short sound toward **{cname}** — a warning he can still produce even like this.* **...mrr!**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator warns **{cname}**. Yarnaby watches **{cname}**'s reaction very carefully. He is noting whether **{cname}** listens to The Creator.* **prrr.**",
+            f"*He watches The Creator correct **{cname}** and stands a little straighter. Backup. He is backup.* **prrr.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*You warn **{cname}** and Yarnaby gives a single slow blink of approval. He backs you up with a pointed look at **{cname}**.* **mrr.**",
+            f"*He lets you address **{cname}** directly. He adds a tail-flick that clearly means 'they're right.' He is backing you.* **mrr.**",
+        ]))
+    elif score >= 0:
+        await ctx.send(
+            f"*He steps beside **{cname}** while you warn them. Not protective — supervising. He is monitoring all parties.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He positions himself in front of **{cname}** and says nothing. He will handle his children's correction himself.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="neutral")
+
+
+# ── shushchild ───────────────────────────────────────────────────────────────
+@bot.command(name="shushchild", aliases=["shushkid", "quietchild", "calmdownchild", "hushkid", "hushhischild"])
+async def shushchild_cmd(ctx, *, name: str = ""):
+    """Gently shush one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He makes a very soft sound in **{cname}**'s direction. It is the quietest shush he has ever produced. It counts.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator shushes **{cname}** and Yarnaby immediately mirrors it — a low, soft sound, backing The Creator up from beside **{cname}**. He and The Creator are very aligned on this.* **prrr.**",
+            f"*He watches The Creator quiet **{cname}** and adds his own gentle pressure: he sets one paw on **{cname}** very lightly. Shhh.* **prrr.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*You shush **{cname}** and Yarnaby echoes the motion with a tail-down, ears-forward posture beside them. He is adding his authority to yours.* **mrr.**",
+            f"*He doesn't intervene when you shush **{cname}**. He gives you the room to do it. That is notable.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(
+            f"*He shushes **{cname}** himself before you get the chance. He produces a sound that is not technically a shush but works the same way.* **chkt. mrr.**"
+        )
+    await _child_react(ctx, child, m, action="neutral")
+
+
+# ── bouncechild ──────────────────────────────────────────────────────────────
+@bot.command(name="bouncechild", aliases=["bouncekid", "jigglekid", "jigglechild", "tossupchild", "uptossedchild"])
+async def bouncechild_cmd(ctx, *, name: str = ""):
+    """Bounce one of Yarnaby's children playfully."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He watches **{cname}** being bounced and his expression cycles rapidly through several states. He cannot do anything. **{cname}** is fine. He is logging this.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator bounces **{cname}** and Yarnaby watches every single arc with enormous, fixed eyes. He is not alarmed. He is captivated. **{cname}** makes a happy sound and he exhales.* **prrr.**",
+            f"*He watches The Creator and **{cname}** with the expression of someone watching something wonderful and slightly terrifying at the same time. **{cname}** is clearly enjoying this. He unclenches.* **prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You bounce **{cname}** and Yarnaby tracks every motion. His tail is held very still. **{cname}** giggles. He decides this is fine.* **mrr.**",
+            f"*He watches **{cname}** being bounced with bright, tracking eyes. He has counted the bounces. He is okay with this number.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He is right there while you bounce **{cname}**, close enough that he could intervene in a fraction of a second. He does not intervene. He watches every movement.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He takes **{cname}** out of your hands mid-bounce. His expression is not forgiving.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── holdchild ────────────────────────────────────────────────────────────────
+@bot.command(name="holdchild", aliases=["holdkid", "cradlechild", "cradlekid", "holdthekid", "holdyarnchild"])
+async def holdchild_cmd(ctx, *, name: str = ""):
+    """Hold one of Yarnaby's children close to your chest."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot hold **{cname}** right now. He watches you pick them up instead. He does not look away.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator holds **{cname}** and Yarnaby is immediately beside them, pressing against The Creator's side. He wants to be in contact with both of them. He arranges himself until he is.* **prrr.**",
+            f"*He watches The Creator hold **{cname}** and something in him goes very still and very soft. He comes close and rests his chin on The Creator's arm, just touching **{cname}**.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You hold **{cname}** and Yarnaby watches from close range. **{cname}** is calm. He lets the moment be.* **mrr.**",
+            f"*He watches you cradle **{cname}** and decides something. He comes close. He doesn't take **{cname}** back. He just stays close.* **mrr.**",
+        ]))
+    elif score >= 3:
+        await ctx.send(
+            f"*He steps in the moment you lift **{cname}** — not to take them, just to supervise. He monitors the hold from nearby.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He has **{cname}** back in his own arms before you've properly settled them. **{cname}** is held. By him.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── hidechild ────────────────────────────────────────────────────────────────
+@bot.command(name="hidechild", aliases=["hidekid", "concealchild", "tuckawayschild", "tuckkid", "tuckchildaway"])
+async def hidechild_cmd(ctx, *, name: str = ""):
+    """Hide one of Yarnaby's children somewhere safe — he watches."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot move **{cname}** to safety. He watches you do it. His ears are forward and flat alternating.* **...mrr...**"
+        )
+        return
+
+    HIDING_SPOTS = [
+        "the gap behind the generator casing",
+        "inside the soft storage crate with the blanket",
+        "under the observation desk, tucked against the back wall",
+        "behind the curtain in the rest area",
+        "the warm corner near the ventilation panel",
+    ]
+    spot = random.choice(HIDING_SPOTS)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator tucks **{cname}** into {spot}. Yarnaby watches every moment of this, then goes and sits directly in front of the hiding spot, facing outward. He is now the door.* **prrr.**",
+            f"*He watches The Creator hide **{cname}** in {spot} and then takes up position nearby. He is now the guard. He has always been the guard.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You hide **{cname}** in {spot}. Yarnaby comes over, checks the spot with his nose, and nods once. He approves of the hiding spot. He stays near it.* **mrr.**",
+            f"*He lets you hide **{cname}** in {spot} and comes to stand nearby. He is not going anywhere.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*You move toward **{cname}** and he gets there first, collecting **{cname}** himself. He considers you. He considers the spot. He puts **{cname}** there himself, watching you the whole time.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He does not let you touch **{cname}** for this purpose. He hides **{cname}** himself. The location is not shared with you.* **hff.**"
+        )
+
+
+# ── watchoverchild ───────────────────────────────────────────────────────────
+@bot.command(name="watchoverchild", aliases=["watchoverkid", "stanwatchkid", "guardchildsleep", "keepwatchkid", "vigil4kid"])
+async def watchoverchild_cmd(ctx, *, name: str = ""):
+    """Stand watch over one of Yarnaby's sleeping children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He is watching **{cname}** from where he is. He cannot stand. He watches from the floor. He will not stop watching.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator watches over **{cname}** and Yarnaby comes to stand beside The Creator, shoulder to shoulder. The same direction. The same job. He takes this very seriously.* **prrr.**",
+            f"*He sees The Creator standing watch and comes over. He presses himself against The Creator's side. He adds himself to the watch. This is where he wants to be.* **prrr.**",
+        ]))
+    elif score >= 8:
+        await ctx.send(random.choice([
+            f"*You take up position near **{cname}** and Yarnaby comes to stand beside you — not in front, beside. He trusts you enough for this.* **mrr.**",
+            f"*He looks at you, then at **{cname}**, then back at you. He accepts the arrangement. He sits nearby, alert.* **mrr.**",
+        ]))
+    elif score >= 3:
+        await ctx.send(
+            f"*He watches you watch **{cname}**. He is watching two things at once. He has the capacity.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He steps between you and **{cname}** without ceremony. He will do the watching. You can go.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── toychild ─────────────────────────────────────────────────────────────────
+@bot.command(name="toychild", aliases=["givetoykid", "toykid", "presenttoychild", "givekidtoy", "toyforchild"])
+async def toychild_cmd(ctx, *, name: str = ""):
+    """Give one of Yarnaby's children a toy."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot give **{cname}** anything right now. He watches you offer the toy. His tail moves once.* **...mrr...**"
+        )
+        return
+
+    TOYS = [
+        "a small yarn ball", "a knotted rope toy", "a soft stuffed mouse",
+        "a jingle bell ball", "a crinkle paper square", "a soft squeaky thing",
+        "a pom-pom on a string", "a tiny plush star",
+    ]
+    toy = random.choice(TOYS)
+    feeling = child.get("feeling", "neutral")
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator brings {toy} for **{cname}**. Yarnaby watches **{cname}** receive it and then quietly goes and gets a second one from somewhere and puts it next to the first. He did not want **{cname}** to feel they had only one.* **prrr.**",
+            f"*He watches The Creator give **{cname}** {toy} and his whole expression goes soft. He approves of this very much. He sits beside **{cname}** while they play.* **prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You bring {toy} for **{cname}**. Yarnaby inspects it first — a brief, decisive sniff — then steps aside. Cleared. **{cname}** gets the toy.* **mrr.**",
+            f"*He watches you give **{cname}** {toy} and his tail does one quiet wag. He was not going to do that. It happened anyway.* **mrr.**",
+        ]))
+    elif score >= 1:
+        await ctx.send(
+            f"*He takes {toy} and sniffs it thoroughly before giving it to **{cname}** himself. You provided it. He cleared it. This is how this works.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He intercepts {toy} before it reaches **{cname}**. He inspects it for a long time. He does not give it back.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── sniffchild ───────────────────────────────────────────────────────────────
+@bot.command(name="sniffchild", aliases=["smellchild", "smellkid", "checksmellkid", "nosecheckchild", "sniffkid2"])
+async def sniffchild_cmd(ctx, *, name: str = ""):
+    """Sniff one of Yarnaby's children — Yarnaby reacts to you checking on them his way."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He watches your nose go near **{cname}** and makes a very quiet, strained sound. He does the sniff-check with his eyes from where he is.* **...mrr...**"
+        )
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator sniffs **{cname}**. Yarnaby immediately comes to sniff **{cname}** after — a careful, thorough re-check. He needed a second opinion on that. He has one now.* **prrr.**",
+            f"*He watches The Creator check **{cname}** by smell and then does his own check. He always does his own check. He compares notes with no one.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*He watches you sniff **{cname}** with calm, assessing eyes. You are doing what he does. He accepts this. He does his own check after.* **mrr.**",
+            f"*You check on **{cname}** by scent and he watches. He is doing the same check with his nose from where he stands. You both arrive at the same conclusion: fine.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He intercepts. His nose reaches **{cname}** first, and he does a full check before stepping aside. **{cname}** is fine. You may proceed, briefly.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He does not know what you are doing near **{cname}** and he does not want to find out. He picks **{cname}** up.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="neutral")
+
+
+# ── introducechild ───────────────────────────────────────────────────────────
+@bot.command(name="introducechild", aliases=["introkid", "meetkid", "meetchild", "hellochild", "introthekid"])
+async def introducechild_cmd(ctx, *, name: str = ""):
+    """Introduce yourself to one of Yarnaby's children."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He watches you introduce yourself to **{cname}** and makes a note of this interaction. He always makes notes.* **...mrr...**"
+        )
+        return
+
+    user = ctx.author.display_name
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator introduces themselves to **{cname}**. Yarnaby has been waiting for this moment. He sits very straight beside **{cname}** as if presenting them at a ceremony.* **prrr.**",
+            f"*He watches The Creator and **{cname}** meet and presses his face against **{cname}**'s side. He wanted them to meet. He is pleased.* **prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You introduce yourself to **{cname}** and Yarnaby observes. He does not intervene. **{cname}** seems cautious but fine. He is okay with this meeting.* **mrr.**",
+            f"*He watches **{cname}** meet you and reads **{cname}**'s reaction carefully. **{cname}** is okay. He's okay. This meeting is okay.* **mrr.**",
+        ]))
+    elif score >= 1:
+        await ctx.send(
+            f"*He steps beside **{cname}** as you introduce yourself. He is not blocking — he is standing witness. **{cname}** peeks at you from behind his leg.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He steps in front of **{cname}** the moment you move toward them. **{cname}** does not meet strangers Yarnaby doesn't trust. This was not a negotiation.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="neutral")
+
+
+# ── strollchild ──────────────────────────────────────────────────────────────
+@bot.command(name="strollchild", aliases=["walkchild", "walkkid", "takewalkchild", "strollkid", "walkingkid", "takekidwalk"])
+async def strollchild_cmd(ctx, *, name: str = ""):
+    """Take one of Yarnaby's children for a little walk."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He cannot walk with **{cname}** right now. He watches them go with you from where he is. He watches the whole time.* **...mrr...**"
+        )
+        return
+
+    SPOTS = [
+        "the east corridor",
+        "past the observation window",
+        "around the perimeter of the main room",
+        "along the wall toward the storage area",
+        "near the ventilation warmth at the back",
+    ]
+    spot = random.choice(SPOTS)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator takes **{cname}** for a walk through {spot}. Yarnaby follows at one step behind, always. He is not intervening. He is escorting. There is a difference.* **prrr.**",
+            f"*He trails The Creator and **{cname}** through {spot}, padding silently behind them, ears forward. He does not get ahead. He stays just behind.* **prrr.**",
+        ]))
+    elif score >= 7:
+        await ctx.send(random.choice([
+            f"*You take **{cname}** through {spot} and Yarnaby follows along at a comfortable distance. He is keeping track. He is always keeping track.* **mrr.**",
+            f"*He lets you walk **{cname}** through {spot} and walks parallel, a few paces away. He is not joining your walk. He is running a parallel walk.* **mrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(
+            f"*He joins the walk uninvited. He is between you and **{cname}** the whole way. It is a supervised walk.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He does not let **{cname}** walk with you. He takes **{cname}** for a walk himself instead. It is the same route. You are just not in it.* **hff.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
+
+# ── coaxchild ────────────────────────────────────────────────────────────────
+@bot.command(name="coaxchild", aliases=["coaxkid", "encouragekid", "encouragechild", "gentlekid", "lurechildout", "coaxchildout"])
+async def coaxchild_cmd(ctx, *, name: str = ""):
+    """Coax a shy or nervous child out — Yarnaby reacts."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    child, cname = await _child_guard(ctx, name, m, guild_id)
+    if not child:
+        return
+
+    if m["internal"].get("helpless", False):
+        await ctx.send(
+            f"*He tries. He makes a soft, low sound from where he is — the sound he uses when **{cname}** is scared. It reaches **{cname}**.* **...mrr...**"
+        )
+        return
+
+    feeling = child.get("feeling", "neutral")
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator holds out a hand to **{cname}** very patiently. Yarnaby comes to sit beside The Creator, shoulder pressing gently in. They are both waiting. **{cname}** comes.* **prrr.**",
+            f"*He watches The Creator coax **{cname}** and adds a quiet sound of his own — soft, very low. A two-part reassurance. **{cname}** inches forward.* **prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*You hold out your hand to **{cname}** patiently. Yarnaby watches and then makes a single quiet sound — he is telling **{cname}** it is okay. You earned that.* **mrr.**",
+            f"*He sees what you're doing and allows it. He stays very still so as not to disrupt it. **{cname}** considers you.* **mrr.**",
+        ]))
+    elif score >= 1:
+        await ctx.send(
+            f"*He steps in beside **{cname}** while you coax them, offering himself as the familiar thing. He is the bridge. You are the other side.* **...mrr.**"
+        )
+    else:
+        await ctx.send(
+            f"*He coaxes **{cname}** himself. Gently. In his own direction. Away from you.* **mrr.**"
+        )
+    await _child_react(ctx, child, m, action="warm")
+
 
 async def _maybe_fan_injury(channel, m):
     """~3% chance per tick. Yarnaby gets too close to a fan and injures his head."""
@@ -56128,7 +58378,8 @@ async def _execute_kill(ctx, m, method, is_doctor, u_id, your_name,
 
 async def _traumatize_children_on_kill(ctx, m, method, guild_id, killer_name):
     """
-    Traumatize living children based on kill method severity.
+    Children witness Yarnaby's death and react with panic, trauma, and fainting.
+    Each kill method produces different witnessed reactions.
     Returns a formatted string of child reactions, or empty string.
     """
     if not guild_id:
@@ -56139,67 +58390,117 @@ async def _traumatize_children_on_kill(ctx, m, method, guild_id, killer_name):
         return ""
 
     severity_label, trauma_pts = _KILL_CHILD_TRAUMA.get(method, ("moderate", 5))
-    lines = []
 
+    lines = []
     for child in living:
         cname = child["name"]
         feeling = child.get("feeling", "neutral")
         child["grieving_father"] = True
         child["father_kill_trauma"] = severity_label
         child["trauma"] = child.get("trauma", 0) + trauma_pts
+        child["fainted"] = True
+        child["fainted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if method == "extreme_torture":
+        if method == "beheading":
             if feeling == "adored":
                 lines.append(random.choice([
-                    f"*{cname} heard everything. They are in the smallest corner they could find. "
-                    f"They have not moved. They are not making a sound.*",
-                    f"*{cname} is curled against the wall with their eyes closed. "
-                    f"They heard. They are not ready to open their eyes yet.*",
+                    f"*{cname} saw it. They were right there. They saw all of it — the blade, the stillness, the end. They made one small sound and then their legs went out from under them. They are on the floor. They are not moving. They are breathing. That is all that can be said.* **...**",
+                    f"*{cname} watched. They could not look away. They could not move. When it was over they stood very still for a long moment — and then they simply folded. They are on the floor now, curled tight, eyes shut, not responding to anything.* **...**",
+                    f"*{cname} was watching from the doorway. They saw everything. The moment it ended they made a sound no one wants to hear a child make — and then they went down. They are unconscious. Their breathing is shallow and fast.* **...**",
                 ]))
             elif feeling == "neutral":
                 lines.append(random.choice([
-                    f"*{cname} heard. They do not know how to hold what they heard. "
-                    f"They are sitting very still in the middle of the room.*",
-                    f"*{cname} is against the wall. They heard all of it. "
-                    f"They don't understand yet what they are supposed to do with that.*",
+                    f"*{cname} saw. They did not understand at first. Then they did. Their body made the decision before their mind caught up — they hit the floor before the sound left their throat. They are out. They are breathing.* **...**",
+                    f"*{cname} was in the room. They saw the whole thing. They stood frozen for three full seconds and then their eyes rolled back and they went down hard. They are on the floor. They have not moved.* **...**",
                 ]))
             else:
-                lines.append(
-                    f"*{cname} heard. They didn't love him. They still heard. "
-                    f"They are sitting very still and their eyes are too wide.*"
-                )
-        elif method in ("beheading", "slaughter"):
+                lines.append(random.choice([
+                    f"*{cname} didn't love him. They still saw. Seeing it did something that feeling couldn't have predicted — they are on the floor, unconscious, curled into themselves. Whatever they felt about him before doesn't matter now.* **...**",
+                    f"*{cname} watched. Even {cname}, who kept their distance from him — they watched and they went down. Their body decided for them. They are out cold.* **...**",
+                ]))
+
+        elif method == "poison":
             if feeling == "adored":
                 lines.append(random.choice([
-                    f"*{cname} is looking for him. They haven't found him yet. "
-                    f"They will keep looking.*",
-                    f"*{cname} is in his spot. They don't know what else to do.*",
+                    f"*{cname} watched him slow down. They didn't understand. They went to him, pressed against him, tried to get him up. When his breathing stopped they kept trying. They were still trying when the panic hit — and then they just... dropped. They are beside him, unconscious, one paw still touching him.* **...**",
+                    f"*{cname} was with him the whole time. They felt when he stopped. They made a sound that was almost his name and then they were on the floor. They fainted pressed against his side. They are still there.* **...**",
+                    f"*{cname} found him going still and would not leave. They nuzzled him. They called to him. When they finally understood he was not going to answer — something left them. They crumpled. They are unconscious beside him, breathing in shallow little pulls.* **...**",
                 ]))
             elif feeling == "neutral":
-                lines.append(f"*{cname} has gone quiet. They are in their corner. They are not coming out.*")
+                lines.append(random.choice([
+                    f"*{cname} found him on the floor and thought he was sleeping. They called to him. He didn't move. They called again. They got close and smelled something wrong and then the reality of it arrived all at once — they fainted where they stood. They are on the floor.* **...**",
+                    f"*{cname} saw him lying there and did not understand for a long moment. When they did, their body answered before their mind could — they went down sideways, out cold, next to him.* **...**",
+                ]))
             else:
-                lines.append(f"*{cname} knows something happened. They don't know what to do with that.*")
+                lines.append(random.choice([
+                    f"*{cname} found him. They didn't expect to care. They cared. The sight of him lying still and not waking — it was too much. They fainted before they could process what that meant.* **...**",
+                    f"*{cname} saw him on the floor and something in them broke anyway, despite everything. They are unconscious. They didn't choose to fall. Their body chose for them.* **...**",
+                ]))
+
+        elif method == "slaughter":
+            if feeling == "adored":
+                lines.append(random.choice([
+                    f"*{cname} saw {killer_name} do it. They saw all of it. They were screaming — and then they weren't. They went down mid-scream, body shutting itself off to protect them from what their eyes were sending it. They are on the floor. They are not conscious.* **...**",
+                    f"*{cname} ran toward him when it started. They couldn't stop it. They couldn't reach him. They were still running when the shock hit and their legs stopped working. They went down hard. They have not moved.* **...**",
+                    f"*{cname} watched {killer_name} take him apart. They stood there — they could not move, could not look away — and when it was over something in them simply stopped. They are on the floor, face down, completely still. Breathing. Barely.* **...**",
+                ]))
+            elif feeling == "neutral":
+                lines.append(random.choice([
+                    f"*{cname} heard the sounds first, then they looked. They saw the end of it. That was enough. They hit the floor before they could take another step — body deciding that unconsciousness was preferable to what their eyes were processing.* **...**",
+                    f"*{cname} saw what {killer_name} did. They went very still for one breath, two breaths — and then they were on the ground. They are out. They are going to be out for a while.* **...**",
+                ]))
+            else:
+                lines.append(random.choice([
+                    f"*{cname} watched. They hadn't wanted to care about him. They didn't think they did. But witnessing it — witnessing {killer_name} do that — was too much for any creature. They fainted. They are on the floor.* **...**",
+                    f"*Even {cname}. Even they went down. They are unconscious on the floor, face turned away from where he is. Their body decided it had seen enough.* **...**",
+                ]))
+
         elif method == "torture":
             if feeling == "adored":
                 lines.append(random.choice([
-                    f"*{cname} heard him. They heard him through the whole thing. "
-                    f"They are not okay.*",
-                    f"*{cname} found his corner and sat in it and will not leave. "
-                    f"They heard everything.*",
+                    f"*{cname} heard every sound he made. They were pressing themselves against the wall, ears flat, shaking — they heard him through all of it. By the time the sounds stopped, {cname} had already fainted. Their body gave out before the end came. They did not hear the silence.* **...**",
+                    f"*{cname} knew what was happening. They heard him. They couldn't make themselves leave, couldn't make themselves stay — they just froze, and shook, and at some point slid down the wall and hit the floor. They are unconscious. The sounds are still in them.* **...**",
+                    f"*{cname} tried to go to him. Something stopped them — maybe {killer_name}, maybe their own legs. They heard everything. They heard when the sounds stopped. They were already on the floor by then, unconscious, curled into the smallest shape they could make.* **...**",
+                ]))
+            elif feeling == "neutral":
+                lines.append(random.choice([
+                    f"*{cname} heard. They didn't want to hear. There was nowhere far enough to go. When the final silence came they were already on the floor — fainted somewhere in the middle of it, body choosing mercy that the situation wouldn't.* **...**",
+                    f"*{cname} heard the sounds and then the silence and then nothing because they fainted. They are on the floor. They heard too much.* **...**",
                 ]))
             else:
-                lines.append(f"*{cname} heard too much. They are somewhere small and quiet.*")
-        else:  # poison — quieter discovery
+                lines.append(random.choice([
+                    f"*{cname} didn't love him. That didn't matter. They heard what {killer_name} did to him for a long time. Something in them broke that had nothing to do with love. They fainted. They are on the floor and they are not waking up yet.* **...**",
+                    f"*Even {cname} — who kept distance, who didn't run to him — heard. Hearing was enough. They are unconscious on the floor. The sounds got into them anyway.* **...**",
+                ]))
+
+        else:  # extreme_torture
             if feeling == "adored":
-                lines.append(
-                    f"*{cname} found him. He looked like he was sleeping. "
-                    f"They tried to wake him up. They kept trying.*"
-                )
+                lines.append(random.choice([
+                    f"*{cname} heard and saw and could not move and could not look away and could not make it stop. When it finally ended they were already unconscious — they had fainted during it, at some point when what was happening became too much for a small body to stay awake through. They are on the floor. They were spared the end.* **...**",
+                    f"*{cname} was screaming — or trying to. No sound came out. They watched {killer_name} do all of it. At some point their vision went and they hit the ground. They fainted mid-witness. They are unconscious. They did not see the last part. They already saw too much.* **...**",
+                    f"*{cname} did not leave. They should have left. They stayed and they watched and they heard every sound and every silence and somewhere in the middle of it all their body shut down. They are on the floor, curled small, not conscious. The sounds are still inside them. They will be there for a long time.* **...**",
+                ]))
+            elif feeling == "neutral":
+                lines.append(random.choice([
+                    f"*{cname} heard it all. They fainted before it ended — their body decided the partial truth was already too much. They are on the floor. They did not see him at the end. That is the only mercy available.* **...**",
+                    f"*{cname} heard the whole thing from somewhere nearby. They are unconscious on the floor. They fainted at some point during it. They are breathing. That is all there is to say right now.* **...**",
+                ]))
             else:
-                lines.append(f"*{cname} found him. They have not moved from that spot.*")
+                lines.append(random.choice([
+                    f"*Even {cname}. They didn't love him. They heard what {killer_name} did anyway, heard all of it, heard the length of it — and fainted. Their body had an answer to what it was hearing and the answer was unconsciousness. They are on the floor.* **...**",
+                    f"*{cname} is on the floor, out cold. They heard. Whatever they felt about him before — it didn't matter. The sounds got in anyway. Their body answered.* **...**",
+                ]))
 
     save_db(m)
-    return "\n".join(lines) if lines else ""
+    if not lines:
+        return ""
+
+    header = random.choice([
+        "*The children — all of them — are down.*",
+        "*Every child in the factory has collapsed. None of them are conscious.*",
+        "*The children saw. The children heard. None of them are standing.*",
+    ])
+    return header + "\n\n" + "\n\n".join(lines)
 
 class _StateBlocked(commands.CommandError):
     """Raised by _global_state_check to silently abort a command after a message is sent."""
