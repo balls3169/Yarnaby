@@ -54088,7 +54088,7 @@ async def bouncechild_cmd(ctx, *, name: str = ""):
 
 
 # ── holdchild ────────────────────────────────────────────────────────────────
-@bot.command(name="holdchild", aliases=["holdkid", "cradlechild", "cradlekid", "holdthekid", "holdyarnchild"])
+@bot.command(name="holdchild", aliases=["cradlechild", "cradlekid", "holdthekid", "holdyarnchild"])
 async def holdchild_cmd(ctx, *, name: str = ""):
     """Hold one of Yarnaby's children close to your chest."""
     m = bot.db
