@@ -35741,7 +35741,7 @@ _FORGETTABLE_THINGS = {
 }
 
 @bot.command(name="forget_thing", aliases=["forgetit", "erasething", "forgethow"])
-async def forget_thing_cmd(ctx):
+async def forget_thing_cmd(ctx, *, thing: str = ""):
     """Creator only: make him forget something specific."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Only The Creator can make him forget specific things.* **mrr.**")
