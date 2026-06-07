@@ -14878,7 +14878,8 @@ async def seek_cmd(ctx):
         ]))
         return
 
-    if not m["internal"].get("yarnaby_hiding"):
+    minigame_hide = m["internal"].get("minigame_state", {}).get("hideandseek")
+    if not m["internal"].get("yarnaby_hiding") and not minigame_hide:
         await ctx.send(
             random.choice([
                 "*Yarnaby isn't hiding. He's right there. He's been right there. He looks faintly offended by the implication. **mrr.***",
@@ -14888,12 +14889,14 @@ async def seek_cmd(ctx):
         )
         return
 
-    spot = m["internal"].get("yarnaby_hiding_spot", "somewhere")
+    spot = minigame_hide.get("spot", "somewhere") if minigame_hide else m["internal"].get("yarnaby_hiding_spot", "somewhere")
 
     if random.random() < 0.55 or is_doctor:
         # Found
         m["internal"]["yarnaby_hiding"] = False
         m["internal"]["yarnaby_hiding_spot"] = None
+        if minigame_hide:
+            m["internal"]["minigame_state"]["hideandseek"] = None
         if u_id in m["social_matrix"] and not is_doctor:
             m["social_matrix"][u_id]["score"] = min(
                 m["social_matrix"][u_id].get("score", 0) + 2,
@@ -32875,15 +32878,23 @@ async def seekyarny_cmd(ctx):
         return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
-    if not m["internal"].get("yarnaby_hiding"):
+    # Check both hiding systems: yarnaby_hiding flag AND hideandseek minigame state
+    minigame_hide = m["internal"].get("minigame_state", {}).get("hideandseek")
+    if not m["internal"].get("yarnaby_hiding") and not minigame_hide:
         await ctx.send("*He is not hiding right now. He is right here. He has always been right here.* **mrr.**")
         return
 
-    spot = m["internal"].get("yarnaby_hiding_spot", "somewhere")
+    # Prefer minigame spot if that's what triggered the hide
+    if minigame_hide:
+        spot = minigame_hide.get("spot", "somewhere")
+    else:
+        spot = m["internal"].get("yarnaby_hiding_spot", "somewhere")
 
     if is_doctor:
         m["internal"]["yarnaby_hiding"] = False
         m["internal"]["yarnaby_hiding_spot"] = None
+        if minigame_hide:
+            m["internal"]["minigame_state"]["hideandseek"] = None
         save_db(m)
         await ctx.send(
             f"*The Creator finds him immediately — or maybe he let himself be found. "
@@ -32892,6 +32903,8 @@ async def seekyarny_cmd(ctx):
     elif score >= 5:
         m["internal"]["yarnaby_hiding"] = False
         m["internal"]["yarnaby_hiding_spot"] = None
+        if minigame_hide:
+            m["internal"]["minigame_state"]["hideandseek"] = None
         save_db(m)
         await ctx.send(
             f"*After some searching, you find him. He was **{spot}**. "
