@@ -54352,7 +54352,7 @@ async def introducechild_cmd(ctx, *, name: str = ""):
 
 
 # ── strollchild ──────────────────────────────────────────────────────────────
-@bot.command(name="strollchild", aliases=["walkchild", "walkkid", "takewalkchild", "strollkid", "walkingkid", "takekidwalk"])
+@bot.command(name="strollchild", aliases=["takewalkchild", "strollkid", "walkingkid"])
 async def strollchild_cmd(ctx, *, name: str = ""):
     """Take one of Yarnaby's children for a little walk."""
     m = bot.db
