@@ -26548,7 +26548,7 @@ async def setheight_cmd(ctx):
 # !set_age - set Yarnaby's age/life stage
 # ==========================================
 @bot.command(name="set_age", aliases=["setage", "agestage"])
-async def set_age_cmd(ctx):
+async def set_age_cmd(ctx, *, age_str: str = ""):
     """Creator only: set Yarnaby's age in years."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He looks at you quietly. That's The Creator's call.* **mrr.**")
