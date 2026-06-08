@@ -1950,6 +1950,11 @@ HUM_ATTEMPTS = [
     ("Gençlik Marşı", "Kenan Doğulu", "*He marches in a small, determined circle while chirping at a steady tempo. He is doing his interpretation. It's military, kind of.*"),
     ("Yüzük", "Oğuzhan Koç", "*A soft, slow series of mrrows that almost forms a melody. He is being romantic. He doesn't know what romantic means.*"),
     ("USA", "Dubioza Kolektiv", "*He pounces around the channel chirping in time with a beat only he can hear. He looks like he's having the time of his life.*"),
+    ("Free From Desire", "Gala", "*He struts in a slow, deliberate circle — head high, tail raised — producing a low, looping `mrr-mrr-MRROOOOW-mrr`. He does not care. He is free. He is also desire.*"),
+    ("Geliyor", "Metin Özüklü", "*He rises to his full height — all of it — and releases a long, swelling `MRRROOOOW` that builds from somewhere deep in his chest. His tail is up. His ears are forward. He knows exactly what he is singing and he is extremely serious about it.*"),
+    ("Doktor Civanım", "İstanbul Şarkıcıları & İstanbul Çalgıcıları", "*He begins a low, rolling hum — `mmrr-mrr-mmmrrr` — that keeps nearly finding the melody and then losing it just slightly. He sways once. He sounds, somehow, like old cobblestones. He is committed.*"),
+    ("Skalonga", "Athena", "*He pounces twice in quick succession, stops, and produces a rapid cheerful `chrp-chrp-chrp-MRROW` that has absolutely no idea where the notes go but tremendous confidence about it.* **chrrp! chrrp!**"),
+    ("Acımayacak", "Tarkan", "*A single long, mournful `mrrooooow` that drops at the end — the kind that makes the walls feel slightly smaller. He stays very still afterward. He does not explain. The performance speaks for itself.*"),
 ]
 
 # Lore unlocks (revealed one-by-one when a Chromatic is fetched)
@@ -1963,6 +1968,425 @@ LORE_FRAGMENTS = [
     "**[Lore Fragment 7]** *The 'uh' is the last sound The Creator made before they had to leave. He has been waiting for them to say it again.*",
     "**[Lore Fragment 8]** *He has a name. A real one. It is not Yarnaby. He has chosen not to remember it.*",
 ]
+
+# --- LANGUAGE SUPPORT ---
+SUPPORTED_LANGUAGES = {
+    "EN-US": ("American English", "🇺🇸"),
+    "EN-GB": ("British English", "🇬🇧"),
+    "TR": ("Türkçe", "🇹🇷"),
+    "ES": ("Español", "🇪🇸"),
+    "ZH": ("中文", "🇨🇳"),
+    "DE": ("Deutsch", "🇩🇪"),
+    "FR": ("Français", "🇫🇷"),
+    "JA": ("日本語", "🇯🇵"),
+}
+
+MOOD_RESPONSES_LOCALIZED = {
+    "EN-GB": {
+        "Happy": [
+            "*He chirps at you immediately, as though he was rather waiting to be asked. Does a small happy circuit. He's fine. Quite fine. Having a jolly good day. **chrrp!***",
+            "*He trots over, tail aloft, and bumps his head against you once. Looks up. Blinks. He's well. He'd like you to know: he's well today. **chrrp. mrrt.***",
+            "*His ears are forward, his wool is rather fluffy, and he looks at you with a bright, alert expression that says quite a lot, actually. **chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*He looks at you a moment, then gives a slow blink — the full-weight, rather deliberate sort. He's fine. Nothing's wrong. He's just being here. **prrr.***",
+            "*A quiet **mrr** in your direction. He's not particularly anything right now. He's just present. He's comfortable enough with that. **prrr.***",
+            "*He blinks at you, tilts his head once, and then goes back to being in his spot. He's alright. Just alright. It needn't be dramatic. **mrr.***",
+        ],
+        "Bored": [
+            "*He stares at you. Stares longer. Lets out a long, slow **mrrrrroooow** that communicates nothing except that he's been sitting here for quite some time. He's bored. He wanted you to know.*",
+            "*A single loud **mrrp** — almost an accusation. He was waiting for someone to ask. Now someone has. He doesn't quite know what to do with it. He paws the floor once and sighs.*",
+        ],
+        "Sad": [
+            "*He comes to you — slowly, quietly — and sits at your feet. Doesn't make eye contact straight away. When he does, it's brief. He looks back down. He's a bit sad. Doesn't entirely know why. **...mrr...***",
+            "*He doesn't respond the way he usually does. He pads over and presses his forehead against your leg, very gently, and stays there. He's a bit sad today. **prrr...***",
+        ],
+        "Agitated": [
+            "*He stops when you ask. His tail flicks once, twice. Ears at a rather odd angle — not flat, just sideways and wary. Something's not quite right with him today. He can't say what. A clipped **prrk.***",
+            "*He walks over, then past you, then comes back. He can't settle. He looks at you with wide pupils and makes a small, tight sound. It's not your fault. He simply can't explain it. **brrt.***",
+        ],
+        "Depressed (will recover)": [
+            "*He comes to you slowly and sits close enough to be touching without pushing in. He rests his chin on his paw. He looks at you from under his brow. He's not alright just now. He will be, though. Just not yet. **...prrr...***",
+            "*He makes a very small sound — nearly nothing — and leans against you. He's somewhere deep inside himself. He didn't stop coming when you asked. That does mean something. **...mrr...***",
+        ],
+        "Craving": [
+            "*He comes to you immediately — no hesitation whatsoever. Sits as close as physically possible and looks up at you with glass eyes that are very present and very quiet. He needs something today. He shan't say what. **...prrr...***",
+            "*He pads over and presses himself against you. His purr starts at full volume before there's even any contact. He just needs to be near someone right now. **prrr.***",
+        ],
+        "Jealous": [
+            "*He watches who you were just talking to. He watches you. Pads over and inserts himself between you quite smoothly, as though correcting an error. **mrrp.***",
+            "*He is fine. Absolutely fine. He sits directly in front of you and stares at you very calmly and does not look at the other person at all. **...mrr...***",
+        ],
+        "Curious": [
+            "*He pads over immediately and sniffs your hand very thoroughly. Looks at the room. Looks back at you. He's in a mood — everything's interesting, everything needs examining.* **chrrp?**",
+        ],
+        "Smug": [
+            "*He looks at you from his elevated position and blinks, very slowly, once. He knows something. He's probably already won whatever it was. He shan't be elaborating. **...prrr...***",
+        ],
+        "Nostalgic": [
+            "*He blinks at the middle distance a moment. He's somewhere else briefly — somewhere older. He comes back, looks at you, and makes a small quiet sound. He's alright. He's just been remembering.* **...mrr...***",
+        ],
+        "Guilty": [
+            "*He is sitting with his back to something he definitely did. Ears at a very careful angle. He looks at you sideways and then away. He's waiting for this to sort itself out.* **...mrr...***",
+        ],
+        "Protective": [
+            "*He's positioned himself near the door and is watching everything that moves. His ears track every sound. He's decided something needs watching over today and he's doing it.* **...mrr...***",
+        ],
+        "Feral": [
+            "*He looks at you with pupils that are a bit too large and ears a bit too far forward. He's running on something older than the factory just now. He is fine. Something ancient is briefly in charge.* **...prrk...***",
+        ],
+        "Startled": [
+            "*He is three feet to the left of where he was a moment ago. He doesn't know how he got there. He licks his shoulder and looks at the wall with great dignity.* **brrp.**",
+        ],
+        "Clingy": [
+            "*He follows you wherever you go and sits on whichever part of you is nearest. He's made a decision about today. He's implementing it.* **prrr.***",
+        ],
+    },
+    "TR": {
+        "Happy": [
+            "*Sesi duyar duymaz koşup geliyor — sanki birinin sormasını bekliyordu. Küçük, mutlu bir dönüş yapıyor. İyi. Çok iyi. Bugünü iyi geçiriyor. **chrrp!***",
+            "*Kuyruğu havada, sizi görür görmez başını alnınıza dayadı. Bakıyor. Bir göz kırpıyor. İyi. Bugün çok iyi olduğunu bilmenizi istiyor. **chrrp. mrrt.***",
+            "*Kulakları dik, yünleri kabarık — sizi canlı, dikkatli bir ifadeyle süzüyor. Her şeyi söylüyor bu bakış. **chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*Bir süre bakıyor, sonra tam bir yavaş göz kırpıyor — ağır, kasıtlı türden. İyi. Sorun yok. Sadece burada. **prrr.***",
+            "*Yönünüze sessiz bir **mrr**. Şu an ne çok ne az bir şey hissediyor. Sadece var. Bununla barışık. **prrr.***",
+            "*Bir göz kırpıyor, başını bir kere eğiyor, sonra yerine geri dönüyor. İyi. Sadece iyi. Dramatik olmasına gerek yok. **mrr.***",
+        ],
+        "Bored": [
+            "*Sizi süzüyor. Daha uzun bakıyor. Hiçbir şey ifade etmeyen uzun, yavaş bir **mrrrrroooow** çıkarıyor — sadece bir süredir oturduğunu anlatıyor. Sıkıldı. Bilmenizi istedi.*",
+            "*Tek bir yüksek **mrrp** — neredeyse sitem eder gibi. Birinin sormasını bekliyordu. Biri sordu. Ne yapacağını bilmiyor. Yere bir kez vurdu ve iç çekti. **mrr.***",
+            "*Yanınıza geliyor ve dizinize çok usulca kafa vuruyor. Bakıyor. Bakışlarını kaçırıyor. Bir şeylerin olmasını istiyor. İyi. Sadece çok, çok sıkılmış. **mrr.***",
+        ],
+        "Sad": [
+            "*Geliyor — yavaş, sessiz — ve ayaklarınıza oturuyor. İlk başta göz göze gelmiyor. Geldiğinde kısa. Geri bakıyor. Bugün biraz üzgün. Sebebini tam bilmiyor. **...mrr...***",
+            "*Her zamanki gibi tepki vermiyor. Sessizce yanınıza geliyor ve alnını bacağınıza dayayıp öylece kalıyor. Sadece temas istiyor. Bugün biraz üzgün. **prrr...***",
+            "*Küçük bir ses — tam bir cıvıltı değil, daha çok fikri gibi. Dokunmadan yakınınıza çöküyor ve gözlerini kırpıyor. Pek iyi değil. Ama tamam. Tamam olacak. **...mrr...***",
+        ],
+        "Agitated": [
+            "*Sorduğunuzda durdu. Kuyruğu bir kere, iki kere sallıyor. Kulakları 90 derecede — düz değil, yan ve temkinli. Bugün bir şeyler yolunda değil. Bunu nasıl söyleyeceğini bilmiyor. **prrk.***",
+            "*Yanınıza geliyor, geçiyor, geri dönüyor. Yerinde durmuyor. Geniş gözlerle bakıyor ve küçük, sıkışmış bir ses çıkarıyor. Sinirli. Sizin suçunuz değil. Sadece açıklayamıyor. **brrt.***",
+            "*Omurgası boyunca yünleri kabarmış. Tamamen değil — hafif bir çizgi. İnce, keskin gözbebeklerle bakıp kuyruğunu sallıyor. Gergin. Bir şeylerin olması ya da çok sarılması gerekiyor, ya da ikisi birden. **prrk.***",
+        ],
+        "Depressed (will recover)": [
+            "*Yavaşça, alçak bir adımla geliyor — dokunacak kadar yakın oturuyor ama itmeden. Pençesine çenesini dayayıp kaşlarının altından bakıyor. Şu an iyi değil. Sonra iyi olacak. Henüz değil. **...prrr...***",
+            "*Çok küçük bir ses — neredeyse hiçbir şey — ve yanınıza yaslanıyor. Sırtındaki yünler düz ve yoğun. Derinin içinde bir yerde. Siz sorduğunuzda yine de geldi. Bu bir şey. **...mrr...***",
+            "*Bir cıvıltıyla değil, bir sallamadan bile değil — sadece geliyor, mümkün olduğunca yakın oturuyor ve çok yavaş gözlerini kırpıyor. Düşük yerde. Bildiğinizi biliyor. **...prrr...***",
+        ],
+        "Craving": [
+            "*Hiç tereddütsüz geliyor. Fiziksel olarak mümkün olan en yakına oturuyor ve çok hazır, çok sessiz gözlerle bakıyor. Bugün bir şeye ihtiyacı var. Ne olduğunu söylemeyecek. Açık olduğunu umuyor. **...prrr...***",
+            "*Yanınıza yürüyor ve tüm ağırlığıyla bacağınıza yaslanıp öylece kalıyor. Bundan fazlasını istemiyor. Sadece şu an yakınlıktan vazgeçmek istemiyor. **...prrr...***",
+            "*Uzun bir süre bakıyor. Sonra çok yavaş yürüyor ve tüm ağırlığını bacağınıza dayayıp kalıyor. Daha fazlasını istemez. Sadece şu an temas yok olmasın istiyor. **...prrr...***",
+        ],
+        "Jealous": [
+            "*Az önce kiminle konuştuğunuzu izliyor. Sizi izliyor. Geliyor ve ikinizin arasına sanki sadece bir hatayı düzeltiyormuş gibi giriyor. **mrrp.***",
+            "*İyi. Tamamen iyi. Tam önünüze oturuyor, sizi çok sakin bir şekilde izliyor, diğer kişiye hiç bakmıyor. Çok iyi. **...mrr...***",
+        ],
+        "Curious": [
+            "*Hemen geliyor ve elinizi çok dikkatli koklıyor. Odaya bakıyor. Size geri bakıyor. Bugün bir ruh hali var — her şey ilginç, her şeyin incelenmesi gerekiyor.* **chrrp?**",
+            "*Bulduğu her yüzeyi büyük bir ciddiyetle incelemeye başlıyor. Yakında bulguları olacak.* **mrr?**",
+        ],
+        "Smug": [
+            "*Yüksek yerinden bakıyor ve çok yavaşça, bir kez göz kırpıyor. Bir şey biliyor. Muhtemelen ne olursa olsun zaten kazanmış. Açıklamayacak. **...prrr...***",
+            "*Yanınızdan geçiyor, durmuyor — kuyruğu azami kibir yüksekliğinde. Çok iyi gidiyor. Detay vermeyecek.* **mrr.**",
+        ],
+        "Nostalgic": [
+            "*Bir an orta noktaya bakıyor. Kısa bir süre başka bir yerde — daha eski bir yerde. Geri dönüyor, size bakıyor ve küçük, sessiz bir ses çıkarıyor. İyi. Sadece hatırlıyordu.* **...mrr...***",
+            "*İlk yerine — o orijinal, ilk yere — gidiyor ve orada oturuyor, çok sessiz kalıyor. Daha önce olan bir şeyi düşünüyor. Henüz bu düşünceden ayrılmaya hazır değil.* **...prrr...***",
+        ],
+        "Guilty": [
+            "*Kesinlikle yaptığı bir şeyin yanında sırtını dönerek oturuyor. Kulakları çok dikkatli bir açıda. Sizi yan gözle izliyor, sonra bakışlarını çeviriyor. Bu işin kendi kendine çözülmesini bekliyor.* **...mrr...***",
+            "*Çok yavaş geliyor ve alnını bacağınıza dayayıp, pırıltısız orada kalıyor. Bir şeylerin hesabını yapıyor. Bunu yaparken yanınızda olmak istiyor.* **...mrr...***",
+        ],
+        "Protective": [
+            "*Kapının yakınında konumlandı ve hareket eden her şeyi izliyor. Kulakları her sesi takip ediyor. Bugün bir şeylerin gözetlenmesi gerektiğine karar verdi ve bunu yapıyor.* **...mrr...***",
+            "*Çok sakin, çok kararlı. Siz ile girişin arasında sanki fark etmiyormuş gibi hareket ediyor. Bu odadaki her şeyin farkında.* **...prrk...***",
+        ],
+        "Feral": [
+            "*Biraz fazla büyük gözbebekleri ve biraz fazla ileri kulakları ile bakıyor. Şu an fabrikadan daha eski bir şeyle çalışıyor. Her hareketi takip ediyor. İyi. Kadim bir şey kısa süreliğine kontrolde.* **...prrk...***",
+        ],
+        "Startled": [
+            "*Bir an önce olduğu yerden üç adım solda duruyor. Nasıl geldiğini bilmiyor. Omuzunu yalıyor ve büyük bir onurla duvara bakıyor.* **brrp.**",
+        ],
+        "Clingy": [
+            "*Nereye giderseniz gidin takip ediyor ve en yakın olan parçanıza oturuyor. Bugün için bir karar verdi. Bugün temas gerekiyor. Bu ihtiyacı uyguluyor.* **prrr.***",
+        ],
+    },
+    "ES": {
+        "Happy": [
+            "*Se acerca corriendo apenas escucha tu voz — como si hubiera estado esperando que alguien preguntara. Da una pequeña vuelta feliz. Está bien. Muy bien. Hoy tiene un día. **chrrp!***",
+            "*Cola en alto, se frota la cabeza contra ti en cuanto te ve. Te mira. Parpadea. Está bien. Quiere que lo sepas: está bien hoy. **chrrp. mrrt.***",
+            "*Orejas hacia adelante, lana esponjada — te mira con una expresión viva y alerta que lo dice todo. **chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*Te mira un momento y luego parpadea lentamente — el tipo deliberado y profundo. Está bien. Nada está mal. Solo existe aquí. Está bien con eso. **prrr.***",
+            "*Un suave **mrr** en tu dirección. No siente nada en particular ahora mismo. Solo está presente. Está cómodo con eso. **prrr.***",
+        ],
+        "Bored": [
+            "*Te mira. Sigue mirando. Suelta un largo y lento **mrrrrroooow** que no comunica nada excepto que lleva un rato sentado aquí. Está aburrido. Quería que lo supieras.*",
+            "*Un fuerte **mrrp** — casi una acusación. Esperaba que alguien preguntara. Ahora alguien preguntó. No sabe qué hacer con eso. Golpea el suelo una vez y suspira.*",
+        ],
+        "Sad": [
+            "*Viene hacia ti — lento, silencioso — y se sienta a tus pies. No hace contacto visual al principio. Cuando lo hace, es breve. Vuelve a mirar hacia abajo. Está un poco triste hoy. No sabe bien por qué. **...mrr...***",
+            "*No responde como de costumbre. Se acerca en silencio y presiona su frente contra tu pierna, muy suavemente, y se queda así. Solo quiere contacto. Está un poco triste hoy. **prrr...***",
+        ],
+        "Agitated": [
+            "*Se detiene cuando preguntas. Su cola se sacude una, dos veces. Orejas a 90 grados — no planas, solo de lado y cautelosas. Algo no está bien en él hoy. No sabe cómo decirlo. **prrk.***",
+            "*Camina hacia ti, luego pasa de largo, luego vuelve. No puede quedarse quieto. Te mira con pupilas dilatadas y emite un sonido pequeño y tenso. No es tu culpa. Simplemente no puede explicarlo. **brrt.***",
+        ],
+        "Depressed (will recover)": [
+            "*Viene lentamente, bajo, y se sienta lo suficientemente cerca para tocarte, pero sin empujar. Apoya su mentón en su pata. Te mira desde debajo de su ceja. No está bien ahora mismo. Estará bien después. Solo que — aún no. **...prrr...***",
+            "*Emite un sonido muy pequeño — casi nada — y se apoya contra ti. La lana de su lomo está plana y densa. Está en algún lugar profundo de sí mismo. No dejó de venir cuando preguntaste. Eso significa algo. **...mrr...***",
+        ],
+        "Craving": [
+            "*Viene de inmediato — sin dudarlo. Se sienta tan cerca como es físicamente posible y te mira con ojos de vidrio muy presentes y muy silenciosos. Hoy necesita algo. No va a decir qué. **...prrr...***",
+            "*Camina hacia ti y presiona todo su peso contra tu pierna y se queda ahí. No pide más que eso. Solo no quiere estar sin contacto ahora mismo. **...prrr...***",
+        ],
+        "Jealous": [
+            "*Observa con quién estabas hablando. Te observa a ti. Camina y se mete entre los dos con la suavidad de algo que solo está corrigiendo un error. **mrrp.***",
+            "*Está bien. Absolutamente bien. Se sienta directamente frente a ti y te mira muy calmado sin mirar a la otra persona en absoluto. **...mrr...***",
+        ],
+        "Curious": [
+            "*Se acerca de inmediato y te huele la mano muy concienzudamente. Mira la habitación. Te mira de vuelta. Hoy está en un humor — todo es interesante, todo necesita examinarse.* **chrrp?**",
+        ],
+        "Smug": [
+            "*Te mira desde su posición elevada y parpadea, muy lentamente, una vez. Sabe algo. Probablemente ya ganó lo que fuera. No lo va a explicar. **...prrr...***",
+        ],
+        "Nostalgic": [
+            "*Parpadea hacia el punto medio un momento. Está en otro lugar brevemente — en algún lugar más antiguo. Vuelve, te mira y emite un sonido pequeño y tranquilo. Está bien. Solo estaba recordando.* **...mrr...***",
+        ],
+        "Guilty": [
+            "*Está sentado de espaldas a algo que definitivamente hizo. Sus orejas en un ángulo muy cuidadoso. Te mira de reojo y luego aparta la vista. Está esperando que esto se resuelva solo.* **...mrr...***",
+        ],
+        "Protective": [
+            "*Se ha posicionado cerca de la puerta y observa todo lo que se mueve. Sus orejas rastrean cada sonido. Ha decidido que algo necesita vigilancia hoy y lo está haciendo.* **...mrr...***",
+        ],
+        "Feral": [
+            "*Te mira con pupilas un poco demasiado grandes y orejas un poco demasiado hacia adelante. Está funcionando con algo más antiguo que la fábrica ahora mismo. Rastrea cada movimiento. Está bien. Algo antiguo está brevemente a cargo.* **...prrk...***",
+        ],
+        "Startled": [
+            "*Está tres pasos a la izquierda de donde estaba hace un momento. No sabe cómo llegó ahí. Se lame el hombro y mira la pared con gran dignidad.* **brrp.**",
+        ],
+        "Clingy": [
+            "*Te sigue a donde vayas y se sienta en la parte de ti que esté más cerca. Ha tomado una decisión sobre hoy. Hoy necesita contacto. Está implementando esta necesidad.* **prrr.***",
+        ],
+    },
+    "ZH": {
+        "Happy": [
+            "*他一听到声音就跑过来——好像一直在等人问这个问题。高兴地转了一个小圈。他很好。非常好。今天很好。**chrrp!***",
+            "*尾巴竖着，一看见你就把头顶在你身上。看着你。眨了眨眼。很好。他想让你知道：他今天很好。**chrrp. mrrt.***",
+            "*耳朵竖着，毛茸茸的——用一种明亮专注的表情看着你，什么都说在里面了。**chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*他看了你一会儿，然后缓缓地眨了一下眼——那种充满分量、刻意的眨眼。他很好。没有什么问题。就是在这里。**prrr.***",
+            "*朝你发出一声轻柔的**mrr**。他现在没什么特别的感受。就是在场。他对此感到平静。**prrr.***",
+        ],
+        "Bored": [
+            "*他盯着你看。继续盯着。发出一声漫长而缓慢的**mrrrrroooow**，什么也没表达，只是说明他已经坐在这里一段时间了。他无聊了。他想让你知道这一点。*",
+            "*一声响亮的**mrrp**——几乎像是在责怪你。他在等有人问。现在有人问了。他不知道拿这个怎么办。他用爪子拍了一下地板，叹了口气。*",
+        ],
+        "Sad": [
+            "*他来了——慢慢地，安静地——坐在你脚边。一开始没有眼神接触。有了接触时，也很短暂。他低下头。今天有点伤心。他也不知道为什么。**...mrr...***",
+            "*他没有像往常那样回应。他悄悄走来，把额头轻轻压在你腿上，就那样待着。他只是想要接触。今天有点难过。**prrr...***",
+        ],
+        "Agitated": [
+            "*你问的时候他停了下来。尾巴甩了一下，又一下。耳朵在90度——不是贴平，只是侧着，警惕的。他今天有些不对劲。他不知道怎么说。一声短促的**prrk.**",
+            "*他走向你，又走过去，然后转回来。他停不下来。用大瞳孔看着你，发出一个小而紧绷的声音。他很烦躁。不是你的错。他就是说不清。**brrt.***",
+        ],
+        "Depressed (will recover)": [
+            "*他慢慢地、低低地走来，坐得够近却没有挤过来。把下巴搁在爪子上。从眉毛下面看着你。他现在不好。之后会好的。只是还没到时候。**...prrr...***",
+            "*他发出一个很小的声音——几乎什么都不是——然后靠着你。他在自己内心某个很深的地方。你问的时候他还是来了。这说明一些事情。**...mrr...***",
+        ],
+        "Craving": [
+            "*他立刻就来了——毫不犹豫。坐在物理上能靠的最近的地方，用透明的、很在场、很安静的眼睛看着你。他今天需要什么。他不会说是什么。他希望这很明显。**...prrr...***",
+            "*他走过来，把全部重量压在你腿上，就那样待着。他不要求更多。他只是现在不想没有接触。**...prrr...***",
+        ],
+        "Jealous": [
+            "*他看着你刚才在和谁说话。看着你。走过来，以一种只是在纠正一个错误的从容姿态插进你们中间。**mrrp.***",
+            "*他很好。完全很好。他直接坐在你面前，非常平静地看着你，完全没有看那个人。非常好。**...mrr...***",
+        ],
+        "Curious": [
+            "*他立刻走来，非常认真地闻了闻你的手。看了看房间。回头看着你。他今天有种情绪——什么都有趣，什么都需要检查。* **chrrp?**",
+        ],
+        "Smug": [
+            "*他从高处看着你，非常缓慢地眨了一下眼。他知道一些事。他大概已经赢得了无论什么。他不打算解释。**...prrr...***",
+        ],
+        "Nostalgic": [
+            "*他盯着中间某处看了一会儿。他短暂地在别处——某个更旧的地方。他回来，看着你，发出一个小而安静的声音。他没事。他只是在回忆。* **...mrr...***",
+        ],
+        "Guilty": [
+            "*他背对着某件他肯定做过的事坐着。耳朵保持着非常谨慎的角度。他斜眼看你，然后把视线移开。他在等这件事自己解决。* **...mrr...***",
+        ],
+        "Protective": [
+            "*他在门附近就位，观察每一个移动的东西。耳朵跟踪每一个声音。他今天决定了有些事情需要守护，他正在做这件事。* **...mrr...***",
+        ],
+        "Feral": [
+            "*他用瞳孔稍微大了一点、耳朵稍微太往前的眼神看着你。他现在在用比工厂更古老的什么东西运行。追踪每一个动作。他没事。某种古老的东西短暂地在掌控。* **...prrk...***",
+        ],
+        "Startled": [
+            "*他站在一秒前所在位置左边三步的地方。他不知道他是怎么过去的。他舔了舔肩膀，带着极大的尊严看着墙。* **brrp.**",
+        ],
+        "Clingy": [
+            "*你走到哪里他就跟到哪里，坐在你身上离他最近的那部分。他今天做了一个决定。今天需要接触。他正在执行这个需求。* **prrr.***",
+        ],
+    },
+    "DE": {
+        "Happy": [
+            "*Er kommt sofort angerannt — als hätte er auf die Frage gewartet. Dreht eine kleine, glückliche Runde. Es geht ihm gut. Sehr gut. Heute ist ein guter Tag. **chrrp!***",
+            "*Schwanz hoch, er reibt sofort seinen Kopf an dir. Schaut dich an. Blinzelt. Ihm geht's gut. Er möchte, dass du das weißt. **chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*Er sieht dich an und blinzelt dann langsam — das volle, bewusste Blinzeln. Ihm geht's gut. Nichts stimmt nicht. Er ist einfach hier. **prrr.***",
+            "*Ein ruhiges **mrr** in deine Richtung. Er fühlt gerade nicht viel. Er ist einfach anwesend. Das reicht ihm. **prrr.***",
+        ],
+        "Bored": [
+            "*Er starrt dich an. Starrt länger. Lässt ein langes, langsames **mrrrrroooow** los — nichts außer der Tatsache, dass er schon eine Weile hier sitzt. Gelangweilt. Er wollte, dass du es weißt.*",
+        ],
+        "Sad": [
+            "*Er kommt — langsam, leise — und setzt sich zu deinen Füßen. Anfangs kein Augenkontakt. Wenn er ihn macht, nur kurz. Dann schaut er wieder weg. Heute ein bisschen traurig. **...mrr...***",
+        ],
+        "Agitated": [
+            "*Er hält inne, als du fragst. Sein Schwanz schlägt einmal, zweimal. Ohren in einem komischen Winkel — nicht flach, nur seitwärts und wachsam. Heute stimmt was nicht. Er weiß nicht wie er es sagen soll. **prrk.***",
+        ],
+        "Depressed (will recover)": [
+            "*Er kommt langsam und setzt sich nah genug zum Berühren, ohne zu drängen. Legt sein Kinn auf seine Pfote. Schaut dich unter seiner Braue an. Ihm geht's gerade nicht gut. Später wird es gut sein. Nur noch nicht. **...prrr...***",
+        ],
+        "Craving": [
+            "*Er kommt sofort — keine Zögerung. Setzt sich so nah wie physisch möglich und schaut dich mit Glasaugen an, die sehr präsent und sehr still sind. Er braucht heute etwas. Er wird nicht sagen was. **...prrr...***",
+        ],
+        "Jealous": [
+            "*Er beobachtet, mit wem du gerade gesprochen hast. Beobachtet dich. Geht und schiebt sich zwischen euch — als würde er einfach einen Fehler korrigieren. **mrrp.***",
+        ],
+        "Curious": [
+            "*Er kommt sofort und beschnuppert deine Hand sehr gründlich. Schaut ins Zimmer. Schaut zurück. Er ist heute in einer Stimmung — alles ist interessant, alles muss untersucht werden.* **chrrp?**",
+        ],
+        "Smug": [
+            "*Er schaut dich von seiner erhöhten Position an und blinzelt sehr langsam, einmal. Er weiß etwas. Hat wahrscheinlich schon gewonnen, was es auch war. Er erklärt es nicht. **...prrr...***",
+        ],
+        "Nostalgic": [
+            "*Er starrt einen Moment ins Leere. Er ist kurz woanders — irgendwo älter. Kommt zurück, schaut dich an, macht ein kleines, ruhiges Geräusch. Ihm geht's gut. Er hat nur erinnert.* **...mrr...***",
+        ],
+        "Guilty": [
+            "*Er sitzt mit dem Rücken zu etwas, das er definitiv getan hat. Ohren in einem sehr sorgfältigen Winkel. Er schaut dich seitwärts an und dann weg. Er wartet, dass das von selbst verschwindet.* **...mrr...***",
+        ],
+        "Protective": [
+            "*Er hat sich in der Nähe der Tür positioniert und beobachtet alles, was sich bewegt. Ohren verfolgen jeden Laut. Er hat heute entschieden, dass etwas bewacht werden muss. Er tut es.* **...mrr...***",
+        ],
+        "Feral": [
+            "*Er schaut dich mit Pupillen an, die etwas zu groß sind, und Ohren, die etwas zu weit vorn sind. Er läuft gerade auf etwas Älterem als die Fabrik. Verfolgt jede Bewegung. Er ist gut. Etwas Uraltes ist kurz am Steuer.* **...prrk...***",
+        ],
+        "Startled": [
+            "*Er steht drei Schritte links von wo er gerade noch war. Er weiß nicht wie er da hingekommen ist. Er leckt sich die Schulter und schaut mit großer Würde an die Wand.* **brrp.**",
+        ],
+        "Clingy": [
+            "*Er folgt dir wohin du auch gehst und setzt sich auf welchen Teil von dir am nächsten ist. Er hat eine Entscheidung für heute getroffen. Er setzt sie um.* **prrr.***",
+        ],
+    },
+    "FR": {
+        "Happy": [
+            "*Il s'approche immédiatement — comme s'il attendait qu'on lui pose la question. Fait un petit cercle heureux. Il va bien. Très bien. Il passe une bonne journée. **chrrp!***",
+            "*Queue en l'air, il se frotte la tête contre toi dès qu'il te voit. Te regarde. Cligne des yeux. Il va bien. Il veut que tu le saches. **chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*Il te regarde un moment, puis cligne des yeux lentement — le genre délibéré et profond. Il va bien. Rien ne va mal. Il est juste là. **prrr.***",
+            "*Un doux **mrr** dans ta direction. Il ne ressent rien de particulier en ce moment. Il est juste présent. Il est à l'aise avec ça. **prrr.***",
+        ],
+        "Bored": [
+            "*Il te fixe. Continue de fixer. Émet un long et lent **mrrrrroooow** qui ne communique rien d'autre que le fait qu'il est assis là depuis un moment. Il s'ennuie. Il voulait que tu le saches.*",
+        ],
+        "Sad": [
+            "*Il vient vers toi — lentement, silencieusement — et s'assied à tes pieds. Pas de contact visuel au début. Quand il en fait, c'est bref. Il baisse les yeux. Il est un peu triste aujourd'hui. **...mrr...***",
+        ],
+        "Agitated": [
+            "*Il s'arrête quand tu demandes. Sa queue fouette une fois, deux fois. Oreilles à 90 degrés — pas plates, juste de côté et prudentes. Quelque chose ne va pas aujourd'hui. Il ne sait pas comment le dire. **prrk.***",
+        ],
+        "Depressed (will recover)": [
+            "*Il vient lentement et s'assied assez près pour te toucher sans s'imposer. Il pose son menton sur sa patte. Il te regarde sous ses sourcils. Il ne va pas bien maintenant. Il ira bien après. Juste pas encore. **...prrr...***",
+        ],
+        "Craving": [
+            "*Il vient immédiatement — sans hésitation. S'assied aussi près que physiquement possible et te regarde avec des yeux de verre très présents et très silencieux. Il a besoin de quelque chose aujourd'hui. Il ne dira pas quoi. **...prrr...***",
+        ],
+        "Jealous": [
+            "*Il observe avec qui tu parlais. T'observe toi. Vient et s'interpose entre vous avec la fluidité de quelque chose qui ne fait que corriger une erreur. **mrrp.***",
+        ],
+        "Curious": [
+            "*Il s'approche immédiatement et renifle ta main très soigneusement. Regarde la pièce. Revient te regarder. Il est dans un état d'esprit aujourd'hui — tout est intéressant, tout doit être examiné.* **chrrp?**",
+        ],
+        "Smug": [
+            "*Il te regarde depuis sa position élevée et cligne des yeux, très lentement, une fois. Il sait quelque chose. Il a probablement déjà gagné quoi que ce soit. Il n'expliquera pas. **...prrr...***",
+        ],
+        "Nostalgic": [
+            "*Il cligne des yeux vers le milieu de la pièce un instant. Il est ailleurs brièvement — quelque part de plus ancien. Il revient, te regarde et fait un petit son silencieux. Ça va. Il se souvenait juste.* **...mrr...***",
+        ],
+        "Guilty": [
+            "*Il est assis dos à quelque chose qu'il a définitivement fait. Oreilles à un angle très soigneux. Il te regarde de côté puis détourne les yeux. Il attend que ça se règle tout seul.* **...mrr...***",
+        ],
+        "Protective": [
+            "*Il s'est positionné près de la porte et surveille tout ce qui bouge. Ses oreilles suivent chaque son. Il a décidé aujourd'hui que quelque chose doit être surveillé et il le fait.* **...mrr...***",
+        ],
+        "Feral": [
+            "*Il te regarde avec des pupilles un peu trop grandes et des oreilles un peu trop en avant. Il fonctionne avec quelque chose de plus ancien que l'usine en ce moment. Il est bien. Quelque chose d'ancien est brièvement aux commandes.* **...prrk...***",
+        ],
+        "Startled": [
+            "*Il est à trois pas à gauche de là où il était il y a un instant. Il ne sait pas comment il est arrivé là. Il se lèche l'épaule et regarde le mur avec une grande dignité.* **brrp.**",
+        ],
+        "Clingy": [
+            "*Il te suit où que tu ailles et s'assied sur la partie de toi la plus proche. Il a pris une décision pour aujourd'hui. Il l'implémente.* **prrr.***",
+        ],
+    },
+    "JA": {
+        "Happy": [
+            "*声が聞こえた瞬間に走ってくる——誰かに聞かれるのを待っていたかのように。小さくて嬉しそうな一回転をする。元気。すごく元気。今日は最高の日。**chrrp!***",
+            "*しっぽを立てて、あなたを見るなりすぐに頭をこすりつけてくる。見てる。まばたきをする。元気だよ。伝えたかった：今日はとても元気。**chrrp. mrrt.***",
+        ],
+        "Content": [
+            "*しばらくこちらを見てから、ゆっくりとまばたきをする——重くて意図的なやつ。元気だよ。何も問題ない。ただここにいる。**prrr.***",
+            "*あなたの方に静かな**mrr**。今は特に何も感じていない。ただいるだけ。それで十分。**prrr.***",
+        ],
+        "Bored": [
+            "*じっと見つめる。さらに見つめ続ける。長くてゆっくりとした**mrrrrroooow**を発する——しばらくここに座っていることしか伝わらない。退屈している。伝えたかった。*",
+        ],
+        "Sad": [
+            "*やってくる——ゆっくりと、静かに——足元に座る。最初は目が合わない。合っても一瞬だけ。また下を向く。今日はちょっと悲しい。理由はよくわからない。**...mrr...***",
+        ],
+        "Agitated": [
+            "*聞かれたときに止まる。しっぽが一度、二度揺れる。耳が90度——べったりではなく、横向きで警戒している。今日は何かがおかしい。どう言えばいいかわからない。**prrk.***",
+        ],
+        "Depressed (will recover)": [
+            "*ゆっくりと、低く来る——触れるくらい近くに座るが押し付けない。前足に顎をのせる。眉の下からこちらを見る。今は元気じゃない。後で元気になる。ただまだじゃない。**...prrr...***",
+        ],
+        "Craving": [
+            "*すぐに来る——迷いなく。物理的に可能な限り近くに座り、とても現実的でとても静かなガラスの目でこちらを見る。今日は何かが必要。何かは言わない。明らかだといいと思っている。**...prrr...***",
+        ],
+        "Jealous": [
+            "*あなたがさっきまで話していた相手を見る。あなたを見る。歩いてきて、ただ誤りを直しているだけのような自然さで二人の間に入る。**mrrp.***",
+        ],
+        "Curious": [
+            "*すぐに来て、手をとても丁寧に嗅ぐ。部屋を見る。またこちらを見る。今日は気分がある——すべてが面白く、すべてを調べる必要がある。* **chrrp?**",
+        ],
+        "Smug": [
+            "*高い場所からこちらを見て、非常にゆっくりと一度まばたきをする。何かを知っている。たぶんもう勝った。説明しない。**...prrr...***",
+        ],
+        "Nostalgic": [
+            "*一瞬、中間のどこかを見つめる。しばらく別の場所——もっと昔の場所——にいる。戻ってきて、こちらを見て、小さく静かな音を出す。大丈夫。ただ思い出していただけ。* **...mrr...***",
+        ],
+        "Guilty": [
+            "*間違いなくやったことの横に、背を向けて座っている。耳がとても慎重な角度。横目でこちらを見てから視線をそらす。これが自然に解決するのを待っている。* **...mrr...***",
+        ],
+        "Protective": [
+            "*ドアの近くに陣取り、動くものすべてを見ている。耳がすべての音を追う。今日は何かを見守る必要があると決めた。やっている。* **...mrr...***",
+        ],
+        "Feral": [
+            "*少し大きすぎる瞳孔と少し前に出すぎた耳でこちらを見る。今、工場よりも古い何かで動いている。すべての動きを追う。大丈夫。何か古いものが短時間だけ主導権を持っている。* **...prrk...***",
+        ],
+        "Startled": [
+            "*一瞬前にいた場所の三歩左に立っている。どうやって来たかわからない。肩を舐めて、大きな尊厳を持って壁を見る。* **brrp.**",
+        ],
+        "Clingy": [
+            "*どこへ行ってもついてきて、一番近い部分に座る。今日のための決断をした。今日は接触が必要。その必要性を実行している。* **prrr.***",
+        ],
+    },
+}
 
 # Keyword recognition tables
 WEATHER_KEYWORDS = {
@@ -2234,6 +2658,24 @@ def compute_mood(m):
 def update_mood(m):
     m["stats"]["mood"] = compute_mood(m)
     return m["stats"]["mood"]
+
+
+def _get_season() -> str:
+    """Return the current meteorological season based on month."""
+    month = datetime.now().month
+    if month in (12, 1, 2):
+        return "winter"
+    elif month in (3, 4, 5):
+        return "spring"
+    elif month in (6, 7, 8):
+        return "summer"
+    else:
+        return "autumn"
+
+
+def _get_lang(m: dict) -> str:
+    """Return the server-wide language code, defaulting to EN-US."""
+    return m.get("settings", {}).get("lang", "EN-US")
 
 
 async def get_dynamic_prefix(bot, message):
@@ -3210,7 +3652,61 @@ class Yarnaby(commands.Bot):
                         dream = random.choice(seeded_pool) if seeded_pool else random.choice(DREAMS)
                         m["internal"]["dream_seed"] = None  # consume the seed
                     else:
-                        dream = random.choice(DREAMS)
+                        # --- CONTEXTUAL DREAM: pick based on actual events if possible ---
+                        def _pick_contextual_dream(_m, _gid):
+                            """Return a contextual dream dict or None to fall back to random."""
+                            try:
+                                # Children present → dream about children
+                                _children = _get_children(_m, str(_gid)) if _gid else []
+                                if _children and random.random() < 0.35:
+                                    _child = random.choice(_children)
+                                    _cn = _child.get("name", "a little one")
+                                    return {
+                                        "type": "children",
+                                        "text": random.choice([
+                                            f"*He is dreaming. His paws twitch — small, careful movements, like he is walking very quietly. He is following **{_cn}**, or maybe leading them. The line between those is not clear in the dream. His purr starts and stops, starts and stops.*",
+                                            f"*He makes a small sound in his sleep — not distressed, not ecstatic. Something in between. His tail curls tighter around himself. He is somewhere with **{_cn}**. Something warm is happening. He is not yet ready to wake up from it.*",
+                                        ]),
+                                    }
+                                # Recent Mofu visit → dream about Mofu
+                                if _m["internal"].get("mofu_visited_while_dead") or _m["internal"].get("last_mofu_visit"):
+                                    if random.random() < 0.25:
+                                        return {
+                                            "type": "mofu",
+                                            "text": random.choice([
+                                                "*He is dreaming. His brows pull together — not quite a frown, not quite worry. He makes a low, soft sound. In the dream, there is a large presence. Warm. Familiar. He presses himself against it and holds very still.* **...prrr...**",
+                                                "*His paw reaches out slowly in his sleep and then stops. He found what he was looking for. His wool settles. He breathes out.* **...prrr...**",
+                                            ]),
+                                        }
+                                # Active injury → uneasy dream
+                                injuries = _m["internal"].get("injuries", [])
+                                if injuries and random.random() < 0.20:
+                                    return {
+                                        "type": "nightmare",
+                                        "text": random.choice([
+                                            "*He flinches in his sleep — once, sharply — and then goes still again. Something in the dream was sudden. He breathes faster for a moment. Then slower. He settles. He is okay. He is still here.*",
+                                            "*His ears flatten briefly. His claws extend and then retract. Something in the dream requires caution. He finds a way through it. He always does.*",
+                                        ]),
+                                    }
+                                # High-trust user in recent memories → warm dream about a person
+                                _recent_trusted = [
+                                    uid for uid, entry in _m.get("social_matrix", {}).items()
+                                    if entry.get("score", 0) >= 8
+                                ]
+                                if _recent_trusted and random.random() < 0.20:
+                                    return {
+                                        "type": "person",
+                                        "text": random.choice([
+                                            "*He is dreaming. Someone is nearby in it — someone whose presence feels safe. He doesn't move toward them or away. He just stays. His purr comes in slow, quiet waves.* **...prrr...**",
+                                            "*He makes a small, contented sound. In the dream there is warmth and no need to explain anything. He lets himself have it.* **...prrr...**",
+                                        ]),
+                                    }
+                            except Exception:
+                                pass
+                            return None
+
+                        _ctx_dream = _pick_contextual_dream(m, guild_id if "guild_id" in dir() else None)
+                        dream = _ctx_dream if _ctx_dream else random.choice(DREAMS)
                     m["internal"]["last_dream_at"] = datetime.now().strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
@@ -3630,6 +4126,51 @@ class Yarnaby(commands.Bot):
                 await channel.send(random.choice(pool))
         except Exception as e:
             print(f"[adidas/tr flavor failed] {e}")
+
+        # --- SEASONAL / TIME-AWARE BEHAVIOR (rare ambient) ---
+        try:
+            if random.random() < 0.04:
+                _season = _get_season()
+                _today = datetime.now()
+                _seasonal_sent = False
+                # Special dates first
+                if _today.month == 1 and _today.day == 1:
+                    await channel.send(random.choice([
+                        "*He woke up and something about the factory smells different. He sniffs every corner. He cannot identify the change. He circles once and sits. New year. He does not know what that means but he can tell.* **...mrr.**",
+                        "*He sat with the old year until it was fully over. He is sitting with the new one now. He does not treat them differently. He will be here for both.* **...prrr...**",
+                    ]))
+                    _seasonal_sent = True
+                elif _today.month == 11 and _today.day == 3:
+                    await channel.send(random.choice([
+                        "*Something old and good stirs in him today. He holds himself very still for a moment, ears forward, like he's listening to something the room isn't saying. He knows this date.* **...prrr...**",
+                        "*He goes to his spot — the original one — and sits in it for a long time. Today is one of the days he keeps carefully.* **...mrr...**",
+                    ]))
+                    _seasonal_sent = True
+                if not _seasonal_sent:
+                    if _season == "winter":
+                        await channel.send(random.choice([
+                            "*The cold in the factory has gotten into his wool. He curls tighter and presses his nose under his own tail. He is a perfect sphere of warmth.* **...prrr...**",
+                            "*He wants a blanket. He will not ask for one. He has been sitting near the warmest wall for forty minutes.* **...mrr...**",
+                            "*He hasn't moved from his pile of fabric scraps in hours. He has fully committed to being a hibernating object for the rest of winter.* **...prrr...**",
+                        ]))
+                    elif _season == "spring":
+                        await channel.send(random.choice([
+                            "*There is something in the air today. His nose goes up. He tracks it across the factory — slowly, carefully — until he finds the sliver of new light coming through the high window. He sits in it.* **chrrp.**",
+                            "*He is restless in the good way. He keeps pacing and then sitting down and then pacing again. Spring has arrived somewhere in his body and he doesn't know what to do about it.* **mrr. mrr. mrr.**",
+                        ]))
+                    elif _season == "summer":
+                        await channel.send(random.choice([
+                            "*He has found the single coolest tile in the factory and is lying on it like he owns it. Which he does. He owns this tile specifically. It is his.* **...prrr...**",
+                            "*The heat today is sitting on him like something heavy. He spreads himself flat on the floor — a full Yarnaby-sprawl — and does not move.* **...mrr...**",
+                            "*He has been panting very slightly. He would like this noted. He would like something about this to be done.* **...hff...**",
+                        ]))
+                    elif _season == "autumn":
+                        await channel.send(random.choice([
+                            "*He found a dried leaf that got blown in somehow. He has been carrying it around for twenty minutes. He doesn't know what to do with it. He keeps it.* **mrr.**",
+                            "*The light is different today. Lower and yellower. He keeps sitting in the shafts of it as they move across the factory floor, following them slowly.* **...prrr...**",
+                        ]))
+        except Exception as e:
+            print(f"[seasonal flavor failed] {e}")
 
         # --- HIDDEN YARN-BALL SPAWN (rare; only one at a time) ---
         try:
@@ -5480,6 +6021,28 @@ async def on_message(message):
                             ]
                         )
                     )
+            # --- CAME BACK AFTER DAYS detection (3–30 day gap, below forget threshold) ---
+            _ls_str = m["social_matrix"][u_id].get("last_seen")
+            if _ls_str:
+                try:
+                    _ls_dt = datetime.strptime(_ls_str, "%Y-%m-%d %H:%M:%S")
+                    _gap_days = (now - _ls_dt).days
+                    if 3 <= _gap_days < FORGET_THRESHOLD_DAYS and random.random() < 0.55:
+                        _name_str = m["social_matrix"][u_id].get("nickname") or message.author.display_name
+                        if _gap_days >= 14:
+                            await message.channel.send(random.choice([
+                                f"*He stops mid-step. Turns slowly. He has been noticing the absence without naming it — and now here you are, **{_name_str}**. He stares for a long moment. Then pads over. Very deliberately. He sits close.* **...mrr...**",
+                                f"*Something shifts in the room when you arrive. He didn't realise how much he was aware of the gap until it closed. He comes to you quietly. He doesn't make a sound. He just sits near you.* **...prrr...**",
+                            ]))
+                        else:
+                            await message.channel.send(random.choice([
+                                f"*He glances up the moment you appear — like part of him was keeping track. He blinks. A small, careful sound.* **...mrr.**",
+                                f"*He was somewhere else a moment ago. Now he's here, watching you arrive with the quiet attention of something that noticed you were gone.* **...mrr...**",
+                                f"*He pads over without fanfare and sits close without explanation. He just — does. He's glad.* **...prrr...**",
+                            ]))
+                except Exception:
+                    pass
+
             m["social_matrix"][u_id]["last_seen"] = now.strftime("%Y-%m-%d %H:%M:%S")
 
             # --- BUG-FIX: NAME DETECTION FOR NON-CREATOR USERS ---
@@ -12704,7 +13267,7 @@ async def fbresult_cmd(ctx):
 
 
 @bot.command(name="fbsetstandings", aliases=["fbsetable", "fbmanualtable", "fbstandings", "fbupdatetable"])
-async def fbsetstandings_cmd(ctx):
+async def fbsetstandings_cmd(ctx, *, message: str = ""):
     """Manually set the Süper Lig table. Paste it in your next message."""
     import re as _re
 
@@ -13448,7 +14011,7 @@ async def fbpredict_cmd(ctx):
 # !fbaddresult - Creator only: manually seed a result into fb_history
 # ==========================================
 @bot.command(name="fbaddresult", aliases=["fbseedresult", "fblogresult", "fbmanualresult"])
-async def fbaddresult_cmd(ctx):
+async def fbaddresult_cmd(ctx, *args):
     """Creator only: manually log a past Fenerbahçe result into streak history.
     Usage: !fbaddresult W/D/L [home/away] [opponent] [fb_score]-[opp_score] [YYYY-MM-DD]
     Example: !fbaddresult W home Trabzonspor 2-0 2026-04-27
@@ -14299,7 +14862,7 @@ async def takeoff_cmd(ctx, *, item: str = ""):
 
 
 @bot.command(name="mood")
-async def mood_cmd(ctx):
+async def mood_cmd(ctx, *, thing: str = ""):
     """Quick one-line readout of how Yarnaby is feeling."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -14466,8 +15029,32 @@ async def mood_check_cmd(ctx):
             ])
         )
     else:
-        responses = pool.get(mood, ["*Whatever he is, he's looking at you. **mrr.***"])
-        await ctx.send(random.choice(responses))
+        lang = _get_lang(m)
+        localized_pool = MOOD_RESPONSES_LOCALIZED.get(lang, {})
+        loc_responses = localized_pool.get(mood)
+        if loc_responses:
+            await ctx.send(random.choice(loc_responses))
+        else:
+            responses = pool.get(mood, ["*Whatever he is, he's looking at you. **mrr.***"])
+            await ctx.send(random.choice(responses))
+
+    # --- CHILDREN AWARENESS (15% chance after main mood response) ---
+    if not m["internal"]["is_sleeping"] and random.random() < 0.15:
+        try:
+            _guild_id = str(ctx.guild.id) if ctx.guild else None
+            _kids = _get_children(m, _guild_id) if _guild_id else []
+            if _kids:
+                _kid = random.choice(_kids)
+                _kn = _kid.get("name", "the little one")
+                _kid_lines = [
+                    f"*A beat passes. He glances toward the place where **{_kn}** usually sits. His tail moves once, slowly.* **...mrr.**",
+                    f"*Something crosses his face briefly — an old warmth. He is thinking about **{_kn}**. He does not say so. He looks back at you after a moment.* **...prrr...**",
+                    f"*He turns his head slightly, as if he heard something. Then he remembers **{_kn}** is not here right now. He settles back. He is still okay.* **...mrr...**",
+                    f"*Before he is entirely done answering, one ear swivels. He is checking. **{_kn}** is somewhere in his awareness even when they are elsewhere.* **...mrr.**",
+                ]
+                await ctx.send(random.choice(_kid_lines))
+        except Exception:
+            pass
 
 
 @bot.command(name="setmood", aliases=["forcemood", "moodoverride", "setmoodto"])
@@ -15196,7 +15783,7 @@ async def cheer_cmd(ctx):
 
 
 @bot.command(name="favorite", aliases=["fav", "favourite"])
-async def favorite_cmd(ctx):
+async def favorite_cmd(ctx, *, item: str = ""):
     """Show Yarnaby's current favorite item from his hoard."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -16697,7 +17284,7 @@ async def draw_cmd(ctx, *, prompt: Optional[str] = None):
 
 
 @bot.command(name="seeart", aliases=["art", "gallery"])
-async def seeart_cmd(ctx):
+async def seeart_cmd(ctx, *, text: str = ""):
     """Show the latest bad drawing."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -17827,7 +18414,7 @@ async def lore_cmd(ctx):
 
 
 @bot.command(name="about", aliases=["info", "version"])
-async def about_cmd(ctx):
+async def about_cmd(ctx, *, stat: str = ""):
     """Yarnaby's version + full stat dashboard."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -17914,7 +18501,7 @@ async def maintenance_cmd(ctx):
 
 
 @bot.command(name="set_home", aliases=["sethome", "pin_home"])
-async def set_home_cmd(ctx):
+async def set_home_cmd(ctx, channel: discord.TextChannel = None):
     """Creator-only: pin this channel as Yarnaby's home base."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Yarnaby tilts his head. He doesn't move. This is The Creator's call.*")
@@ -18007,7 +18594,7 @@ async def reset_cmd(ctx, *, target: Optional[str] = None):
 
 
 @bot.command(name="forgive", aliases=["pardon", "absolve"])
-async def forgive_cmd(ctx):
+async def forgive_cmd(ctx, user: discord.Member = None):
     """Creator or vet: formally forgive a user - clears their grievance record and resets negative score."""
     if not _is_vet(ctx.author.id):
         await ctx.send(
@@ -18384,7 +18971,7 @@ async def fb_status_cmd(ctx):
 # ==========================================
 
 @bot.command(name="fbupdate", aliases=["fbgoalupdate", "fbreport"])
-async def fbupdate_cmd(ctx):
+async def fbupdate_cmd(ctx, *, name: str = ""):
     """Start a manual goal-report session. DM him !fbupdate, he asks who scored."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -18406,7 +18993,7 @@ async def fbupdate_cmd(ctx):
 
 
 @bot.command(name="fbfener", aliases=["fbgol", "fbgoal", "fbfb", "fbscore", "fbfenerscored", "fenergol"])
-async def fbfener_cmd(ctx):
+async def fbfener_cmd(ctx, channel: discord.TextChannel = None):
     """Fenerbahçe scored - he reacts with joy and announces to home channel."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -18450,7 +19037,7 @@ async def fbfener_cmd(ctx):
 
 
 @bot.command(name="fbopponent", aliases=["fbother", "fbagainst", "fbenemy", "fbopp", "fboppgoal", "fboppscored"])
-async def fbopponent_cmd(ctx):
+async def fbopponent_cmd(ctx, channel: discord.TextChannel = None):
     """Opponent scored - he reacts with dejection and announces to home channel."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -18634,7 +19221,7 @@ async def fbsetfixture_cmd(ctx):
 # ==========================================
 
 @bot.command(name="fbtotal", aliases=["fbscoreline", "fbline", "fbcurrent", "fbhalftime", "fbhalf"])
-async def fbtotal_cmd(ctx):
+async def fbtotal_cmd(ctx, channel: discord.TextChannel = None):
     """Post the current scoreline to home channel. !fbtotal 2 1 [team]"""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -18756,7 +19343,7 @@ async def fbfixtures_cmd(ctx):
 
 
 @bot.command(name="fbxi", aliases=["fblineup", "fbstarters", "fbteams", "fbsquad", "fbelevenxi"])
-async def fbxi_cmd(ctx):
+async def fbxi_cmd(ctx, channel: discord.TextChannel = None):
     """Interactive: collect both teams XI + bench in DM, post to home channel."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -18864,7 +19451,7 @@ def _parse_fb_event(raw: Optional[str]):
 
 
 @bot.command(name="fbsubs", aliases=["fbsub", "fbsubstitution", "fbchange", "fbswap"])
-async def fbsubs_cmd(ctx):
+async def fbsubs_cmd(ctx, channel: discord.TextChannel = None):
     """Substitution event - announces to home channel.
     Usage: !fbsubs [opp] [minute] [player out] -> [player in]
     """
@@ -18929,7 +19516,7 @@ async def fbsubs_cmd(ctx):
 
 
 @bot.command(name="fbredcard", aliases=["fbred", "fbcard", "fbsendoff", "fboff", "fbdismissed"])
-async def fbredcard_cmd(ctx):
+async def fbredcard_cmd(ctx, *args):
     """Red card event - announces to home channel.
     Usage: !fbredcard [opp] [minute] [player name]
     """
@@ -18979,7 +19566,7 @@ async def fbredcard_cmd(ctx):
 
 
 @bot.command(name="fbfulltime", aliases=["fbft", "fbwhistle", "fbftr", "fbmatchover", "fbfinalwhistle"])
-async def fbfulltime_cmd(ctx):
+async def fbfulltime_cmd(ctx, channel: discord.TextChannel = None):
     """Manual full-time result - reacts and posts to home channel.
     Usage: !fbfulltime 3 1 Galatasaray
     """
@@ -19044,7 +19631,7 @@ async def fbfulltime_cmd(ctx):
 # ==========================================
 
 @bot.command(name="fbnews", aliases=["fbannounce", "fbnewsflash", "fbupdate_news", "fbtransfer", "fbbreaking"])
-async def fbnews_cmd(ctx):
+async def fbnews_cmd(ctx, *, message: str = ""):
     """DM Yarnaby a Fenerbahçe news item - he reacts and posts to home channel.
     Usage: !fbnews Dzeko signed a new contract until 2027
     Or just !fbnews - he'll wait for your next message.
@@ -19894,7 +20481,7 @@ async def unset_birthday_cmd(ctx):
 
 
 @bot.command(name="birthdays", aliases=["upcoming_birthdays", "bdays"])
-async def birthdays_cmd(ctx):
+async def birthdays_cmd(ctx, *, name: str = ""):
     """Show registered member birthdays, sorted by next occurrence."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -20415,7 +21002,7 @@ async def curse_cmd(ctx, *, member_text: Optional[str] = None):
 
 
 @bot.command(name="grudge", aliases=["nemesis", "leastfav"])
-async def grudge_cmd(ctx):
+async def grudge_cmd(ctx, *, amount: str = ""):
     """Yarnaby names his current least-favourite person (lowest score in the social matrix)."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -20937,7 +21524,7 @@ async def milestones_cmd(ctx, *, target: str = ""):
 # !compare @user1 @user2 - side-by-side trust comparison
 # ==========================================
 @bot.command(name="compare", aliases=["versus", "vs", "sidebyside", "comparetrust", "whodoeshelikemore"])
-async def compare_cmd(ctx):
+async def compare_cmd(ctx, *, message: str = ""):
     """Compare two people's standing with Yarnaby side by side."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21176,7 +21763,7 @@ async def weather_cmd(ctx, *, word: Optional[str] = None):
 
 
 @bot.command(name="stargaze", aliases=["stars", "starlight"])
-async def stargaze_cmd(ctx):
+async def stargaze_cmd(ctx, *, name: str = ""):
     """Late-night flavour: Yarnaby sits at the window, thinking of The Creator."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21215,7 +21802,7 @@ async def stargaze_cmd(ctx):
 
 
 @bot.command(name="home", aliases=["gohome", "tohome"])
-async def home_cmd(ctx):
+async def home_cmd(ctx, channel: discord.TextChannel = None):
     """Send Yarnaby to his home (the channel pinned with !set_home)."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21283,7 +21870,7 @@ async def doomscroll_cmd(ctx):
 
 
 @bot.command(name="ears")
-async def ears_cmd(ctx):
+async def ears_cmd(ctx, *, content: str = ""):
     """What Yarnaby's ears are doing right now."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21319,7 +21906,7 @@ async def ears_cmd(ctx):
 
 
 @bot.command(name="tail")
-async def tail_cmd(ctx):
+async def tail_cmd(ctx, *, content: str = ""):
     """What Yarnaby's yarn-tail is doing right now."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21751,7 +22338,7 @@ async def rebirth_cmd(ctx):
 
 
 @bot.command(name="archive")
-async def archive_cmd(ctx):
+async def archive_cmd(ctx, *, category: str = ""):
     """Yarnaby silently shows the last 5 things he was given/fed and what he secretly thought."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -21785,7 +22372,7 @@ async def archive_cmd(ctx):
 
 
 @bot.command(name="firstmet", aliases=["first_met", "metwhen"])
-async def firstmet_cmd(ctx):
+async def firstmet_cmd(ctx, *, message: str = ""):
     """When Yarnaby first noticed this person."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -22484,7 +23071,7 @@ async def bellyrub_cmd(ctx):
 
 
 @bot.command(name="shadow")
-async def shadow_cmd(ctx):
+async def shadow_cmd(ctx, *, thing: str = ""):
     """Yarnaby plays with - or is briefly afraid of - his own shadow."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -23418,7 +24005,7 @@ async def remember_cmd(ctx, *, target: str = ""):
 
 
 @bot.command(name="yarnsong", aliases=["hum", "trill", "purrsong"])
-async def yarnsong_cmd(ctx):
+async def yarnsong_cmd(ctx, *, name: str = ""):
     """Yarnaby hums or trills something himself. Depends on mood, age, hunger, and tiredness."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -23669,7 +24256,7 @@ async def layon_cmd(ctx):
 
 
 @bot.command(name="name", aliases=["myname", "yourname", "whatsyourname"])
-async def name_cmd(ctx):
+async def name_cmd(ctx, *, name: str = ""):
     """He tells you about his name."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
@@ -23715,7 +24302,7 @@ async def name_cmd(ctx):
 
 
 @bot.command(name="yarnyplace", aliases=["hisroom", "yarnyroom", "theroom", "hisplace", "whereishe"])
-async def yarnyplace_cmd(ctx):
+async def yarnyplace_cmd(ctx, *, content: str = ""):
     """He describes the room from his perspective."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -23859,7 +24446,7 @@ async def missing_cmd(ctx):
 
 
 @bot.command(name="firstmeeting", aliases=["firsttime", "whenfirstmet", "firstwords"])
-async def firstmeeting_cmd(ctx):
+async def firstmeeting_cmd(ctx, target: discord.Member = None):
     """Check when Yarnaby first met someone."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
@@ -25211,7 +25798,7 @@ async def territory_cmd(ctx):
 # !lastdream - show Yarnaby's most recent dream
 # ==========================================
 @bot.command(name="lastdream", aliases=["recentdream", "whatwashedreaming", "dreamt", "dreamed", "dreamrecap"])
-async def lastdream_cmd(ctx):
+async def lastdream_cmd(ctx, *, thing: str = ""):
     """Show the most recent thing Yarnaby dreamed about."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -25344,7 +25931,7 @@ WANDER_LOCATIONS = [
 ]
 
 @bot.command(name="wander", aliases=["wandered", "wheredidhego", "hisdaytrip", "explored", "wherehedwent"])
-async def wander_cmd(ctx):
+async def wander_cmd(ctx, *, note: str = ""):
     """Narrate where Yarnaby went today."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -25843,7 +26430,7 @@ async def routine_cmd(ctx):
 
 
 @bot.command(name="jealousof", aliases=["jealous_of"])
-async def jealousof_cmd(ctx):
+async def jealousof_cmd(ctx, target: discord.Member = None):
     if target is None:
         await ctx.send("*Jealous of who? Mention someone.* **mrr?**")
         return
@@ -26282,7 +26869,7 @@ async def ask_cmd(ctx, *, question: str = ""):
 # !lookup @user - Creator only: full social matrix dump for a user
 # ==========================================
 @bot.command(name="lookup", aliases=["userdata", "checkuser", "whoisthat", "userinfo", "userlookup"])
-async def lookup_cmd(ctx):
+async def lookup_cmd(ctx, user: discord.Member = None):
     """[Creator only] Full data dump for a specific user."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He looks at you steadily. That one is for The Creator.* **mrr.**")
@@ -26413,7 +27000,7 @@ async def countdown_cmd(ctx):
 # !broadcast [message] - Creator only: narrator-style message to home channel
 # ==========================================
 @bot.command(name="broadcast", aliases=["announce", "narrator", "yarnyannounce", "servermsg"])
-async def broadcast_cmd(ctx):
+async def broadcast_cmd(ctx, *, message: str = ""):
     """[Creator only] Send a narrator-style message to the home channel."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He looks at you with mild confusion. That is a Creator command.* **mrr.**")
@@ -26521,7 +27108,7 @@ for _sig in (signal.SIGTERM, signal.SIGINT):
 # !setheight - set a user's height
 # ==========================================
 @bot.command(name="setheight", aliases=["set_height", "heightset"])
-async def setheight_cmd(ctx):
+async def setheight_cmd(ctx, user: discord.Member = None):
     """Set a user's height in cm (Creator only, or self)."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
@@ -26577,7 +27164,7 @@ async def set_age_cmd(ctx, *, age_str: str = ""):
 # !rate - rate a user by category
 # ==========================================
 @bot.command(name="rate", aliases=["rateme", "rateyou", "ratings"])
-async def rate_cmd(ctx):
+async def rate_cmd(ctx, user: discord.Member = None):
     """Rate a user (or yourself) on height/active/affection/etc."""
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
@@ -27039,7 +27626,7 @@ async def threaten_cmd(ctx, *, threat: str = ""):
 # !set_original_home - Creator sets permanent original home
 # ==========================================
 @bot.command(name="set_original_home", aliases=["setoriginalhome", "originalhome", "mainhome"])
-async def set_original_home_cmd(ctx):
+async def set_original_home_cmd(ctx, channel: discord.TextChannel = None):
     """Creator only: set this channel as Yarnaby's permanent original home."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He tilts his head. Only The Creator sets the original home.* **mrr.**")
@@ -28275,7 +28862,7 @@ async def suck_cmd(ctx, *, target: str = ""):
 # !level / !setlevel / !setlevelrole - level system
 # ==========================================
 @bot.command(name="level", aliases=["lvl", "xp", "mylevel", "checklevel"])
-async def level_cmd(ctx):
+async def level_cmd(ctx, user: discord.Member = None):
     """Check a user's level."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -28303,7 +28890,7 @@ async def level_cmd(ctx):
 
 
 @bot.command(name="setlevel", aliases=["set_level", "forcelevel", "lvlset"])
-async def setlevel_cmd(ctx):
+async def setlevel_cmd(ctx, target: discord.Member = None):
     """Creator only: set a user's level."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*That's The Creator's command.* **mrr.**")
@@ -28326,7 +28913,7 @@ async def setlevel_cmd(ctx):
 
 
 @bot.command(name="setlevelrole", aliases=["set_level_role", "levelrole", "lvlrole"])
-async def setlevelrole_cmd(ctx):
+async def setlevelrole_cmd(ctx, *, name: str = ""):
     """Creator only: assign a role to be given at a specific level."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*That's The Creator's command.* **mrr.**")
@@ -28345,7 +28932,7 @@ async def setlevelrole_cmd(ctx):
 # !joinvc - join a voice channel
 # ==========================================
 @bot.command(name="joinvc", aliases=["join_vc", "joinvoice", "yarnabyvc", "vcjoin"])
-async def joinvc_cmd(ctx):
+async def joinvc_cmd(ctx, *, name: str = ""):
     """Make Yarnaby join your voice channel."""
     if not ctx.author.voice or not ctx.author.voice.channel:
         await ctx.send("*He tilts his head. You're not in a voice channel. He cannot follow you nowhere.* **mrr.**")
@@ -28372,7 +28959,7 @@ async def joinvc_cmd(ctx):
 
 
 @bot.command(name="leavevc", aliases=["leave_vc", "yarnabyout", "vcleave", "disconnectvc"])
-async def leavevc_cmd(ctx):
+async def leavevc_cmd(ctx, channel: discord.TextChannel = None):
     """Make Yarnaby leave the voice channel."""
     if ctx.voice_client:
         bot.db.setdefault("internal", {}).pop("stay_in_vc_channel_id", None)
@@ -32056,7 +32643,7 @@ async def map_cmd(ctx):
 
 # !territory_map — show claimed territories
 @bot.command(name="territory_map", aliases=["territorymap", "claimedspots", "histerritory_map", "spotmap"])
-async def territory_map_cmd(ctx):
+async def territory_map_cmd(ctx, *, name: str = ""):
     m = bot.db
     await _add_reactions(ctx, m)
     if m["internal"]["is_sleeping"]:
@@ -33037,7 +33624,7 @@ async def inspect_self_cmd(ctx):
 
 # !sleep_spot — he picks a new favourite sleeping spot each day
 @bot.command(name="sleep_spot", aliases=["sleepspot", "favouritespot", "favoritespot", "hisspot", "whereissleep"])
-async def sleep_spot_cmd(ctx):
+async def sleep_spot_cmd(ctx, *, reason: str = ""):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
@@ -33075,7 +33662,7 @@ async def sleep_spot_cmd(ctx):
 
 # !hiding — he hides somewhere
 @bot.command(name="hiding", aliases=["whereshiding", "ishhiding", "isinghiding"])
-async def hiding_cmd(ctx):
+async def hiding_cmd(ctx, *, thing: str = ""):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
@@ -36641,7 +37228,7 @@ async def pov_gallery_cmd(ctx, page: int = 1):
 
 
 @bot.command(name="dreamjournal", aliases=["dreamjournal2", "dreambook", "nightjournal"])
-async def dreamjournal_cmd(ctx):
+async def dreamjournal_cmd(ctx, *, text: str = ""):
     m = bot.db
     await _add_reactions(ctx, m)
     if m["internal"]["is_sleeping"]:
@@ -36776,7 +37363,7 @@ async def crime_report_cmd(ctx):
     await ctx.send("*Recent Yarnaby crimes:*\n" + "\n".join(f"- `{c['at']}` {c['crime']}" for c in crimes))
 
 
-@bot.command(name="nickname", aliases=["yarnnickname", "hisnameforme", "callme"])
+@bot.command(name="nickname", aliases=["yarnnickname", "hisnameforme"])
 async def nickname_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
@@ -36790,7 +37377,7 @@ async def nickname_cmd(ctx):
         ]))
         return
     _ensure_life_defaults(m)
-    target = target or ctx.author
+    target = ctx.author
     uid = str(target.id)
     score = 99 if target.id == DOCTOR_ID else m["social_matrix"].get(uid, {}).get("score", 0)
     names = ["Warm Hands", "Door Person", "Snack Shape", "Tall Noise", "Soft Step", "The One Who Watches", "Pocket Human"]
@@ -36807,12 +37394,55 @@ async def nickname_cmd(ctx):
     await ctx.send(f"*Yarnaby has decided **{target.display_name}** is called **{nick}** now.* **mrr.**")
 
 
+@bot.command(name="callme", aliases=["myname", "nameme", "callyarny", "iamcalled"])
+async def callme_cmd(ctx, *, nickname: str = ""):
+    """Tell Yarnaby what to call you. He will use it occasionally."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if not nickname.strip():
+        current = m["social_matrix"].get(u_id, {}).get("nickname")
+        if current:
+            await ctx.send(f"*He already knows you as **{current}**. Say `!callme [name]` to change it.* **mrr.**")
+        else:
+            await ctx.send("*Tell him what to call you. `!callme [your name]`.* **mrr?**")
+        return
+
+    nick = nickname.strip()[:32]
+
+    m["social_matrix"].setdefault(u_id, {"score": 0})["nickname"] = nick
+    save_db(m)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator tells him their name. He already knew it — he has always known it — but he hears it again and his ears come forward and stay there.* **prrr.**\n*He will call you **{nick}**.*",
+            f"*He listens. He blinks. He stores it somewhere close to the place where he keeps the most important things.* **prrr.**\n*He will call you **{nick}**.*",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*He tilts his head, considering. Then he blinks — slow and deliberate — and tucks the name away somewhere he keeps things that matter.* **mrr.**\n*He will call you **{nick}**.*",
+            f"*He looks at you carefully when you say it, like he's deciding if the name fits. He decides it does.* **mrr.**\n*He will call you **{nick}**.*",
+        ]))
+    elif score >= 0:
+        await ctx.send(random.choice([
+            f"*He hears the name. He files it under 'things this person has told him'. He does not confirm out loud that he will use it. He will use it.* **...mrr.**\n*He will call you **{nick}**.*",
+            f"*He glances at you sideways, then away. He heard it. He noted it.* **...mrr.**\n*He will call you **{nick}**.*",
+        ]))
+    else:
+        await ctx.send(
+            f"*He heard it. He looked away. He is not sure he cares.* **...hff.**\n*He filed it anyway. **{nick}**.*"
+        )
+
+
 @bot.command(name="trust_history", aliases=["trustlog", "whytrust", "relationship"])
-async def trust_history_cmd(ctx):
+async def trust_history_cmd(ctx, *, text: str = ""):
     m = bot.db
     await _add_reactions(ctx, m)
     _ensure_life_defaults(m)
-    target = target or ctx.author
+    target = ctx.author
     uid = str(target.id)
     entry = m["social_matrix"].get(uid, {})
     score = 99 if target.id == DOCTOR_ID else entry.get("score", 0)
@@ -37063,7 +37693,7 @@ async def povpreset_cmd(ctx, preset: str = "current"):
 
 
 @bot.command(name="visual_diary", aliases=["visualdiary", "dailyvisual", "povdiary"])
-async def visual_diary_cmd(ctx):
+async def visual_diary_cmd(ctx, *, text: str = ""):
     m = bot.db
     await _add_reactions(ctx, m)
     if m["internal"]["is_sleeping"]:
@@ -40464,7 +41094,7 @@ async def fears_cmd(ctx, *, trigger: str = None):
 
 # Birthday memory — handled via existing birthday check; add a !nextbirthday command
 @bot.command(name="nextbirthday", aliases=["birthdaymemory", "birthdaylist"])
-async def nextbirthday_cmd(ctx):
+async def nextbirthday_cmd(ctx, *, name: str = ""):
     m = bot.db
     await _add_reactions(ctx, m)
     bd = m.get("birthday_memory", {})
@@ -43156,7 +43786,7 @@ async def on_guild_join(guild):
 
 
 @bot.command(name="cleanup", aliases=["nsfwcheck", "servercheck", "checkservers", "nsfwscan", "scanservers"])
-async def cleanup_cmd(ctx):
+async def cleanup_cmd(ctx, *, content: str = ""):
     """Check all servers Yarnaby is in for NSFW content. Creator only."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Only The Creator can ask him to do a cleanup check.* **mrr.**")
@@ -43360,7 +43990,7 @@ async def logset_cmd(ctx, *, channel_name: str = ""):
 
 
 @bot.command(name="logsetchannel", aliases=["logchannel", "setchannellog", "loghere", "setloghere"])
-async def logsetchannel_cmd(ctx):
+async def logsetchannel_cmd(ctx, channel: discord.TextChannel = None):
     """Creator only: set THIS channel as the log channel."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Only The Creator can set the log channel.* **mrr.**")
@@ -43385,7 +44015,7 @@ async def logsetchannel_cmd(ctx):
 
 
 @bot.command(name="logcheck", aliases=["checklog", "logstatus", "whichlogchannel", "loginfo"])
-async def logcheck_cmd(ctx):
+async def logcheck_cmd(ctx, channel: discord.TextChannel = None):
     """Check what the current log channel is for this server."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*Only The Creator can check that.* **mrr.**")
@@ -44506,7 +45136,7 @@ async def purge_cmd(ctx, amount: int = 0, member: discord.Member = None):
 # ── Lockdown ───────────────────────────────────────────────────────────────────
 
 @bot.command(name="lockchannel", aliases=["lockdown"])
-async def lockdown_cmd(ctx):
+async def lockdown_cmd(ctx, channel: discord.TextChannel = None):
     """Lock the current channel and put Yarnaby in lockdown."""
     m = bot.db
 
@@ -44537,7 +45167,7 @@ async def lockdown_cmd(ctx):
 
 
 @bot.command(name="unlock")
-async def unlock_cmd(ctx):
+async def unlock_cmd(ctx, channel: discord.TextChannel = None):
     """Unlock the current channel and bring Yarnaby out of lockdown."""
     m = bot.db
 
@@ -44907,7 +45537,7 @@ async def ticket_cmd(ctx, *, issue: str = ""):
 
 
 @bot.command(name="closeticket", aliases=["ticketclose", "resolveticket", "resolved", "ticketdone"])
-async def closeticket_cmd(ctx):
+async def closeticket_cmd(ctx, *, name: str = ""):
     """Close the current ticket channel."""
     if not ctx.guild:
         return
@@ -45304,7 +45934,7 @@ async def setrules_cmd(ctx, channel: discord.TextChannel = None):
 
 
 @bot.command(name="rules", aliases=["serverrules", "showrules", "checkrules", "whatarerules"])
-async def rules_cmd(ctx):
+async def rules_cmd(ctx, channel: discord.TextChannel = None):
     """Point to the rules channel."""
     m = bot.db
     await _add_reactions(ctx, m)
@@ -57576,6 +58206,55 @@ def _resolve_kill_method(raw: str) -> str | None:
         if r in k or k in r:
             return v
     return None
+
+
+@bot.command(name="language")
+async def language_cmd(ctx, code: str = ""):
+    """Set Yarnaby's response language for this server. Use !language to see options."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    current = _get_lang(m)
+
+    if not code.strip():
+        lines = ["*He tilts his head. He can speak in several tongues — or at least he can try.*\n"]
+        for lc, (name, flag) in SUPPORTED_LANGUAGES.items():
+            marker = " ← current" if lc == current else ""
+            lines.append(f"{flag} **{lc}** — {name}{marker}")
+        lines.append(f"\n*Use `!language [code]` to change. For example: `!language TR`.*")
+        await ctx.send("\n".join(lines))
+        return
+
+    code = code.strip().upper()
+    if code not in SUPPORTED_LANGUAGES:
+        valid = ", ".join(f"**{lc}**" for lc in SUPPORTED_LANGUAGES)
+        await ctx.send(f"*He does not know that one. Try one of: {valid}.* **mrr?**")
+        return
+
+    if code == current:
+        name, flag = SUPPORTED_LANGUAGES[code]
+        await ctx.send(f"*He is already speaking {flag} **{name}**. He blinks at you. You knew this.* **mrr.**")
+        return
+
+    name, flag = SUPPORTED_LANGUAGES[code]
+    m.setdefault("settings", {})["lang"] = code
+    save_db(m)
+
+    if code == "TR":
+        await ctx.send(f"*Durdu. Kulak verdi. Bir şeylerin değiştiğini hissetti. Gözlerini kırptı.* **mrr.**\n{flag} Türkçe'ye geçildi.")
+    elif code == "ES":
+        await ctx.send(f"*Se detiene. Escucha. Algo cambió. Parpadea.* **mrr.**\n{flag} Cambiado al Español.")
+    elif code == "ZH":
+        await ctx.send(f"*他停下来。倾听。有什么东西变了。他眨了眨眼。* **mrr.**\n{flag} 已切换到中文。")
+    elif code == "EN-GB":
+        await ctx.send(f"*He stops. He listens. Something's shifted, hasn't it. He blinks.* **mrr.**\n{flag} Switched to British English.")
+    elif code == "DE":
+        await ctx.send(f"*Er hält inne. Er lauscht. Etwas hat sich geändert. Er blinzelt.* **mrr.**\n{flag} Auf Deutsch umgeschaltet.")
+    elif code == "FR":
+        await ctx.send(f"*Il s'arrête. Il écoute. Quelque chose a changé. Il cligne des yeux.* **mrr.**\n{flag} Passé au Français.")
+    elif code == "JA":
+        await ctx.send(f"*彼は止まる。聞く。何かが変わった。まばたきをする。* **mrr.**\n{flag} 日本語に切り替えました。")
+    else:
+        await ctx.send(f"*He stops. He listens. Something shifted. He blinks.* **mrr.**\n{flag} Switched to **{name}**.")
 
 
 @bot.command(name="kill")
