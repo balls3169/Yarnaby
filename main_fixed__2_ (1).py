@@ -5962,6 +5962,95 @@ async def on_message(message):
             await bot.process_commands(message)
             return
 
+        # --- MEOW DETECTION: repeated meowing triggers a paranoid meow-scream ---
+        # Tracks per-user meow count in a 5-minute window. At 3-4 meows,
+        # Yarnaby meow-screams back 2-3 times as if they are a spy.
+        _meow_words = ["meow", "meoow", "meooow", "meeow", "meow meow"]
+        _msg_is_meow = any(w in msg for w in _meow_words) and len(msg.strip()) <= 40
+        if _msg_is_meow:
+            _meow_tracker = m["internal"].setdefault("meow_tracker", {})
+            _mt = _meow_tracker.setdefault(u_id, {"count": 0, "last_at": None})
+            _now_ts = now.strftime("%Y-%m-%d %H:%M:%S")
+            # Reset count if last meow was more than 5 minutes ago
+            if _mt["last_at"]:
+                try:
+                    _elapsed = (now - datetime.strptime(_mt["last_at"], "%Y-%m-%d %H:%M:%S")).total_seconds()
+                    if _elapsed > 300:
+                        _mt["count"] = 0
+                except Exception:
+                    _mt["count"] = 0
+            _mt["count"] += 1
+            _mt["last_at"] = _now_ts
+            _threshold = random.randint(3, 4)
+            if _mt["count"] >= _threshold:
+                _mt["count"] = 0  # reset after triggering
+                save_db(m)
+
+                is_doctor = message.author.id == DOCTOR_ID
+                score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+                _guild_dead = m["internal"].get("guild_states", {}).get(guild_id, {}).get("is_dead", False)
+
+                if _guild_dead:
+                    await message.channel.send(random.choice([
+                        "*He is gone. The meowing reaches no one.* **...**",
+                        "*There is no one here to be alarmed by this.* **...**",
+                    ]))
+                elif m["internal"].get("is_sleeping"):
+                    if is_doctor:
+                        pass  # creator passes through, don't wake him
+                    else:
+                        await message.channel.send(random.choice([
+                            "*Something in the meowing reaches him even through sleep. One ear rotates. He does not wake. He pulls himself tighter.* **...mrr...**",
+                            "*He stirs. His brow furrows. He makes a small, displeased sound and goes still again. He is not waking up for this.* **...zzz...**",
+                        ]))
+                elif m["internal"].get("helpless"):
+                    await message.channel.send(random.choice([
+                        f"*He is on the floor. He hears the meowing. His eyes find {message.author.display_name} with great effort and profound suspicion. He cannot do anything about it. This is upsetting.* **...mrr...**",
+                        f"*Even helpless, even on the ground — he knows. He stares at {message.author.display_name} from where he has fallen. The stare is very long. He cannot act on his suspicions right now. This is not over.* **...mrr...**",
+                    ]))
+                else:
+                    # Normal meow-scream: 2-3 times, suspicious spy accusation energy
+                    _scream_count = random.randint(2, 3)
+                    _screams = [
+                        f"*Yarnaby's head snaps toward {message.author.display_name}. His pupils blow out — fully black, fully wide — in under a second. His ears go flat against his skull. His mouth drops open so far his jaw looks unhinged, wool stretching at the corners. The sound that comes out of him is four full seconds long and absolutely not okay.* **MEEEEEEOOOOOOOWWWWWW!!**",
+                        f"*He freezes mid-whatever-he-was-doing. He looks at {message.author.display_name}. He looks at them for exactly two seconds — processing, counting — and then his mouth opens wider than it has any right to and the scream arrives. It is long. It is sustained. It does not stop when you expect it to.* **MEEEOOOOWWWW!! MEEEEEOOOOOWWWWW!!**",
+                        f"*He backs up one step. His tail puffs to twice its size in an instant. His spine goes rigid. Then his mouth opens — slowly, like he's building to something — and then all at once the noise comes out of him, escalating, his whole tiny body vibrating with the effort of it.* **MEEEEEOOOOOOOWWWWW!!**",
+                        f"*He stands up very straight. His wool rises along his back in a single sharp line. He opens his mouth wide — you can see his teeth, the full interior of his opinion on this — and holds the scream for what feels like an unreasonable amount of time before snapping it shut and opening it again immediately.* **MEEEOOOOWWWW!! MEEEEEOOOOOWWWWW!!**",
+                        f"*His wool stands up along his entire spine in a slow, deliberate ridge. He points his face directly at {message.author.display_name}. His mouth opens in three stages — slightly, then more, then all the way, jaw hanging — and what comes out is long and flat and means exactly one thing.* **MEEEEEOOOOOOOWWWWWW!!**",
+                        f"*He was sitting. He was fine. He counted. His head turns toward {message.author.display_name} very slowly. His pupils go wide. His mouth drops open all at once and he screams — a full, sustained, open-throated scream — while staring at them without blinking once.* **MEEEOOOWWW!! MEEEEEOOOOOWWWWW!!**",
+                    ]
+                    _quiet_screams = [
+                        f"*He has not closed his mouth all the way. He circles {message.author.display_name} once, slowly, fur still raised, jaw still slightly open, eyes tracking them like he is measuring something. Then he opens it again.* **...meeeoooowww...**",
+                        f"*He has not looked away. Not once. His mouth opens again — narrower this time, more deliberate — and the sound comes out lower and longer, like he is stating a fact to a jury.* **meeeooowww. meeeooowww.**",
+                        f"*He sits down directly in front of {message.author.display_name}. He has not calmed down. He opens his mouth to about half-width and lets a slow, long sound drag out of him from somewhere deep in his chest. He closes it. He opens it again.* **meeeooowww... MEEEOOOWWW.**",
+                        f"*The screaming has not stopped. It has changed shape. He stares at {message.author.display_name} and his mouth opens just slightly — controlled now — and what comes out is quieter but longer and somehow worse.* **meeeeooooowwww... meeeooowww...**",
+                        f"*He sits. His mouth opens — not as wide, but deliberate — and he lets a long low sound out of it while maintaining full unbroken eye contact. He closes his mouth. He opens it again. He does it a third time.* **meeeooowww. meeeooowww. meeeooowww.**",
+                    ]
+                    if score <= -5 and not is_doctor:
+                        _screams = [
+                            f"*He already didn't like {message.author.display_name}. The meowing has confirmed everything. His mouth opens so wide the corners stretch pale, and the sound he releases is long and loud and filled with the absolute certainty of someone who has been right about this since the beginning.* **MEEEEEOOOOOWWWWW!! MEEEOOOOWWWW!!**",
+                            f"*Of course. Of COURSE it's them. His jaw drops all the way open — fully, completely, no restraint whatsoever — and he screams at {message.author.display_name} for a very long time. His mouth is as open as it goes. The sound is as long as he can make it.* **MEEEEEOOOOOOOWWWWWW!! MEEEOOOWWWW!!**",
+                        ]
+                    elif is_doctor:
+                        _screams = [
+                            f"*He stops. He looks at The Creator. His mouth opens a little — not all the way, not yet — and he makes a short, high sound. He closes it. He looks again for one full second. Then his jaw drops completely, stretched as far as it goes, wool pale at the corners, and the scream that comes out of him is long and sustained and he does not stop it. Even The Creator must be informed. He holds it for four full seconds.* **MEEEEEOOOOOOOWWWWWW!!**",
+                            f"*Something in him knows he should trust The Creator. He looks at them. His mouth opens halfway — a warning — and a small sound escapes. He closes it. He opens it all the way, jaw dropping completely, and what comes out has been building since the second meow. It is the longest he has opened his mouth in recent memory. Something else in him is screaming and it has won completely.* **MEEEEEOOOOOOOWWWWWW!! MEEEOOOOWWWW!!**",
+                        ]
+
+                    for i in range(_scream_count):
+                        if i == 0:
+                            await message.channel.send(random.choice(_screams))
+                        else:
+                            await message.channel.send(random.choice(_quiet_screams))
+                        if i < _scream_count - 1:
+                            await asyncio.sleep(1.2)
+
+                _responded = True
+                await bot.process_commands(message)
+                return
+            else:
+                save_db(m)
+
         if any(name in msg for name in ["1166", "yarnaby", "yarny", "yarn", "naby"]):
             if not m["internal"]["is_sleeping"]:
                 if not _responded:
