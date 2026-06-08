@@ -134,7 +134,7 @@ async def _translate_text(text: str, target: str) -> str:
         matches = list(re.finditer(pattern, protected))
         for m in reversed(matches):
             idx = len(placeholder_map)
-            token = f"ZZKP{idx}ZZK"
+            token = f"⟦{idx}⟧"
             placeholder_map.append((token, m.group(0)))
             protected = protected[:m.start()] + token + protected[m.end():]
 
