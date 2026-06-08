@@ -21540,7 +21540,7 @@ async def age_cmd(ctx):
     days = _get_age_days(m)
     stage = _age_stage(days)
     gen = m["internal"].get("generation", 1)
-    born_str = m["internal"].get("born_at", "unknown")
+    born_str = m["internal"].get("born_at") or "unknown"
     memories = m["internal"].get("lifetime_memories", [])
 
     years = days // 365
