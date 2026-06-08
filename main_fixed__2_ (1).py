@@ -98,6 +98,73 @@ def _set_dead_state(m, guild_id, dead=True, cause=None):
         internal["cause_of_death"] = cause
 
 
+# Maps our lang codes -> LibreTranslate language codes (None = no translation needed)
+_LIBRE_LANG_MAP = {
+    "TR": "tr",
+    "ES": "es",
+    "ZH": "zh",
+    "DE": "de",
+    "FR": "fr",
+    "JA": "ja",
+    "EN-GB": None,
+    "EN-US": None,
+}
+
+# Public LibreTranslate mirrors tried in order
+_LIBRE_HOSTS = [
+    "https://libretranslate.com",
+    "https://translate.argosopentech.com",
+    "https://translate.fedilab.app",
+]
+
+
+async def _translate_text(text: str, target: str) -> str:
+    """Translate text to target LibreTranslate language code.
+    Preserves **bold** and `code` tokens by replacing them with placeholders
+    before translating, then restoring them. Returns original on any error.
+    """
+    if not text or not target or aiohttp is None:
+        return text
+
+    placeholder_map: list = []
+    protected = text
+
+    def _protect(pattern):
+        nonlocal protected
+        matches = list(re.finditer(pattern, protected))
+        for m in reversed(matches):
+            idx = len(placeholder_map)
+            token = f"\x00P{idx}\x00"
+            placeholder_map.append((token, m.group(0)))
+            protected = protected[:m.start()] + token + protected[m.end():]
+
+    _protect(r"\*\*[^*]+\*\*")   # **bold / sounds**
+    _protect(r"`[^`]+`")          # `code`
+    _protect(r"https?://\S+")     # URLs
+
+    to_translate = protected if placeholder_map else text
+
+    timeout = aiohttp.ClientTimeout(total=8)
+    for host in _LIBRE_HOSTS:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                payload = {"q": to_translate, "source": "en", "target": target, "format": "text"}
+                async with session.post(f"{host}/translate", json=payload) as resp:
+                    if resp.status != 200:
+                        continue
+                    data = await resp.json()
+                    translated = data.get("translatedText", "")
+                    if not translated:
+                        continue
+                    for token, original in placeholder_map:
+                        translated = translated.replace(token, original)
+                    return translated
+        except Exception:
+            continue
+
+    return text  # all mirrors failed; return original unchanged
+
+
 def _install_send_cleaner():
     if getattr(discord.abc.Messageable, "_yarnaby_send_cleaned", False):
         return
@@ -106,13 +173,27 @@ def _install_send_cleaner():
     async def cleaned_send(self, content=None, *args, **kwargs):
         if content is not None:
             content = _clean_display_text(content)
+            try:
+                lang_code = _get_lang(bot.db)
+                libre_target = _LIBRE_LANG_MAP.get(lang_code)
+                if libre_target:
+                    content = await _translate_text(content, libre_target)
+            except Exception:
+                pass  # never break sending due to translation failure
+
         if "embed" in kwargs and kwargs["embed"] is not None:
             try:
                 emb = kwargs["embed"]
+                lang_code = _get_lang(bot.db)
+                libre_target = _LIBRE_LANG_MAP.get(lang_code)
                 if emb.title:
                     emb.title = _clean_display_text(emb.title)
+                    if libre_target:
+                        emb.title = await _translate_text(emb.title, libre_target)
                 if emb.description:
                     emb.description = _clean_display_text(emb.description)
+                    if libre_target:
+                        emb.description = await _translate_text(emb.description, libre_target)
             except Exception:
                 pass
         return await original_send(self, content, *args, **kwargs)
@@ -2710,6 +2791,7 @@ class Yarnaby(commands.Bot):
     async def on_ready(self):
         print("--- [SYSTEM REBOOT COMPLETE] ---")
         print("Experiment 1166: 5-Day Memory Threshold Active.")
+        _install_send_cleaner()  # patch discord.send to auto-translate based on !language setting
         # Start background tasks
         if not _random_sound_tick.is_running():
             _random_sound_tick.start()
