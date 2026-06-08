@@ -174,7 +174,8 @@ def _install_send_cleaner():
         if content is not None:
             content = _clean_display_text(content)
             try:
-                lang_code = _get_lang(bot.db)
+                guild_id = getattr(getattr(self, 'guild', None), 'id', None)
+                lang_code = _get_lang(bot.db, guild_id)
                 libre_target = _LIBRE_LANG_MAP.get(lang_code)
                 if libre_target:
                     content = await _translate_text(content, libre_target)
@@ -184,7 +185,8 @@ def _install_send_cleaner():
         if "embed" in kwargs and kwargs["embed"] is not None:
             try:
                 emb = kwargs["embed"]
-                lang_code = _get_lang(bot.db)
+                guild_id = getattr(getattr(self, 'guild', None), 'id', None)
+                lang_code = _get_lang(bot.db, guild_id)
                 libre_target = _LIBRE_LANG_MAP.get(lang_code)
                 if emb.title:
                     emb.title = _clean_display_text(emb.title)
@@ -2754,8 +2756,11 @@ def _get_season() -> str:
         return "autumn"
 
 
-def _get_lang(m: dict) -> str:
-    """Return the server-wide language code, defaulting to EN-US."""
+def _get_lang(m: dict, guild_id=None) -> str:
+    """Return the language code for a guild, defaulting to EN-US."""
+    if guild_id:
+        guild_langs = m.get("settings", {}).get("guild_langs", {})
+        return guild_langs.get(str(guild_id), "EN-US")
     return m.get("settings", {}).get("lang", "EN-US")
 
 
@@ -15111,7 +15116,7 @@ async def mood_check_cmd(ctx):
             ])
         )
     else:
-        lang = _get_lang(m)
+        lang = _get_lang(m, ctx.guild.id if ctx.guild else None)
         localized_pool = MOOD_RESPONSES_LOCALIZED.get(lang, {})
         loc_responses = localized_pool.get(mood)
         if loc_responses:
@@ -58295,7 +58300,8 @@ async def language_cmd(ctx, code: str = ""):
     """Set Yarnaby's response language for this server. Use !language to see options."""
     m = bot.db
     await _add_reactions(ctx, m)
-    current = _get_lang(m)
+    guild_id = str(ctx.guild.id) if ctx.guild else None
+    current = _get_lang(m, guild_id)
 
     if not code.strip():
         lines = ["*He tilts his head. He can speak in several tongues — or at least he can try.*\n"]
@@ -58318,7 +58324,10 @@ async def language_cmd(ctx, code: str = ""):
         return
 
     name, flag = SUPPORTED_LANGUAGES[code]
-    m.setdefault("settings", {})["lang"] = code
+    if guild_id:
+        m.setdefault("settings", {}).setdefault("guild_langs", {})[guild_id] = code
+    else:
+        m.setdefault("settings", {})["lang"] = code
     save_db(m)
 
     if code == "TR":
