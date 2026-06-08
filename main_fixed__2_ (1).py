@@ -24255,7 +24255,7 @@ async def layon_cmd(ctx):
     save_db(m)
 
 
-@bot.command(name="name", aliases=["myname", "yourname", "whatsyourname"])
+@bot.command(name="name", aliases=["yourname", "whatsyourname"])
 async def name_cmd(ctx, *, name: str = ""):
     """He tells you about his name."""
     m = bot.db
