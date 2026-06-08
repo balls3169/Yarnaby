@@ -363,8 +363,13 @@ def _get_age_days(m):
     if not born_str:
         return 0
     try:
-        born = datetime.strptime(born_str, "%Y-%m-%d %H:%M:%S")
-        return max(0, (datetime.now() - born).days)
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                born = datetime.strptime(born_str, fmt)
+                return max(0, (datetime.now() - born).days)
+            except ValueError:
+                continue
+        return 0
     except Exception:
         return 0
 
@@ -44585,13 +44590,23 @@ async def disable_cmd(ctx):
         return
     m["internal"]["bot_disabled"] = True
     save_db(m)
-    await ctx.send(
-        random.choice([
-            "*Yarnaby goes very still. His glass eyes dim slowly, like a light fading out. He doesn't look at anyone. He doesn't move. He is simply... not here anymore.* **...**",
-            "*Something behind his eyes switches off. He sits down where he is, tucks his tail around his paws, and goes completely quiet. He will not answer. He will not react. He is locked.* **...**",
-            "*He blinks once — long and slow — and then stops. Everything stops. He is off.* **...**",
-        ])
-    )
+    disable_msg = random.choice([
+        "*Yarnaby goes very still. His glass eyes dim slowly, like a light fading out. He doesn't look at anyone. He doesn't move. He is simply... not here anymore.* **...**",
+        "*Something behind his eyes switches off. He sits down where he is, tucks his tail around his paws, and goes completely quiet. He will not answer. He will not react. He is locked.* **...**",
+        "*He blinks once — long and slow — and then stops. Everything stops. He is off.* **...**",
+    ])
+    await ctx.send(disable_msg)
+    # Broadcast to all other guilds
+    for guild in bot.guilds:
+        if ctx.guild and guild.id == ctx.guild.id:
+            continue
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).send_messages:
+                try:
+                    await ch.send(disable_msg)
+                except Exception:
+                    pass
+                break
 
 
 @bot.command(name="turnbackon")
@@ -44606,13 +44621,23 @@ async def turnbackon_cmd(ctx):
         return
     m["internal"]["bot_disabled"] = False
     save_db(m)
-    await ctx.send(
-        random.choice([
-            "*Something flickers. His eyes refocus — slow, then sharp. His ears come forward. He looks around the room like he's taking stock of everything he missed. He's back.* **...mrr...**",
-            "*He inhales. His wool settles. He blinks at The Creator — once, twice — and then his tail lifts and curls at the tip. He is awake. He is here.* **chrrp.**",
-            "*The stillness breaks. He shakes himself out, pads a small circle, and sits down facing the room. Like nothing happened. Like he was never gone. He was gone.* **mrr.**",
-        ])
-    )
+    enable_msg = random.choice([
+        "*Something flickers. His eyes refocus — slow, then sharp. His ears come forward. He looks around the room like he\'s taking stock of everything he missed. He\'s back.* **...mrr...**",
+        "*He inhales. His wool settles. He blinks at The Creator — once, twice — and then his tail lifts and curls at the tip. He is awake. He is here.* **chrrp.**",
+        "*The stillness breaks. He shakes himself out, pads a small circle, and sits down facing the room. Like nothing happened. Like he was never gone. He was gone.* **mrr.**",
+    ])
+    await ctx.send(enable_msg)
+    # Broadcast to all other guilds
+    for guild in bot.guilds:
+        if ctx.guild and guild.id == ctx.guild.id:
+            continue
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).send_messages:
+                try:
+                    await ch.send(enable_msg)
+                except Exception:
+                    pass
+                break
 
 
 # ── Slowmode ───────────────────────────────────────────────────────────────────
@@ -58549,6 +58574,7 @@ _STATE_BLOCK_EXEMPT = frozenset({
     "grudge_list", "grudgelog",
     "log_today", "todaylog",
     "screenshare", "share_screen", "yarnycam", "whosdming", "whostalking",
+    "age", "howold", "lifespan", "generation",
 })
 
 # Exempt from sleeping check only (they manage or react to sleep state)
@@ -58566,6 +58592,7 @@ _SCORE_BLOCK_EXEMPT = frozenset({
     "weight_log", "lore", "archive", "history", "firstmet", "memory_log",
     "yarnstate", "debug", "save", "stop_threat", "screenshare",
     "bond", "mybond", "bondcheck",
+    "age", "howold", "lifespan", "generation",
 })
 
 
