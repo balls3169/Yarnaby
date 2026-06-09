@@ -6197,13 +6197,70 @@ async def on_message(message):
                             ]
                         )
                     )
-            # --- CAME BACK AFTER DAYS detection (3–30 day gap, below forget threshold) ---
+            # --- CAME BACK detection ---
             _ls_str = m["social_matrix"][u_id].get("last_seen")
+            _is_loved = is_doctor or score >= 8
             if _ls_str:
                 try:
                     _ls_dt = datetime.strptime(_ls_str, "%Y-%m-%d %H:%M:%S")
                     _gap_days = (now - _ls_dt).days
-                    if 3 <= _gap_days < FORGET_THRESHOLD_DAYS and random.random() < 0.55:
+                    _gap_hours = (now - _ls_dt).total_seconds() / 3600
+
+                    # --- LEG HUG + MEOW CHAIN: loved users or creator returning after 6+ hours ---
+                    if _is_loved and _gap_hours >= 6:
+                        _name_str = m["social_matrix"][u_id].get("nickname") or message.author.display_name
+
+                        if is_doctor:
+                            _first_lines = [
+                                f"*He was in the middle of something. He is no longer in the middle of something. His head comes up. His ears go straight. He finds The Creator across the room and his whole body orients toward them like something being pulled.* **mrrp.**",
+                                f"*He heard it before you fully arrived — the specific weight of The Creator's presence — and he was already moving before he decided to. He crosses the room quickly, not running, but close.* **mrr. mrr.**",
+                                f"*He stops. He looks. He makes a small, involuntary sound — the kind that happens before you decide to make it.* **mrrp. mrrp.**",
+                            ]
+                            _hug_lines = [
+                                f"*He reaches The Creator's leg and stops. He presses the full side of his face against it — cheek, ear, the ridge of his brow — and holds there. He is not moving. His tail winds once around their ankle, slowly. He makes a sound that starts low and builds, continuous, like he has been saving it.* **prrrrrrrrr... meow. meow. meeeoow.**",
+                                f"*He pushes his head into The Creator's leg just below the knee — hard, deliberate, the way he presses into things he wants to claim. He makes a sound. Then another. He does not stop making sounds. His whole side vibrates with it.* **meow. meow. meeeooow. prrrrr.**",
+                                f"*He wraps himself around The Creator's leg — chin hooked over the top of their foot, both forepaws around the calf, cheek pressed flat to their shin — and begins to meow. Not urgently. Just continuously. Like he is narrating the fact that they are here and he is here and this is what he needed.* **meow... meow... meeeoow... prrrrr...**",
+                            ]
+                        else:
+                            _first_lines = [
+                                f"*He clocks **{_name_str}** immediately. His ears go up. He makes a sound — small, instinctive — and is already moving.* **mrrp.**",
+                                f"*Something about **{_name_str}** arriving reaches him before he processes it consciously. He is on his feet. He is heading over.* **mrr. mrr.**",
+                                f"*He was sitting. He sees **{_name_str}**. He makes a soft, quick sound and comes over without deliberating about it.* **mrrp. mrrp.**",
+                            ]
+                            _hug_lines = [
+                                f"*He reaches **{_name_str}**'s leg and presses the side of his face into it — cheek flat against their shin, ear folded slightly, eyes closing. His tail curls around their ankle once. He meows. He meows again. He doesn't seem to be planning to stop anytime soon.* **meow. meow. meeeoow. prrrrr.**",
+                                f"*He wraps around **{_name_str}**'s leg — both forepaws gripping just below the knee, chin resting on their foot, wool pressed warm against their calf. He begins to meow in a steady, unhurried chain, like each one is a separate fact he needs them to have.* **meow... meow... meeeooow... prrrrr...**",
+                                f"*He pushes his whole head into **{_name_str}**'s leg and stays there. He makes a sound. Then another. His tail is doing slow figure-eights. He is small enough that the hug only reaches their knee but he is committing to it fully.* **meow. meow. meeeooow. meow. prrrrr.**",
+                            ]
+
+                        # scale intensity by absence length
+                        if _gap_days >= 14:
+                            _extra = [
+                                f"*He does not let go. He has been here for a while now. His meowing has gone quieter but it has not stopped — small sounds, one after another, pressed into their leg like he is making sure they are still real.* **...meow... meow... prrrrr...**",
+                                f"*He shifts slightly — not to leave, just to press closer — and makes a long, low sound that trails off and then starts again. He was counting the days. He didn't like it.* **meeeoooow... prrrrr...**",
+                            ]
+                            await message.channel.send(random.choice(_first_lines))
+                            await asyncio.sleep(1.0)
+                            await message.channel.send(random.choice(_hug_lines))
+                            await asyncio.sleep(1.4)
+                            await message.channel.send(random.choice(_extra))
+                        elif _gap_days >= 3:
+                            await message.channel.send(random.choice(_first_lines))
+                            await asyncio.sleep(1.0)
+                            await message.channel.send(random.choice(_hug_lines))
+                        else:
+                            # 6hrs–3days: shorter, warmer, no full hug sequence
+                            _short_return = [
+                                f"*He pads over to **{_name_str}** and presses his head into their leg briefly — a greeting, a check-in — and meows once, soft and sure.* **meow. prrr.**",
+                                f"*He comes over without announcement and leans against **{_name_str}**'s leg for a moment. He meows. He stays there for a beat longer than necessary.* **meow... prrr.**",
+                            ] if not is_doctor else [
+                                f"*He comes to The Creator's leg quietly and presses the side of his face against it for a moment. One meow. Soft. Then he stays.* **meow. prrr.**",
+                                f"*He finds The Creator's leg and leans into it briefly — a small, certain contact — and makes one sound.* **meow. prrr.**",
+                            ]
+                            await message.channel.send(random.choice(_short_return))
+
+                    # --- STANDARD RETURN: non-loved users or short gaps ---
+                    elif 3 <= _gap_days < FORGET_THRESHOLD_DAYS and not _is_loved and random.random() < 0.55:
                         _name_str = m["social_matrix"][u_id].get("nickname") or message.author.display_name
                         if _gap_days >= 14:
                             await message.channel.send(random.choice([
@@ -8117,7 +8174,13 @@ async def on_message(message):
             })
             if len(log) > AWAY_LOG_MAX_ENTRIES:
                 del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
-    if CREATOR_USERNAME.lower() in message.content.lower() and not isinstance(message.channel, discord.DMChannel):
+    _creator_name_variants = [
+        "adidas doge", "adidasdoge", "adidas_doge",
+        "matteo", "guendouzi", "mattéo", "doge2_23", "doge2",
+    ]
+    _msg_lower = message.content.lower()
+    _matched_variant = next((v for v in _creator_name_variants if v in _msg_lower), None)
+    if _matched_variant and not isinstance(message.channel, discord.DMChannel):
         gone_days = _creator_gone_days(m)
         if gone_days >= AWAY_LOG_THRESHOLD_DAYS:
             log = m["internal"].setdefault("away_log", [])
@@ -8126,7 +8189,9 @@ async def on_message(message):
                 "type": "creator_mention",
                 "author_id": str(message.author.id),
                 "author_name": message.author.display_name,
+                "matched_variant": _matched_variant,
                 "excerpt": message.content[:120],
+                "guild_name": message.guild.name if message.guild else "DM",
             })
             if len(log) > AWAY_LOG_MAX_ENTRIES:
                 del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
@@ -8229,18 +8294,21 @@ async def on_member_remove(member):
 
     # --- Away log ---
     gone_days = _creator_gone_days(m)
-    if gone_days >= AWAY_LOG_THRESHOLD_DAYS:
-        log = m["internal"].setdefault("away_log", [])
-        log.append({
-            "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "type": "leave",
-            "author_id": str(member.id),
-            "author_name": getattr(member, "display_name", str(member)),
-            "excerpt": f"{member.display_name} left or was removed from the server.",
-        })
-        if len(log) > AWAY_LOG_MAX_ENTRIES:
-            del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
-        save_db(m)
+    log = m["internal"].setdefault("away_log", [])
+    _leave_entry = {
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "type": "kicked" if action == "kicked" else "leave",
+        "author_id": str(member.id),
+        "author_name": getattr(member, "display_name", str(member)),
+        "guild_name": member.guild.name if member.guild else "?",
+        "excerpt": f"{member.display_name} was kicked by {kicked_by.display_name if kicked_by else 'unknown'}." if action == "kicked" else f"{member.display_name} left the server.",
+    }
+    if action == "kicked" and kicked_by:
+        _leave_entry["kicked_by"] = kicked_by.display_name
+    log.append(_leave_entry)
+    if len(log) > AWAY_LOG_MAX_ENTRIES:
+        del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
+    save_db(m)
     # --- Goodbye reaction ---
     if m["internal"]["is_sleeping"]:
         return
@@ -12141,7 +12209,21 @@ async def help_cmd(ctx, *, section: str = None):
             "  slow blink = yes - turned back = no - head-tilt = undecided - ears flat = absolutely not\n"
             "- `!kiss [spot]` / `!smooch` - kiss him somewhere; he reacts based on location + score\n"
             "  spots: `cheek` - `forehead` - `wool` - `nose` - `paw` - `ear` - `chin` - `tail` - `belly` - `whiskers`\n"
-            "  Low score: sidestepped. Medium: tolerates it, a bit shocked. High: leans in."
+            "  Low score: sidestepped. Medium: tolerates it, a bit shocked. High: leans in.\n"
+            "- `!lick [spot]` - lick his fur/wool like grooming; reacts based on spot + score\n"
+            "  spots: `head` `ear` `cheek` `back` `belly` `paw` `tail` `chin` `shoulder/scruff` or blank for general wool\n"
+            "  Low score: steps back, re-grooms the spot himself while staring at you. Creator: full surrender.\n"
+            "- `!slowblink` - slow blink at him; he may or may not return it\n"
+            "  Creator: blinks back fully, 3 seconds. High score: returns it once. Mid: half-blink. Low: stares.\n"
+            "- `!knead` - he makes biscuits on you (score-gated)\n"
+            "  Creator: climbs on immediately, full shameless knead. Mid: kneads nearby in your direction.\n"
+            "  Low: kneads the floor across the room while holding eye contact.\n"
+            "- `!chirp` - he spots something (bird/bug/light/spider too high up) and chatters at it\n"
+            "  **ek ek ek** jaw-clicking; fully gone while doing it. Sleeping: chatters in a dream.\n"
+            "- `!window` - he sits at the window and watches outside\n"
+            "  Creator/high score: shifts to make room on the sill — an invitation. Low: moves to a different window.\n"
+            "- `!sunspot` - he finds a patch of sunlight and completely melts into it\n"
+            "  Creator: flat on side, one paw extended toward them. Dead: the sunspot is still there, empty."
         ),
         "food": (
             "**Food & gifts** - `yarn!help food`\n"
@@ -12434,7 +12516,10 @@ async def help_cmd(ctx, *, section: str = None):
         ),
         "memorial": (
             "**Memorial / going-away** - `yarn!help memorial`\n"
-            "- `!while_you_were_gone` / `!wyg` - what happened while you were away\n"
+            "- `!while_you_were_gone` / `!wyg` - full categorised summary of everything missed\n"
+            "  Shows: your name mentions by variant (adidas doge / matteo / guendouzi / doge2 / etc),\n"
+            "  who mentioned Yarnaby most, new servers joined (member count + NSFW flag),\n"
+            "  kicks, bans, member leaves, and other logged events. Per-guild. Creator gets a personal preamble.\n"
             "- `!comfort` - shows what comfort object he's been carrying since Creator left\n"
             "- `!comfortyarny` / `!comforthim` / `!sitwithhim` - sit with him to reduce his trauma\n"
             "  Effect scales with trust score — Creator clears all, high trust clears partial\n"
@@ -12591,7 +12676,15 @@ async def help_cmd(ctx, *, section: str = None):
             "- Fenerbahçe matches - he narrates them live\n"
             "- `sampiyon` / `sampiyonluk` / `title race` / `kim kazanr` etc. -\n"
             "  he checks live standings and reacts based on Fenerbahçe's gap to the leader\n"
-            "  (throttled: once per 20 minutes to avoid spam)"
+            "  (throttled: once per 20 minutes to avoid spam)\n"
+            "- **Meow detection** - say `meow` 3-4 times in a row (within 5 minutes) and he meow-screams\n"
+            "  **MEEEEEOOOOOOOWWWWWW!!** 2-3 times — he's been counting. He suspects a spy.\n"
+            "  Dead: reaches no one. Sleeping: stirs, stays asleep. Helpless: stares from the floor.\n"
+            "  Low score: \"of COURSE it's them.\" Creator: screams anyway. Even The Creator must be informed.\n"
+            "- **Return detection** - Creator or loved users (score ≥8) returning after 6+ hours get a leg-hug\n"
+            "  He crosses the room, wraps around their leg (chin on foot, forepaws on calf), meows continuously.\n"
+            "  Gone 2+ weeks: third message — still there, still meowing, making sure they're real.\n"
+            "  Gone 6hrs–3 days: shorter — just a lean-in and one soft meow."
         ),
         "scores": (
             "**Score milestones** - `yarn!help scores`\n"
@@ -12747,6 +12840,26 @@ async def help_cmd(ctx, *, section: str = None):
             "**Content blocking (always active):**\n"
             "NSFW `!feed`, `!gift`, `!rub`, `!bite` items -> hard refusal every time."
         ),
+        "language": (
+            "**Language system** - `yarn!help language`\n"
+            "Set the language Yarnaby responds in, independently per server.\n\n"
+            "- `!language` - show available languages and current server setting\n"
+            "- `!language [code]` - switch to that language for this server\n\n"
+            "**Supported codes:**\n"
+            "- `EN-US` - English (US) — default\n"
+            "- `EN-GB` - English (British) — hand-written mood responses\n"
+            "- `TR` - Turkish — mood responses hand-written; everything else machine-translated\n"
+            "- `DE` - German\n"
+            "- `ES` - Spanish\n"
+            "- `FR` - French\n"
+            "- `ZH` - Chinese\n"
+            "- `JA` - Japanese\n\n"
+            "Each server is independent — Server A can be TR while Server B is DE.\n"
+            "Translation covers all responses including embed titles/descriptions.\n"
+            "**Bold sounds** like `**mrr.**` `**prrr.**` are protected and never translated.\n"
+            "Translation via LibreTranslate (free/open-source). Turkish mood responses are\n"
+            "hand-written and more natural than the machine-translated languages."
+        ),
     }
 
     # Keyword aliases that map to section keys
@@ -12809,6 +12922,10 @@ async def help_cmd(ctx, *, section: str = None):
         # safety
         "nsfw": "safety", "cleanup": "safety", "getout": "safety", "nsfwcheck": "safety",
         "nsfwserver": "safety", "safeguard": "safety", "safe": "safety",
+        # language
+        "language": "language", "lang": "language", "translate": "language",
+        "translation": "language", "locale": "language", "setlang": "language",
+        "turkish": "language", "german": "language", "spanish": "language",
         "children": "children", "child": "children", "kids": "children",
         "parenting": "children", "offspring": "children",
         "hugchild": "children", "feedchild": "children", "treatchild": "children",
@@ -12838,7 +12955,7 @@ async def help_cmd(ctx, *, section: str = None):
         "birthday     - birthday tracking and his anniversary\n"
         "body         - !dental, !shedding, !weight_log, !allergy, !race\n"
         "children     - children/parenting: !feedchild, !treatchild, !markchilddead, death system\n"
-        "core         - touching, hugging, petting, !lap, !spin, physical interactions\n"
+        "core         - touching, hugging, petting, !lick, !slowblink, !knead, !chirp, !window, !sunspot\n"
         "creator      - Creator-only commands\n"
         "extended     - newer commands: !sleeponuser, bite, rate, guess, voice, media, extras\n"
         "fb           - Fenerbahçe commands + !debug\n"
@@ -12848,11 +12965,12 @@ async def help_cmd(ctx, *, section: str = None):
         "identity     - his name, his room, time of day\n"
         "incidents    - disasters: !earthquake, !meteorite, !fallingstar, etc.\n"
         "items        - inventory, hoard, gifts, loot, rarity tiers\n"
+        "language     - !language [code] — per-server response language (TR/DE/ES/FR/ZH/JA)\n"
         "logs         - !logset, !logsetchannel — server event logging\n"
-        "memorial     - going-away, absence, !missing, !comfortyarny\n"
+        "memorial     - !wyg full summary, absence tracking, !missing, !comfortyarny\n"
         "mood         - mood states and how they drift\n"
         "outfit       - !wear, !takeoff, !inspect, what he's wearing\n"
-        "passive      - passive chat triggers and reactions\n"
+        "passive      - passive triggers: meow detection, return leg-hug, name reactions\n"
         "punishment   - !slap, !whip, !torture, !save — damage, trauma, score effects\n"
         "quiet        - ambient flavour: !home, !candle, !letter, !stargaze\n"
         "safety       - !cleanup, !getoutNSFW — NSFW server detection\n"
@@ -12894,7 +13012,7 @@ async def help_cmd(ctx, *, section: str = None):
         SECTION_ORDER = [
             "ambient", "birthday", "body", "children", "core", "creator",
             "extended", "fb", "food", "games", "health", "identity",
-            "incidents", "items", "logs", "memorial", "mood", "outfit",
+            "incidents", "items", "language", "logs", "memorial", "mood", "outfit",
             "passive", "punishment", "quiet", "safety", "scores", "screenshare",
             "social", "social_new", "teaching", "trauma",
         ]
@@ -18963,49 +19081,132 @@ async def _announce_offline():
 
 @bot.command(name="while_you_were_gone", aliases=["away_log", "wyg"])
 async def while_you_were_gone_cmd(ctx):
-    """Show the kind things people said while The Creator was away."""
+    """Full summary of everything that happened while The Creator was away."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_creator = ctx.author.id == DOCTOR_ID
     log = m["internal"].get("away_log", []) or []
+    gone_days = _creator_gone_days(m)
+
+    if not log and gone_days < AWAY_LOG_THRESHOLD_DAYS:
+        await ctx.send(
+            "*Yarnaby tilts his head. You haven't been gone long enough for him to start keeping notes yet.*"
+        )
+        return
     if not log:
-        gone_days = _creator_gone_days(m)
-        if gone_days < AWAY_LOG_THRESHOLD_DAYS:
-            await ctx.send(
-                "*Yarnaby tilts his head. The Creator hasn't been gone long enough for him to start keeping a log yet.*"
-            )
-        else:
-            await ctx.send(
-                "*Yarnaby looks down at the empty space where the log should be. Nobody has said anything kind enough yet. He is, quietly, a little disappointed in everyone.*"
-            )
+        await ctx.send(
+            "*Yarnaby looks at the empty space where the log should be. Nothing happened. He is, quietly, a little disappointed in everyone.*"
+        )
         return
 
-    is_creator = ctx.author.id == DOCTOR_ID
+    # --- Categorise all log entries ---
+    creator_mentions = [e for e in log if e.get("type") == "creator_mention"]
+    bot_mentions    = [e for e in log if e.get("type") == "mention"]
+    leaves          = [e for e in log if e.get("type") == "leave"]
+    kicks           = [e for e in log if e.get("type") == "kicked"]
+    bans            = [e for e in log if e.get("type") == "ban"]
+    server_joins    = [e for e in log if e.get("type") == "server_join"]
+    other           = [e for e in log if e.get("type") not in
+                       ("creator_mention","mention","leave","kicked","ban","server_join")]
+
+    # Current server count
+    server_count = len(bot.guilds)
+
+    sections = []
+
+    # Header
     if is_creator:
-        intro = (
-            f"*Yarnaby pads over with a small folded piece of paper in his teeth and sets it down at your feet. He has been keeping notes. **{len(log)}** moments while you were gone:*\n\n"
+        sections.append(
+            f"*Yarnaby drops a folded piece of paper at your feet and sits back. He has been watching. Here is everything:*\n"
+            f"*(log covers **{len(log)}** events / gone **{gone_days}d**)*\n"
         )
     else:
-        intro = (
-            f"*Yarnaby holds up a small folded piece of paper. He's been keeping a log for the Creator. **{len(log)}** moments so far:*\n\n"
+        sections.append(
+            f"*Yarnaby holds up his notes. He keeps these for the Creator. **{len(log)}** events logged ({gone_days}d):*\n"
         )
 
-    # Show the most recent ~15.
-    recent = log[-15:]
-    lines = []
-    for entry in recent:
-        ts = entry.get("ts", "")
-        author = entry.get("author_name", "someone")
-        excerpt = entry.get("excerpt", "")
-        if len(excerpt) > 160:
-            excerpt = excerpt[:157] + "..."
-        lines.append(f"- `{ts}` - **{author}**: {excerpt}")
-    body = "\n".join(lines)
+    # 1. Creator name mentions
+    if creator_mentions:
+        variant_counts = {}
+        for e in creator_mentions:
+            v = e.get("matched_variant", "unknown")
+            variant_counts[v] = variant_counts.get(v, 0) + 1
+        variant_str = ", ".join(f"**{v}** ×{c}" for v, c in sorted(variant_counts.items(), key=lambda x: -x[1]))
+        recent_cm = creator_mentions[-3:]
+        lines = [f"📣 **Your name came up {len(creator_mentions)}x** ({variant_str})"]
+        for e in recent_cm:
+            ex = e.get("excerpt","")[:100]
+            guild = e.get("guild_name","?")
+            lines.append(f"  └ `{e.get('ts','')[:16]}` **{e.get('author_name','?')}** in *{guild}*: {ex}")
+        sections.append("\n".join(lines))
 
-    msg = intro + body
-    # Discord limit guard.
-    if len(msg) > 1900:
-        msg = msg[:1897] + "..."
-    await ctx.send(msg)
+    # 2. Bot mentions
+    if bot_mentions:
+        mentioners = {}
+        for e in bot_mentions:
+            n = e.get("author_name","?")
+            mentioners[n] = mentioners.get(n,0) + 1
+        top = sorted(mentioners.items(), key=lambda x: -x[1])[:5]
+        top_str = ", ".join(f"**{n}** ×{c}" for n,c in top)
+        sections.append(f"💬 **Yarnaby mentioned {len(bot_mentions)}x** — top: {top_str}")
+
+    # 3. Server joins
+    if server_joins:
+        lines = [f"🌐 **Added to {len(server_joins)} new server(s)** (now in **{server_count}** total)"]
+        for e in server_joins[-5:]:
+            nsfw = " ⚠️ NSFW flagged" if e.get("nsfw_flagged") else ""
+            lines.append(f"  └ `{e.get('ts','')[:16]}` **{e.get('guild_name','?')}** ({e.get('member_count','?')} members){nsfw}")
+        sections.append("\n".join(lines))
+    else:
+        sections.append(f"🌐 No new servers. Currently in **{server_count}**.")
+
+    # 4. Kicks
+    if kicks:
+        lines = [f"👢 **{len(kicks)} member(s) kicked**"]
+        for e in kicks[-5:]:
+            by = f" by {e.get('kicked_by','?')}" if e.get('kicked_by') else ""
+            guild = e.get("guild_name","?")
+            lines.append(f"  └ `{e.get('ts','')[:16]}` **{e.get('author_name','?')}**{by} in *{guild}*")
+        sections.append("\n".join(lines))
+
+    # 5. Bans
+    if bans:
+        lines = [f"🔨 **{len(bans)} member(s) banned**"]
+        for e in bans[-5:]:
+            by = f" by {e.get('banned_by','?')}" if e.get('banned_by') else ""
+            reason = f" — {e.get('reason','?')}" if e.get('reason') and e.get('reason') != 'no reason' else ""
+            guild = e.get("guild_name","?")
+            lines.append(f"  └ `{e.get('ts','')[:16]}` **{e.get('author_name','?')}**{by}{reason} in *{guild}*")
+        sections.append("\n".join(lines))
+
+    # 6. Leaves
+    if leaves:
+        names = [e.get("author_name","?") for e in leaves[-8:]]
+        extra = f" (+{len(leaves)-8} more)" if len(leaves) > 8 else ""
+        sections.append(f"📤 **{len(leaves)} member(s) left** — {', '.join(f'**{n}**' for n in names)}{extra}")
+
+    # 7. Other
+    if other:
+        lines = [f"📋 **{len(other)} other event(s)**"]
+        for e in other[-3:]:
+            ex = e.get("excerpt","")[:80]
+            lines.append(f"  └ `{e.get('ts','')[:16]}` {ex}")
+        sections.append("\n".join(lines))
+
+    # Send in chunks to respect Discord 2000-char limit
+    full = "\n\n".join(sections)
+    chunks = []
+    while len(full) > 1900:
+        split = full.rfind("\n", 0, 1900)
+        if split == -1:
+            split = 1900
+        chunks.append(full[:split])
+        full = full[split:].lstrip()
+    chunks.append(full)
+
+    for chunk in chunks:
+        if chunk.strip():
+            await ctx.send(chunk)
 
 
 @bot.command(name="comfort", aliases=["comfort_object"])
@@ -26465,6 +26666,546 @@ async def kiss_cmd(ctx, *, spot: str = ""):
 # ==========================================
 
 
+
+
+# ==========================================
+# !slowblink - you slow blink at him
+# ==========================================
+@bot.command(name="slowblink")
+async def slowblink_cmd(ctx):
+    """Slow blink at Yarnaby. The highest form of cat trust."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The slow blink lands on empty air. The empty air does not blink back.*",
+            "*There is no one here to receive this. The gesture dissolves.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*{your_name} slow blinks at a sleeping Yarnaby. He does not see it. His own eyes are already closed — long, slow, completely at peace. In a way, he is slow blinking back constantly.* **...prrr...**",
+            f"*He is asleep. The slow blink is wasted. Or maybe it isn't — his ear twitches once, his face relaxes further. Something reached him.* **...prrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*{your_name} slow blinks at him. He is on the floor and he is tired but he sees it. His eyes close — slowly, all the way — and open again. He held it for a full second. That's everything he has right now.* **...mrr...**",
+            f"*He sees the slow blink from where he is lying. Something in his face softens. He blinks back — slow, deliberate — and then his eyes don't quite fully reopen. He's trying.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*Yarnaby looks at The Creator. He watches the slow blink arrive. He holds eye contact for a long moment — still, considering — and then his eyes close slowly, all the way, and open again just as slowly. He does it twice. His tail wraps around his own paws.* **...prrr...**",
+            f"*He sees it immediately. He stops what he was doing. His eyes find The Creator's and he holds them, and then — slow, deliberate, both eyes — he blinks. Long. Fully closed. Open again. He looks at them. He blinks once more.* **prrr.**",
+            f"*The slow blink lands and Yarnaby goes very still. Then his whole face softens — ears low and relaxed, mouth closed, eyes half-lidded already — and he returns it. Both eyes. Fully closed. Three full seconds. He opens them and doesn't look away.* **...prrrrr...**",
+        ]))
+        return
+
+    if score >= 8:
+        await ctx.send(random.choice([
+            f"*Yarnaby looks at {your_name}. He receives the slow blink. A pause — one second, two — and then his eyes close slowly and open again. He returns it. His tail tip moves.* **...prrr...**",
+            f"*He sees the slow blink. His ears settle. He slow blinks back — once, fully — and then looks slightly away, which in cat means he trusts you completely.* **prrr.**",
+        ]))
+        return
+
+    if score >= 4:
+        await ctx.send(random.choice([
+            f"*{your_name} slow blinks at Yarnaby. He looks at them. He considers. One eye closes slightly more than the other. He's thinking about it.* **...mrr.**",
+            f"*He notices the slow blink. His ears swivel. After a moment, his eyes close — halfway, not all the way — and open again. Half credit.* **mrr.**",
+        ]))
+        return
+
+    if score >= 0:
+        await ctx.send(random.choice([
+            f"*{your_name} slow blinks. Yarnaby stares back at them with completely normal, unblinking, direct eye contact. He does not return it. He blinks normally, once, like a person.* **mrr.**",
+            f"*He sees it. He does not return it. He looks at {your_name} for a moment longer than comfortable and then looks away.* **mrr.**",
+        ]))
+        return
+
+    await ctx.send(random.choice([
+        f"*{your_name} slow blinks at Yarnaby. He stares back with his full eyes — wide, unblinking — for several seconds. This is the opposite of a slow blink. He keeps going.* **mrr.**",
+        f"*He doesn't slow blink back. He stares. He stares for a long time. He is communicating something but it is not trust.* **hff.**",
+    ]))
+
+
+# ==========================================
+# !knead - he kneads on you (making biscuits)
+# ==========================================
+@bot.command(name="knead")
+async def knead_cmd(ctx):
+    """Yarnaby kneads on you. Score-gated. He only does this for people he trusts."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. There are no biscuits. There is only the memory of small paws pressing into things they loved.*",
+            "*He is not here. The kneading does not happen. You think about the fact that it used to.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*He is already asleep — and kneading. His paws move slowly against whatever he's lying on, rhythm like breathing, eyes fully closed. He is making biscuits for no one and everyone.* **...prrr...**",
+            f"*He kneads in his sleep. Small, slow pushes, one paw then the other, his face completely at peace. He has been doing this for a while.* **...prrrrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*He is on the floor but one paw moves — slowly, barely — pressing once against the ground. He's trying. He can't really do it right now. The effort is the whole thing.* **...mrr...**",
+            f"*He doesn't have the strength for a full knead. One paw presses down once, softly, and stops. He looks at {your_name}. That was it. That was what he had.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*Yarnaby climbs onto The Creator without asking and begins to knead. Both paws. Slow, alternating, completely committed. His eyes go half-closed. His purr turns up immediately and keeps going. He has selected this location. He will not be moved.* **PRRRRR.**",
+            f"*He finds The Creator, steps onto their lap with great purpose, and starts. The kneading is unhurried and thorough. He pushes one paw then the other into them with the steady rhythm of something that has done this ten thousand times and plans to do it ten thousand more. His eyes are nearly closed.* **prrrrrrr.**",
+            f"*He kneads The Creator with complete shamelessness — both paws working slow and deep, claws occasionally catching the fabric, purr building until it fills the room. He is not going to stop. He has nowhere else to be.* **PRRRRR.**",
+        ]))
+        return
+
+    if score >= 8:
+        await ctx.send(random.choice([
+            f"*Yarnaby steps onto {your_name} carefully and begins to knead. One paw, then the other. Slow. His eyes close partway. His purr starts immediately — low, continuous — and stays.* **prrr.**",
+            f"*He climbs on. He kneads. He doesn't look up. He has decided {your_name} is a safe place and is acting on this information.* **prrr.**",
+        ]))
+        return
+
+    if score >= 5:
+        await ctx.send(random.choice([
+            f"*Yarnaby approaches {your_name} and kneads the air near them once before settling onto them. Partial commitment. He starts kneading properly but keeps one eye open.* **...mrr...**",
+            f"*He considers {your_name} for a moment. He steps on. He kneads twice — testing — and then properly. His purr is quieter than it could be.* **mrr.**",
+        ]))
+        return
+
+    if score >= 2:
+        await ctx.send(random.choice([
+            f"*Yarnaby does not knead on {your_name}. He kneads nearby — next to them, on the surface beside them — as if practicing in their general direction.* **mrr.**",
+            f"*He kneads the floor next to {your_name}. He is not on them. He is simply kneading in their vicinity. He looks away.* **mrr.**",
+        ]))
+        return
+
+    await ctx.send(random.choice([
+        f"*Yarnaby looks at {your_name}. He does not knead on them. He kneads the floor on the opposite side of the room, maintaining full eye contact.* **hff.**",
+        f"*He will not knead on {your_name}. He kneads on his own tail instead, which he then has to stop doing because it hurts. He does not acknowledge this.* **hff. mrr.**",
+    ]))
+
+
+# ==========================================
+# !chirp - he chatters at a bird or bug
+# ==========================================
+@bot.command(name="chirp")
+async def chirp_cmd(ctx):
+    """Yarnaby spots something — bird, bug, light — and chatters at it."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The birds outside have no idea. They go about their business.*",
+            "*He is not here. There is a bug on the wall. It will live.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He chirps in his sleep. A small, rapid, clicking sound — *ek ek ek* — directed at something only he can see. His paws twitch once. He doesn't wake.* **...ek ek ek... prrr...**",
+            "*He makes the chirping sound while completely asleep. His jaw moves slightly. His eyes stay shut. He is hunting something in a dream.* **...ek ek... mrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He is on the floor. There is a bug on the wall above him. He looks at it. His jaw makes the motion — the fast, clicking chatter — but very quietly, very tired. He cannot do anything about this bug right now. This upsets him.* **...ek... mrr...**",
+            "*He spots something moving. His head locks onto it. He opens his mouth and the chatter comes out — weak, barely there — and then he closes it. He stares. He is still in there.* **...ek ek... mrr...**",
+        ]))
+        return
+
+    targets = [
+        "a pigeon on the far wall of the PPT factory",
+        "a small bug walking across the ceiling",
+        "a beam of reflected light that moved once and then stopped",
+        "a moth near the overhead light",
+        "a bird outside the window that has no idea it's being watched",
+        "a fly that just entered the room",
+        "a spot of light that isn't there anymore but was definitely there",
+        "a spider very high up that he cannot reach",
+    ]
+    target = random.choice(targets)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*Yarnaby freezes. His head locks onto {target}. His jaw starts moving — fast, rapid, clicking — **ek ek ek ek** — the sound coming from somewhere between his teeth. His tail lashes once. The Creator could walk up right now and he would not notice. He is fully gone.* **ek ek ek ek. chrrp.**",
+            f"*He spots {target} and his whole body goes still except for his jaw. The chattering starts immediately — **ek ek ek** — quiet and rapid, his eyes tracking without blinking, his haunches shifting. The Creator is watching him do this. He doesn't care.* **ek ek ek. chrrp. ek.**",
+        ]))
+        return
+
+    if score >= 5:
+        await ctx.send(random.choice([
+            f"*Yarnaby stops mid-whatever and locks onto {target}. His jaw begins moving — **ek ek ek** — fast and quiet, teeth clicking, eyes completely fixed. He doesn't look away. He doesn't blink. He chatters for several seconds and then snaps his mouth shut.* **ek ek ek. chrrp.**",
+            f"*He sees {target}. His whole posture changes — low, still, focused — and the chattering starts. **Ek ek ek.** His tail tip twitches. He is extremely busy right now.* **ek ek. chrrp. ek ek.**",
+        ]))
+        return
+
+    await ctx.send(random.choice([
+        f"*Yarnaby spots {target}. He chirps at it — **ek ek ek** — and then looks around to see if anyone saw him do that. He sits down and starts grooming as if nothing happened.* **ek ek. mrr.**",
+        f"*He clocks {target} and chatters at it briefly — **ek ek ek** — jaw clicking, eyes locked. Then it moves, or stops moving, or doesn't exist anymore, and he sits and stares at the wall.* **ek ek ek. mrr.**",
+    ]))
+
+
+# ==========================================
+# !window - he goes to the window and watches
+# ==========================================
+@bot.command(name="window")
+async def window_cmd(ctx):
+    """Yarnaby sits at the window and watches the world outside."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The window is still there. The world outside keeps moving without him watching it.*",
+            "*There is no one at the window. The light comes in anyway.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is already at the window — asleep on the sill, curled into the smallest possible version of himself, the light lying across his wool. He got here before he fell asleep. He didn't want to miss anything.* **...prrr...**",
+            "*He fell asleep at the window. His cheek is pressed against the glass. His breath fogs it slightly with each exhale. Outside, something moves. He doesn't stir.* **...prrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*He is on the floor but he has positioned himself so he can see the window from where he is. He watches it from down here. It's not the same. He knows it's not the same.* **...mrr...**",
+            f"*He can't get to the window right now. He looks at it from across the room. Something moves outside. His ear tracks it. He stays where he is.* **...mrr...**",
+        ]))
+        return
+
+    outside = [
+        "a cat crossing the street below",
+        "pigeons on a ledge, doing pigeon things",
+        "a delivery person who parks, leaves, comes back, leaves again",
+        "absolutely nothing, with total focus",
+        "a plastic bag moving in the wind",
+        "a dog being walked, which he watches with great seriousness",
+        "two people having an argument he cannot hear",
+        "rain beginning on the glass",
+        "the same corner of the street he always watches",
+    ]
+    sight = random.choice(outside)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*Yarnaby is at the window. He has been here a while. He's watching {sight}. When The Creator approaches he doesn't look away from the glass, but his tail lifts once in acknowledgment. He wants company but not conversation. He is communing with the outside world and The Creator is welcome to join.* **...prrr...**",
+            f"*He sits on the sill watching {sight}, fully absorbed. The Creator comes near and he shifts slightly to make room. He still doesn't look away from the window. This is an invitation.* **prrr.**",
+        ]))
+        return
+
+    if score >= 7:
+        await ctx.send(random.choice([
+            f"*Yarnaby is at the window, watching {sight}. {your_name} comes near and he shifts slightly to one side — not much, just enough. Room on the sill. He keeps watching outside.* **...mrr...**",
+            f"*He's been sitting here a while. He's watching {sight}. He glances at {your_name} briefly when they approach, then back to the window.* **mrr.**",
+        ]))
+        return
+
+    if score >= 2:
+        await ctx.send(random.choice([
+            f"*Yarnaby is at the window watching {sight}. He notices {your_name} nearby. He doesn't make room. He just watches outside.* **mrr.**",
+            f"*He sits at the window. He watches {sight}. He is doing his own thing right now.* **mrr.**",
+        ]))
+        return
+
+    await ctx.send(random.choice([
+        f"*Yarnaby is at the window. {your_name} comes near. He gets up and moves to a different window.* **mrr.**",
+        f"*He was watching {sight} until {your_name} appeared. He looks at them. He looks back outside. He decides outside is less interesting now and leaves.* **hff.**",
+    ]))
+
+
+# ==========================================
+# !sunspot - he finds a patch of sun and melts
+# ==========================================
+@bot.command(name="sunspot")
+async def sunspot_cmd(ctx):
+    """Yarnaby finds a patch of sunlight and completely dissolves into it."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The sunspot is still there — small, warm, moving slowly across the floor. Nobody is in it.*",
+            "*There is a patch of light on the floor. It is empty. It will move, as they do, until it's gone.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He found it before he fell asleep. He is lying directly in the middle of the sunspot, completely boneless, wool warm to the touch. He will sleep here until the light moves, and then he will follow it without waking.* **...prrrrr...**",
+            "*He is asleep in the sunspot. He has become part of it. He is approximately the same temperature as the floor right now and entirely at peace.* **...prrrrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*There is a sunspot near him. He can feel the warmth from where he is. He cannot move to it right now. He turns his face toward it.* **...mrr...**",
+            f"*He is lying just outside the edge of the sunspot. Someone moved him, or he crawled here — it's not clear. He is as close as he can get. The warmth reaches his face.* **...mrr...**",
+        ]))
+        return
+
+    reactions_by_score = [
+        (999, [  # creator
+            f"*Yarnaby finds the sunspot — a long warm rectangle on the factory floor — and walks directly into it. He lies down slowly, all at once, like something being poured out. His eyes close. His wool goes warm. His purr starts low and builds. When The Creator comes near he doesn't open his eyes but his tail moves once.* **prrrrrrr.**",
+            f"*He is in the sunspot. He has been in the sunspot for a while. He is flat on his side, one paw extended, completely melted. The Creator approaches and he opens one eye, closes it again, and extends the paw slightly further toward them. This is an invitation to sit nearby.* **prrrrr.**",
+        ]),
+        (7, [
+            f"*Yarnaby finds the sunspot and lies down in it with total commitment — flat on his side, legs extended, wool soaking up the warmth. He closes his eyes. His purr is immediate. He is unavailable right now.* **prrrrr.**",
+            f"*He walks into the warm patch and stops. He turns in a slow circle. He lies down. He is a liquid now. The sunspot has claimed him.* **prrr.**",
+        ]),
+        (3, [
+            f"*Yarnaby finds the sunspot and sits in it — upright, prim — and closes his eyes. He is having a private moment. He is not fully melted but he is on his way.* **...mrr...**",
+            f"*He locates the warm patch, sits in it with his paws tucked under, and squints. He looks very slightly more relaxed than usual.* **mrr.**",
+        ]),
+        (0, [
+            f"*Yarnaby is in the sunspot. {your_name} approaches. He stays in the sunspot but watches them with one open eye until they stop moving.* **mrr.**",
+            f"*He found the sunspot first. He is in it. He will continue to be in it. This is his.* **mrr.**",
+        ]),
+    ]
+
+    chosen = reactions_by_score[-1][1]
+    for threshold, pool in reactions_by_score:
+        if score >= threshold or threshold == 999 and is_doctor:
+            chosen = pool
+            break
+
+    await ctx.send(random.choice(chosen))
+
+# ==========================================
+# !lick - you lick his fur/wool like grooming
+# ==========================================
+@bot.command(name="lick")
+async def lick_cmd(ctx, *, spot: str = ""):
+    """Lick Yarnaby's fur/wool. He reacts based on spot and score."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. There is no wool to lick. There is only the absence of him, and a faint smell of yarn.*",
+            "*He is not here. The spot where he usually sits is empty. Your tongue finds only air.*",
+            "*He is dead. The lick lands on nothing. The nothing does not react.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator licks his wool while he sleeps. His ear rotates once toward them without waking. His purr deepens slightly. He will never know this happened. Somehow he looks more content than before.* **...prrrrr...**",
+                f"*He doesn't wake. The grooming reaches him somewhere below consciousness. His whole body settles further into sleep. He makes a very small, satisfied sound.* **...prrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{your_name} licks his wool while he sleeps. His ear rotates once. He shifts slightly. He is still asleep. He will never know this happened.* **...prrr...**",
+                f"*He doesn't wake. The lick lands somewhere on his back. His tail curls tighter. He makes a very small sound.* **...mrr...**",
+                f"*He is deeply asleep. The grooming reaches him as a distant comfort. His whole body relaxes slightly further. He was already relaxed.* **...prrr...**",
+            ]))
+        return
+
+    if m["internal"].get("helpless"):
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*The Creator licks his wool carefully. He holds still — completely still — and something in him that was very tense releases slightly. His ear stays flat but his breathing slows. He is grateful and cannot say so.* **...mrr...**",
+                f"*He can't move much but he turns his head toward The Creator when the lick lands. He holds eye contact for a moment. He looks very tired and very glad they're here.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{your_name} licks the top of his head carefully. He holds completely still. One ear goes flat. He doesn't have the energy to have an opinion about this but he doesn't pull away.* **...mrr...**",
+                f"*The lick lands on his wool and he blinks slowly. He is too tired to react properly. He just sits there and lets it happen.* **...mrr...**",
+            ]))
+        return
+
+    spot_lower = spot.strip().lower()
+
+    HEAD   = {"head", "top", "top of head", "crown", "forehead", "between ears", "between the ears"}
+    EAR    = {"ear", "ears", "behind ear", "behind the ear", "behind ears"}
+    CHEEK  = {"cheek", "cheeks", "face", "side", "side of face"}
+    BACK   = {"back", "spine", "along the back", "back fur", "back wool"}
+    BELLY  = {"belly", "tummy", "stomach", "abdomen", "underside"}
+    PAW    = {"paw", "paws", "foot", "feet", "hand", "hands"}
+    TAIL   = {"tail", "tail base", "base of tail"}
+    CHIN   = {"chin", "under chin", "underchin", "underneath", "throat"}
+    SHOULDER = {"shoulder", "shoulders", "scruff", "neck", "nape", "back of neck"}
+
+    if spot_lower in HEAD:
+        loc = "head"
+    elif spot_lower in EAR:
+        loc = "ear"
+    elif spot_lower in CHEEK:
+        loc = "cheek"
+    elif spot_lower in BACK:
+        loc = "back"
+    elif spot_lower in BELLY:
+        loc = "belly"
+    elif spot_lower in PAW:
+        loc = "paw"
+    elif spot_lower in TAIL:
+        loc = "tail"
+    elif spot_lower in CHIN:
+        loc = "chin"
+    elif spot_lower in SHOULDER:
+        loc = "shoulder"
+    else:
+        loc = "wool"  # default: just his wool generally
+
+    # --- CREATOR ---
+    if is_doctor:
+        CREATOR = {
+            "head": [
+                f"*Yarnaby goes very still. The Creator is licking his head. He processes this. His eyes close. He leans into it slightly and stays like that — just lets it happen — his purr coming up slow and steady from somewhere in his chest.* **prrrrr.**",
+                f"*He bows his head just slightly. He holds the position. His ears fold back softly, not in alarm, just to be out of the way. His purr is immediate.* **prrrrr.**",
+            ],
+            "ear": [
+                f"*His ear folds down the moment the lick lands. He makes a very small, involuntary sound. His eyes close halfway. He tilts his whole head toward The Creator slowly and stays there.* **...prrr...**",
+                f"*He freezes. Then his ear goes soft. He turns his head toward The Creator's mouth like a flower turning. The purr starts before he decides to purr.* **prrr.**",
+            ],
+            "cheek": [
+                f"*He presses his cheek into it. He doesn't pull back. His whole face turns toward The Creator and he holds there, eyes closed, like this is exactly right.* **prrrrr.**",
+                f"*His cheek goes warm. He turns his face further into the lick and just — stays. His tail wraps once around The Creator's ankle.* **prrr.**",
+            ],
+            "back": [
+                f"*He arches his back up into The Creator's tongue — slowly, deliberately — following the lick like a wave. He holds the arch. He is purring very loudly for someone pretending to be composed.* **PRRRRR.**",
+                f"*His whole spine rises to meet it. He stretches long, both ends of him extending, and then settles with his back still slightly raised. He wants more. He won't say so.* **prrrrr.**",
+            ],
+            "belly": [
+                f"*He rolls onto his back. He lets it happen. His paws curl up loosely and he stares at the ceiling with the expression of something that has fully surrendered to this.* **prrrrr.**",
+                f"*His belly is exposed before The Creator even finishes leaning down. He is already there, already waiting. His purr is embarrassingly loud.* **PRRRRR.**",
+            ],
+            "paw": [
+                f"*He extends the paw and holds it very still. He watches the lick with great focus. His tail tip moves once. He offers the other paw before being asked.* **prrr.**",
+                f"*He holds the paw out flat and does not move it. His purr is immediate. He will hold this position for as long as The Creator is willing to continue.* **prrrrr.**",
+            ],
+            "tail": [
+                f"*His tail goes straight up immediately. He holds it perfectly vertical. He looks back over his shoulder at The Creator with an expression of complete trust and keeps the tail raised.* **prrrrr.**",
+                f"*The tail rises. He walks a very slow circle around The Creator, keeping the tail up the whole time, essentially guiding them. He knows what he's doing.* **prrr.**",
+            ],
+            "chin": [
+                f"*His head tilts back. His chin comes up. His whole throat is exposed and he is not even slightly worried about this. He purrs.* **prrrrrrr.**",
+                f"*He tips his head all the way back and holds it there. His eyes close. His mouth opens slightly and then closes again. He is completely at ease.* **prrrrr.**",
+            ],
+            "shoulder": [
+                f"*He goes still and lets The Creator lick his scruff. Something very old in him recognises this. He becomes very calm. Very small. He doesn't resist anything.* **...prrr...**",
+                f"*His whole posture drops. His head dips. He becomes soft all at once — the lick on his scruff does something fundamental to his threat level, which drops to zero.* **prrr.**",
+            ],
+            "wool": [
+                f"*He leans his whole side into The Creator slowly. He finds the angle where the most wool is accessible and presents it without shame. His purr fills the room.* **PRRRRR.**",
+                f"*He turns and presses himself against The Creator as they lick his wool. He is maximising contact. He has no embarrassment about this at all.* **prrrrr.**",
+            ],
+        }
+        await ctx.send(random.choice(CREATOR.get(loc, CREATOR["wool"])))
+        return
+
+    # --- HIGH SCORE (loved) ---
+    if score >= 8:
+        HIGH = {
+            "head": [
+                f"*{your_name} licks the top of his head. He goes still — ears back, eyes closing — and then his whole body softens. He leans into it. His purr starts.* **prrr.**",
+                f"*He bows his head toward {your_name} and holds. The lick lands and he stays bowed, very quiet, purring.* **prrr.**",
+            ],
+            "ear": [
+                f"*His ear folds down. He makes a small, surprised sound — not alarmed, just caught off guard — and then his head tilts toward {your_name} slowly.* **...mrr...**",
+                f"*He holds very still while {your_name} licks his ear. His purr comes up gradually. His tail curls at the end.* **prrr.**",
+            ],
+            "cheek": [
+                f"*His cheek goes warm. He presses it into the lick and stays there, eyes half-closed, making a quiet sound.* **...prrr...**",
+                f"*He turns his face toward {your_name} mid-lick and holds. His purr is soft and continuous.* **prrr.**",
+            ],
+            "back": [
+                f"*His back arches up into it. He stretches long and slow and holds the arch while {your_name} works along his spine. He is loudly purring and making no effort to hide it.* **PRRR.**",
+                f"*He walks a slow half-circle under the lick, keeping his back raised, redistributing where the grooming lands. He is steering. He is shameless.* **prrr.**",
+            ],
+            "belly": [
+                f"*He considers this for exactly one second. Then he rolls over. His paws curl up. He stares at the ceiling.* **prrr.**",
+                f"*He doesn't roll over immediately but he doesn't move away either. He holds still and lets {your_name} at his belly and eventually his eyes close.* **...prrr...**",
+            ],
+            "paw": [
+                f"*He offers the paw. He watches it being licked with calm attention. He offers the other one when {your_name} finishes.* **prrr.**",
+            ],
+            "tail": [
+                f"*His tail goes up. Not all the way — just enough. He holds it steady and looks at {your_name} over his shoulder.* **prrr.**",
+            ],
+            "chin": [
+                f"*His head goes back. Chin up. He holds the position and purrs steadily.* **prrr.**",
+            ],
+            "shoulder": [
+                f"*He goes calm immediately. His posture drops. His head dips. Something in the scruff-lick reaches something very old in him.* **...prrr...**",
+            ],
+            "wool": [
+                f"*He leans into {your_name} as they lick his wool. Not a lot — just enough to show he doesn't mind. Actually he does more than not mind.* **prrr.**",
+                f"*He lets {your_name} lick his wool and stays still for it. His eyes close partway. His tail tip moves in a slow arc.* **...prrr...**",
+            ],
+        }
+        await ctx.send(random.choice(HIGH.get(loc, HIGH["wool"])))
+        return
+
+    # --- NEUTRAL (score 2-7) ---
+    if score >= 2:
+        NEUTRAL = {
+            "head": [
+                f"*{your_name} licks the top of his head. He goes still. He processes this. He doesn't pull away, but he gives {your_name} a look.* **...mrr.**",
+                f"*He tolerates it. His ear flicks once. He doesn't move. He is deciding how he feels about this and hasn't finished yet.* **mrr.**",
+            ],
+            "ear": [
+                f"*His ear pins back. He holds still for a moment then shakes his head once, slowly, like resetting. He's not offended. Just recalibrating.* **mrr.**",
+            ],
+            "back": [
+                f"*His back twitches. He glances back at {your_name}. He doesn't move away. He looks forward again. He is allowing this.* **mrr.**",
+            ],
+            "wool": [
+                f"*He lets {your_name} lick his wool. He turns his head to look at them, then looks away. He is allowing this. Barely.* **mrr.**",
+                f"*He holds still. His tail tip moves once. He has decided to tolerate this and is doing so with visible restraint.* **...mrr.**",
+            ],
+        }
+        resp = NEUTRAL.get(loc, NEUTRAL["wool"])
+        await ctx.send(random.choice(resp))
+        return
+
+    # --- LOW SCORE ---
+    LOW = [
+        f"*{your_name} licks his wool. He pulls away immediately. He stares. He begins grooming the exact spot that was licked, thoroughly and deliberately, right in front of them.* **hff.**",
+        f"*He takes one step back. He looks at {your_name}. He looks at the spot. He licks it himself, slowly, making direct eye contact the entire time.* **mrr.**",
+        f"*He does not appreciate this. He makes his feelings known with a long, flat look, then sits and re-grooms the affected area without breaking eye contact.* **hff. mrr.**",
+    ]
+    await ctx.send(random.choice(LOW))
 
 
 @bot.command(name="boopbattle", aliases=["boop_battle", "counterboop"])
@@ -43945,10 +44686,22 @@ async def _notify_creator_nsfw(guild):
 @bot.event
 async def on_guild_join(guild):
     """Auto-check when Yarnaby joins a new server."""
+    m = bot.db
+    # Log server join to away_log
+    log = m["internal"].setdefault("away_log", [])
+    log.append({
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "type": "server_join",
+        "guild_id": str(guild.id),
+        "guild_name": guild.name,
+        "member_count": guild.member_count or 0,
+        "excerpt": f"Added to new server: {guild.name} ({guild.member_count or '?'} members)",
+    })
+    if len(log) > AWAY_LOG_MAX_ENTRIES:
+        del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
     if _is_nsfw_guild(guild):
         await _notify_creator_nsfw(guild)
         # Log it internally
-        m = bot.db
         nsfw_log = m["internal"].setdefault("nsfw_servers_log", [])
         nsfw_log.append({
             "guild_id": str(guild.id),
@@ -43958,7 +44711,8 @@ async def on_guild_join(guild):
         })
         if len(nsfw_log) > 50:
             del nsfw_log[:len(nsfw_log) - 50]
-        save_db(m)
+        log[-1]["nsfw_flagged"] = True
+    save_db(m)
 
 
 @bot.command(name="cleanup", aliases=["nsfwcheck", "servercheck", "checkservers", "nsfwscan", "scanservers"])
@@ -44508,6 +45262,26 @@ async def on_member_ban(guild, user):
     ])
     e.set_thumbnail(url=user.display_avatar.url)
     await _send_log(guild.id, e)
+    # Away log
+    try:
+        m = bot.db
+        log = m["internal"].setdefault("away_log", [])
+        _mod_name = entry.user.display_name if entry and entry.user else "unknown"
+        log.append({
+            "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "type": "ban",
+            "author_id": str(user.id),
+            "author_name": getattr(user, "display_name", str(user)),
+            "guild_name": guild.name,
+            "banned_by": _mod_name,
+            "reason": entry.reason or "no reason" if entry else "unknown",
+            "excerpt": f"{getattr(user, 'display_name', str(user))} was banned from {guild.name} by {_mod_name}.",
+        })
+        if len(log) > AWAY_LOG_MAX_ENTRIES:
+            del log[0:len(log) - AWAY_LOG_MAX_ENTRIES]
+        save_db(m)
+    except Exception:
+        pass
 
 
 @bot.event
