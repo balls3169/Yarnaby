@@ -26016,88 +26016,6 @@ async def trust_cmd(ctx):
     await ctx.send(f"{tier_line}\n*(score: **{score}**)*")
 
 
-# ==========================================
-# !window - Yarnaby looks outside
-# ==========================================
-@bot.command(name="window", aliases=["outside", "lookout", "lookoutside", "outsideview"])
-async def window_cmd(ctx):
-    """Yarnaby goes to the window and looks out."""
-    m = bot.db
-    is_doctor = ctx.author.id == DOCTOR_ID
-    await _add_reactions(ctx, m)
-
-    if m["internal"]["is_sleeping"]:
-        await ctx.send("*He's asleep. The window will have to wait.* **...prrr...**")
-        return
-
-    last_w = m["internal"].get("last_window_at")
-    if last_w and not is_doctor:
-        try:
-            lw = datetime.strptime(last_w, "%Y-%m-%d %H:%M:%S")
-            remaining = 1200 - int((datetime.now() - lw).total_seconds())
-            if remaining > 0:
-                await ctx.send(f"*He's already had his window time. He'll want it again later. ({remaining}s)*")
-                return
-        except Exception:
-            pass
-
-    m["internal"]["last_window_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    now_ist = datetime.now(timezone.utc).replace(tzinfo=None) + ISTANBUL_OFFSET
-    hour = now_ist.hour
-    month = now_ist.month
-
-    season = "summer" if month in (6, 7, 8) else "autumn" if month in (9, 10, 11) else "winter" if month in (12, 1, 2) else "spring"
-
-    if 5 <= hour < 8:
-        time_pool = [
-            f"*Yarnaby pads to the window and puts his nose against the glass. The street below is almost entirely empty. One pigeon investigates something near the kerb. He watches the pigeon for a very long time. The pigeon has no idea. **...mrr...***",
-            f"*He finds the window and sits in front of it, watching the grey-pink light come up over the rooftops. His tail curls around his paws. He is not looking at anything specific. He is just watching the world start.* **...prrr...**",
-            f"*He squints at the early light and flicks one ear at a distant sound he can't quite identify. Someone is opening something, somewhere. A door, maybe. He files this.* **mrr.**",
-        ]
-    elif 8 <= hour < 12:
-        time_pool = [
-            f"*He jumps to the windowsill and surveys the morning street below. Delivery van. Two pedestrians arguing with each other's coats. A dog. He tracks the dog until it's gone, then sits up straight and reassesses the street without it.* **chrrp.**",
-            f"*He presses his forehead against the glass and steams it slightly. He watches a bus go by. He is absolutely transfixed by the bus. He watches the space where the bus was for a while after.* **...mrr...**",
-            f"*He sits at the window and observes the morning. The street is awake. He catalogs: three birds on the far rooftop, a cart, sunlight on a specific window across the way. He knows this view. He checks it anyway.* **mrr.**",
-        ]
-    elif 12 <= hour < 16:
-        time_pool = [
-            f"*Afternoon light lies flat across the windowsill and Yarnaby finds it immediately. He sits in it with great intention and blinks slowly at the city below. He has found the exact best place.* **...prrr...**",
-            f"*He watches the lunch crowd from above with patient, elevated calm. People moving, stopping, moving again. He assesses. He judges nothing. He just watches.* **...mrr...**",
-            f"*He looks out at the street and his ear swivels at something - a distant horn, a shout, something that resolves into nothing interesting. He remains. The street owes him at least one interesting thing and he will wait.* **mrr.**",
-        ]
-    elif 16 <= hour < 20:
-        time_pool = [
-            f"*He goes to the window as the light starts changing. The streets below are filling again - end of day, everyone going somewhere. He sits with his chin on the sill and watches the movement with calm, unhurried attention.* **...prrr...**",
-            f"*He presses his paw against the glass and watches his reflection do the same. Then he looks past it, at the city going amber in the late sun. He stays there for a while.* **mrr.**",
-            f"*The light is going golden and Yarnaby has his nose on the glass, breathing small clouds onto it. Pigeons on the far roof. A minaret catching the last of the sun. He takes his time with all of it.* **...prrr...**",
-        ]
-    elif 20 <= hour < 23:
-        time_pool = [
-            f"*He sits at the window in the dark and watches the city lights below. He has been here a while. His wool is soft in the window-glow. The street is quieter now. He seems to like it like this.* **...prrr...**",
-            f"*He looks down at the lit street with glass eyes that catch the light from outside. He watches two people talking below for a long time. He doesn't know what they're saying. He watches anyway.* **...mrr...**",
-            f"*He finds the window and sits in it and looks out at the evening. Lights are on everywhere. The city is still going. He is going to be here for a while. He has nowhere else to be.* **prrr.**",
-        ]
-    else:
-        time_pool = [
-            f"*He pads to the window at whatever hour this is. The street below is mostly empty. One light on in a building across the way. He sits and watches that one light for a long time.* **...mrr...**",
-            f"*The city at this hour is quiet and strange and he watches it from the window with perfect patience. There is almost nothing to see. He does not need there to be something. He is comfortable with the quiet dark.* **...prrr...**",
-            f"*He jumps to the sill and crouches there in the dark, small and watchful, his breath fogging the glass. The street below is empty. Something passes - a cat, maybe, or a trick of the light. He tracks it until it's gone.* **...mrr...**",
-        ]
-
-    SEASON_SUFFIX = {
-        "summer": [" *The glass is warm from the day's heat.*", " *The air outside, even through the glass, is warm.*", ""],
-        "autumn": [" *A few leaves cross the frame of the window, unhurried.*", " *The trees he can see are changing colour.*", ""],
-        "winter": [" *The glass is cold. He doesn't move away from it.*", " *His breath makes bigger clouds on the cold window.*", " *Outside the city looks clean and sharp in the cold light.*"],
-        "spring": [" *There are birds today that weren't there last week.*", " *Something is blooming on the far balcony across the way.*", ""],
-    }
-
-    line = random.choice(time_pool) + random.choice(SEASON_SUFFIX[season])
-    await ctx.send(line)
-    m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 1)
-    save_db(m)
-
 
 # ==========================================
 # !territory - What he has claimed
@@ -26874,7 +26792,7 @@ async def chirp_cmd(ctx):
 # ==========================================
 # !window - he goes to the window and watches
 # ==========================================
-@bot.command(name="window")
+@bot.command(name="window", aliases=["outside", "lookout", "lookoutside", "outsideview"])
 async def window_cmd(ctx):
     """Yarnaby sits at the window and watches the world outside."""
     m = bot.db
