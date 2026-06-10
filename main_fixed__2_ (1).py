@@ -2765,8 +2765,8 @@ def _get_lang(m: dict, guild_id=None) -> str:
 
 
 async def get_dynamic_prefix(bot, message):
-    """Accept !cmd, **cmd**/**cmd, and yarn!cmd."""
-    return ["yarn!", "**", "!"]
+    """Accept !cmd, /cmd, **cmd**/**cmd, and yarn!cmd."""
+    return ["yarn!", "**", "!", "/"]
 
 
 def parse_action_command(content):
