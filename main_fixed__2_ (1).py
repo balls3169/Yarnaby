@@ -2802,7 +2802,7 @@ class Yarnaby(commands.Bot):
             _random_sound_tick.start()
         if not _tape_struggle_tick.is_running():
             _tape_struggle_tick.start()
-        for task_name in ("_wool_regrowth_tick", "_ambient_behaviour_tick", "_extra_ambient_tick", "_video_ambient_tick", "_natural_ambient_tick", "_mofu_ambient_tick", "_forgetting_tick", "_hunger_reminder_tick", "_child_dead_ambient_tick", "_toilet_ambient_tick"):
+        for task_name in ("_wool_regrowth_tick", "_ambient_behaviour_tick", "_extra_ambient_tick", "_video_ambient_tick", "_natural_ambient_tick", "_mofu_ambient_tick", "_forgetting_tick", "_hunger_reminder_tick", "_bath_reminder_tick", "_child_dead_ambient_tick", "_toilet_ambient_tick"):
             task = globals().get(task_name)
             if task is not None and not task.is_running():
                 task.start()
@@ -17341,6 +17341,226 @@ async def groom_cmd(ctx, *, spot: str = ""):
     if u_id in m["social_matrix"] and not is_doctor and _cooldown_remaining(m, f"groom_score:{u_id}", COOLDOWN_GROOM_SCORE) <= 0 and m["social_matrix"][u_id].get("score", 0) < GROOM_SCORE_CAP:
         m["social_matrix"][u_id]["score"] += 1
         _set_cooldown(m, f"groom_score:{u_id}")
+    save_db(m)
+
+
+# ==========================================
+# !selfgroom - Yarnaby grooms himself
+# ==========================================
+@bot.command(name="selfgroom")
+async def selfgroom_cmd(ctx, *, spot: str = ""):
+    """Watch Yarnaby groom himself - specify a body part, use 'full' for a full clean, or leave blank for a random one."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send("*He's asleep. He'll sort his wool later.* **...prrr...**")
+        return
+
+    if m["internal"].get("is_dead", False):
+        await ctx.send("*...*")
+        return
+
+    # ── Dirty check — refuse to self-groom if visibly dirty ──────────────────
+    cleanliness = m["stats"].get("cleanliness", 0)
+    if cleanliness >= CLEAN_DIRTY_THRESHOLD:
+        await ctx.send(random.choice([
+            "*He starts to lick his paw. He stops. He looks at it. He puts it down.* **hff.**\n*(He is too dirty to groom himself. Licking the filth would only make it worse. He needs a `!bath` first.)*",
+            "*He lifts his paw toward his face, then pauses. His nose wrinkles. He sets the paw back down firmly and looks away.* **mrr. hff.**\n*(He is too dirty. He refuses to lick that into himself. `!bath` him first.)*",
+            "*He begins grooming, licks once, and stops dead. His ear flattens. He shakes his head slightly and tucks the paw away.* **...hff.**\n*(Too dirty. He knows what licking that would do. He is not doing it. He needs a `!bath`.)*",
+            "*One lick. He freezes. His whole expression shifts into something deeply offended. He does not continue.* **mrr. hff.**\n*(He is dirty enough that self-grooming would spread the filth inward. He refuses. Please give him a `!bath`.)*",
+            "*He tries. He immediately stops trying. He sits upright with great dignity and does not explain himself.* **hff.**\n*(He's too dirty to safely groom himself. It would go in his mouth. He is not doing that. `!bath` required.)*",
+        ]))
+        return
+
+    SELF_GROOM_SPOTS = {
+        "paw": {
+            "keywords": ["paw", "paws", "foot", "feet", "toes"],
+            "responses": [
+                "*He lifts one front paw and regards it with great seriousness. Then he licks it - once, twice, three times - in long deliberate strokes. He turns it over. He licks that side too. He is very thorough about paws.* **...prrr...**",
+                "*He starts on his front paw like he has an appointment with it. Lick. Lick. Lick. Each pass of his tongue careful and even. He does not rush paws. Paws are important.* **prrr.**",
+                "*He pauses mid-whatever, holds up a paw, and begins licking it with the focused expression of someone completing a critical task. He works between each toe individually. He does not acknowledge you.* **...mrr...**",
+                "*One paw gets lifted. Inspected. Found wanting. He licks it into compliance, slow and methodical, toe by toe. When he's done he sets it down and lifts the other one.* **prrr.**",
+                "*He licks his paw and then uses the damp paw to scrub at his face in a small circle. Lick. Scrub. Lick. Scrub. He is building to something larger.* **...prrr...**",
+            ],
+        },
+        "face": {
+            "keywords": ["face", "muzzle", "nose", "forehead", "head"],
+            "responses": [
+                "*He licks his paw thoroughly, then draws it in a long arc over his face - from nose to ear - and repeats it until the whole side is done. Then the other side. He is very systematic about his face.* **prrr.**",
+                "*He scrubs his face with a damp paw in quick, determined circles. His ear folds forward under the motion. He rights it, smooths it down, and does it again.* **...prrr...**",
+                "*He pauses and licks his paw slowly, then wipes it across his forehead in one firm stroke. He blinks. He does it again. He seems to feel this is correcting something important.* **mrr.**",
+                "*Paw. Lick. Lick. Lick. Then up and over his nose, down his muzzle, around the eye. He has a system. The system is working.* **...prrr...**",
+                "*He does his face with the patient efficiency of something that has done this ten thousand times. Lick the paw. Wipe the face. Lick. Wipe. He'll be at this a while.* **prrr.**",
+            ],
+        },
+        "ear": {
+            "keywords": ["ear", "ears"],
+            "responses": [
+                "*He licks his paw and drags it over one ear in a slow, firm arc - flattening the ear forward, then releasing it. It springs back. He checks his work. He does it again.* **...prrr...**",
+                "*He works on the base of his ear with focused attention, licking his paw and wiping in careful circles. His ear folds flat. Comes back. Folds flat again.* **prrr.**",
+                "*He tips his head sideways and licks the inside of his own ear in a way that seems physically improbable. He manages it anyway. He is committed.* **mrr. ...prrr...**",
+                "*He licks his paw and applies it to his ear with great ceremony. Stroke. Stroke. Stroke. The ear goes flat, gets smoothed, stands back up. He does the other one too.* **prrr.**",
+                "*His paw works over his ear in tight circles - inside, outside, around the back. He does this until he is satisfied. His definition of satisfied is thorough.* **...mrr...**",
+            ],
+        },
+        "whiskers": {
+            "keywords": ["whisker", "whiskers", "vibrissae"],
+            "responses": [
+                "*He licks his paw carefully and draws it along his whiskers — one side, then the other — smoothing each one back into perfect alignment. He does this twice. He checks the result. He is satisfied.* **...prrr...**",
+                "*He starts with the left side: paw, lick, one long careful stroke along the whiskers. Then the right. He does it with the gravity of someone calibrating something important.* **mrr. prrr.**",
+                "*He lifts his paw to his whiskers and pauses for a moment — as if deciding the correct approach — then draws it along in a single smooth arc. He repeats it until the whiskers lie flat and even.* **...prrr...**",
+                "*Each whisker gets attention individually. He licks his paw, finds the base of one, draws the paw along the full length. Moves to the next. He has a lot of whiskers. He does not skip any.* **prrr.**",
+                "*He touches his paw to the tip of one whisker, almost delicately, and smooths it back. Then the next. He is very precise about whiskers. They must be correct.* **...mrr. prrr...**",
+            ],
+        },
+        "chest": {
+            "keywords": ["chest", "front", "sternum", "breast"],
+            "responses": [
+                "*He tucks his chin down and licks his chest in long, slow strokes, working through the wool carefully. Small tufts shift. He irons them back down with his tongue.* **prrr.**",
+                "*He bends his head to his chest and grooms the front of himself with quiet, unhurried focus. The purr starts up on its own. He doesn't stop.* **...prrr...**",
+                "*He licks his chest fur flat, then ruffles it back up accidentally, then licks it flat again. He is at peace with this process. It will take as long as it takes.* **prrr.**",
+                "*He grooms his chest with his tongue in neat, parallel lines like he's mowing something. His eyes are half-closed. He is deeply, privately satisfied.* **...mrr. prrr...**",
+                "*He folds himself slightly to reach his chest and licks it in slow arcs. He finds a tangle. He works at it patiently until it isn't one anymore.* **prrr.**",
+            ],
+        },
+        "belly": {
+            "keywords": ["belly", "tummy", "stomach", "underside", "abdomen"],
+            "responses": [
+                "*He lies down, tips onto one side, and begins grooming his belly with calm, methodical licks. One leg kicks out slightly for access. He doesn't acknowledge it.* **...prrr...**",
+                "*He twists himself into a shape that seems inadvisable and licks his belly fur in careful rows. He is very flexible about this. He has done it before.* **prrr.**",
+                "*He sits up, looks down at his belly with mild judgment, and begins to address it. Long strokes of his tongue, very deliberate, working through the underside wool section by section.* **...mrr. prrr...**",
+                "*He rolls partly onto his back and grooms his stomach with focused intensity, holding one leg up and out of the way. He is a professional. He makes this look easy.* **prrr.**",
+                "*He devotes a long, patient stretch of time to his belly, licking methodically from sternum downward. Occasionally he pauses, assesses, and continues. He has standards.* **...prrr...**",
+            ],
+        },
+        "back": {
+            "keywords": ["back", "spine", "shoulders", "shoulder", "flanks", "flank"],
+            "responses": [
+                "*He twists his neck around and licks his shoulder with a long stroke, then keeps going down his side as far as he can reach. He gets pretty far. He stretches further.* **prrr.**",
+                "*He bends himself nearly double and licks along his own back with the dedication of something that has no concept of anatomical limits. He reaches. He gets it.* **...prrr...**",
+                "*He works on his flank in slow, careful passes, smoothing the wool flat with his tongue. He pauses to check his work. He resumes. He is particular about his sides.* **mrr. prrr.**",
+                "*He cranes around to reach his own shoulder and licks it steadily, working the fur into order. His eyes go soft and unfocused. This is meditative, for him.* **...prrr...**",
+                "*He reaches back to lick his spine region - just barely in range - and works at it until he's satisfied, then turns to the other side and does that too.* **prrr.**",
+            ],
+        },
+        "tail": {
+            "keywords": ["tail"],
+            "responses": [
+                "*He takes his tail in both paws, holds it still, and begins licking it from base to tip in one long, even stroke. Then again. And again. His tail is going to be perfect.* **...prrr...**",
+                "*He draws his tail across his lap and grooms it methodically, section by section, smoothing every part of the fur before moving on. He does not rush tails.* **prrr.**",
+                "*He bites gently at a small snag in his tail fur, works it loose, and then smooths the whole thing flat with several long licks. He checks the result. Adequate.* **mrr. prrr.**",
+                "*He wraps his tail around and licks it from the base outward, holding it steady with one paw. Very thorough. Very focused. His tail knows it's being taken care of.* **...prrr...**",
+                "*He grooms the end of his tail with quick, precise licks, then holds it up and squints at the tip. He licks it once more. He puts it down. Done.* **prrr.**",
+            ],
+        },
+        "leg": {
+            "keywords": ["leg", "legs", "thigh", "shin", "ankle", "hindleg", "hindlegs", "foreleg", "forelegs"],
+            "responses": [
+                "*He extends one hind leg straight out behind him and licks along the whole length of it in slow, thorough strokes. He holds this position for a long time. He is boneless with concentration.* **...prrr...**",
+                "*He raises his leg at an angle that looks uncomfortable and licks the inside of it carefully, working down toward the ankle. He doesn't seem to find any of this difficult.* **prrr.**",
+                "*He licks his foreleg from elbow to paw in one continuous stroke, then reverses and does it again. He considers it. He does it a third time.* **...mrr...**",
+                "*He sits back and extends a hind leg and begins grooming it with the same focused patience he brings to everything. Long strokes. Even pressure. No part is missed.* **prrr.**",
+                "*He licks his leg clean in smooth, unhurried passes, working through the wool carefully. He finds a small knot and deals with it. He continues.* **...prrr...**",
+            ],
+        },
+    }
+
+    # Full-body groom sequence
+    FULL_GROOM_ORDER = ["paw", "face", "whiskers", "ear", "chest", "belly", "back", "leg", "tail"]
+    FULL_GROOM_INTRO = [
+        "*He settles into position. Something about the set of his shoulders says: this is happening properly today.*",
+        "*He sits very straight. He looks at his paw. He looks at the rest of himself. He has decided something.*",
+        "*He tucks himself into a deliberate, upright sit. He is doing the whole thing. He has made up his mind.*",
+        "*He finds a comfortable spot and settles. His tail curls around his paws. He begins.*",
+        "*He shakes himself once, lightly — like clearing the queue — and then begins at the beginning.*",
+    ]
+    FULL_GROOM_REACTIONS = {
+        "paw": [
+            "*He starts with his paw. Lick. Lick. Lick. Toe by toe. He is very thorough about paws. Paws are the foundation.*",
+            "*The paw first. He licks between each toe carefully, then the pad, then the back. His expression is focused.*",
+            "*He begins with his front paw — lifts it, inspects it, starts licking. Methodical. He does not skip toes.*",
+        ],
+        "face": [
+            "*The damp paw goes up to his face. He scrubs in deliberate circles — nose, eye, cheek, up to the ear. He does both sides.*",
+            "*He wipes his face in long arcs: paw to forehead, down around the eye, across the muzzle. Systematic.*",
+            "*Face next. Lick the paw. Wipe the face. He works through it with quiet efficiency.*",
+        ],
+        "whiskers": [
+            "*He runs his damp paw along his whiskers — one side, then the other — drawing them back into perfect alignment. Each one.*",
+            "*The whiskers get careful attention. He smooths each one back with the tip of his paw. He checks the result. He does it again.*",
+            "*He licks his paw and draws it along his whiskers with a single, deliberate stroke. Pauses. Does the other side.*",
+        ],
+        "ear": [
+            "*His paw works over one ear in firm strokes — flattening it forward, smoothing the outer edge, circling the base. Then the other.*",
+            "*Both ears. He drags his paw over each in slow arcs, flattening and releasing, until they are exactly as they should be.*",
+            "*He addresses each ear in turn: paw up, stroke down, circle the base, check, release. He does not rush ears.*",
+        ],
+        "chest": [
+            "*He dips his chin and begins on his chest — long, slow strokes, working through the wool until it lies flat.*",
+            "*Chest next. He licks it in neat rows from collar to belly, ironing the wool down with each pass.*",
+            "*He bends to his chest and grooms it steadily. The purr starts up quietly on its own. He doesn't stop.*",
+        ],
+        "belly": [
+            "*He tips onto one side for his belly, one leg extended out of the way. Methodical. Unhurried. He has done this many times.*",
+            "*He twists to reach his underside and licks it in careful sections. He is flexible about this. The belly gets done properly.*",
+            "*Belly. He devotes real time to it — section by section, slow strokes. He has standards.*",
+        ],
+        "back": [
+            "*He cranes back to reach his shoulder and licks along the flank as far as he can reach. Then he turns and does the other side.*",
+            "*He works his way along his back and sides, bending nearly double to get the hard-to-reach parts. He gets them.*",
+            "*His back and flanks, methodically. He stretches further than seems reasonable. He manages. He is particular about his sides.*",
+        ],
+        "leg": [
+            "*He extends a hind leg behind him and licks the full length of it in smooth strokes. Then the other. He is boneless with concentration.*",
+            "*Both hind legs, thoroughly. He licks from hip to ankle on each, taking his time.*",
+            "*He does his legs with the same even patience as everything else. Full strokes. No part missed.*",
+        ],
+        "tail": [
+            "*He takes his tail in both paws and licks it from base to tip. Then again. His tail is going to be perfect. This is the end.*",
+            "*The tail last. He draws it across his lap and grooms it section by section, smoothing every strand before he finishes.*",
+            "*He wraps his tail around and addresses it completely — base, middle, tip. He holds the tip up and inspects it. Done.*",
+        ],
+    }
+    FULL_GROOM_OUTRO = [
+        "*He sits straight. He surveys the room. He is in perfect condition and he is aware of it.* **prrr.**",
+        "*He finishes. He tucks his paws. He looks forward with the serene expression of something that has done everything correctly.* **...prrr...**",
+        "*He is done. He smooths one last bit of chest fur with his chin and sits up. He looks very good. He is at peace.* **prrr.**",
+        "*He settles back into stillness. He is immaculate. This is documented.* **...prrr...**",
+        "*He finishes with his tail and folds it neatly around himself. He is complete.* **mrr. prrr.**",
+    ]
+
+    spot_clean = spot.strip().lower()
+
+    # ── Full clean ────────────────────────────────────────────────────────────
+    if spot_clean in ("full", "all", "everything", "whole", "complete"):
+        await ctx.send(random.choice(FULL_GROOM_INTRO))
+        await asyncio.sleep(1.2)
+        for part in FULL_GROOM_ORDER:
+            reaction_line = random.choice(FULL_GROOM_REACTIONS[part])
+            await ctx.send(reaction_line)
+            await asyncio.sleep(1.0)
+        await ctx.send(random.choice(FULL_GROOM_OUTRO))
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+        save_db(m)
+        return
+
+    # ── Specific spot or random ───────────────────────────────────────────────
+    matched_spot = None
+    if spot_clean:
+        for canonical, data in SELF_GROOM_SPOTS.items():
+            if any(kw in spot_clean for kw in data["keywords"]):
+                matched_spot = canonical
+                break
+        if not matched_spot:
+            valid = ", ".join(f"`{s}`" for s in SELF_GROOM_SPOTS) + ", `full`"
+            await ctx.send(f"*He tilts his head. You can ask about: {valid}*")
+            return
+    else:
+        matched_spot = random.choice(list(SELF_GROOM_SPOTS.keys()))
+
+    await ctx.send(random.choice(SELF_GROOM_SPOTS[matched_spot]["responses"]))
+    m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 1)
     save_db(m)
 
 
@@ -50536,6 +50756,64 @@ async def _hunger_reminder_tick():
             ]))
     except Exception as e:
         import logging as _logging; _logging.getLogger("yarnaby").warning("[hunger reminder] %s", e)
+
+
+@tasks.loop(minutes=60)
+async def _bath_reminder_tick():
+    """Passive ambient bath notifications when he is dirty enough (cleanliness >= 5).
+    At 5+ he will willingly ask for a bath himself."""
+    await bot.wait_until_ready()
+    m = bot.db
+    if m["internal"].get("is_sleeping"):
+        return
+    cleanliness = m["stats"].get("cleanliness", 0)
+    if cleanliness < 5:
+        return
+    ch_id = m["internal"].get("home_channel_id") or m["internal"].get("original_home_channel_id")
+    if not ch_id:
+        return
+    ch = bot.get_channel(int(ch_id))
+    if not ch:
+        return
+
+    # Cooldown — don't spam if already reminded recently
+    _brt_key = "last_bath_reminder_at"
+    last_str = m["internal"].get(_brt_key, "")
+    if last_str:
+        try:
+            hours_since = (datetime.now() - datetime.strptime(last_str, "%Y-%m-%d %H:%M:%S")).total_seconds() / 3600
+            if hours_since < 2:
+                return
+        except Exception:
+            pass
+
+    m["internal"][_brt_key] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_db(m)
+
+    try:
+        if cleanliness >= 9:
+            # Filthy — he is miserable and very openly asking
+            await ch.send(random.choice([
+                "*He is visibly, undeniably filthy. He stands in the middle of the room and stares at whoever is present with the expression of a creature who has given up on subtlety. He wants a bath. He wants one now. He is not above asking directly.* **mrr. BATH. mrr.**",
+                "*He approaches and stops in front of you. He sits. He waits. He smells terrible and he knows it and he is making it your problem now.* **mrr. mrr.**",
+                "*He sniffs himself. He looks at you. He sniffs himself again. He looks at you again. This is a request. He is asking. Please give him a `!bubblebath`.* **mrr.**",
+            ]))
+        elif cleanliness >= 7:
+            # Very dirty — he's actively seeking out bath time
+            await ch.send(random.choice([
+                "*He pads toward wherever the bath usually happens and sits there, looking back at the room expectantly. He is not subtle about this.* **...mrr.**",
+                "*He has been grooming himself for twenty minutes and it is not working. He gives up and looks at whoever is nearby with a very specific kind of look. He would like a `!bath`.* **mrr.**",
+                "*He finds you. He sits in front of you. He does not move. He smells of dust and something he rolled in earlier that he now regrets. He is asking.* **...mrr. mrr.**",
+            ]))
+        else:
+            # Dirty enough (5–6) — he is willing, perhaps even quietly hoping for it
+            await ch.send(random.choice([
+                "*He pauses mid-groom and makes a small, resigned sound. He is not clean enough and he knows it. He would not object to a `!bath` right now.* **...mrr.**",
+                "*He glances toward the bath area. Just once. Then he looks away. He is not asking. He is simply noting. He would say yes if asked.* **...mrr.**",
+                "*He sits and twitches his nose at his own fur. Something about this displeases him. He would be agreeable about a `!bubblebath` if someone were to suggest it.* **...mrr.**",
+            ]))
+    except Exception as e:
+        import logging as _logging; _logging.getLogger("yarnaby").warning("[bath reminder] %s", e)
 
 
 # ==========================================
