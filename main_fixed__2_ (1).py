@@ -12598,6 +12598,9 @@ async def help_cmd(ctx, *, section: str = None):
             "  milestones reached, first message, toxic attempts, last gift / last food\n"
             "- `!broadcast [message]` / `!announce` - send a narrator-style italicised message\n"
             "  directly to the home channel, not attributed to any user\n"
+            "- `!narrator` - toggle narrator mode per server\n"
+            "  When OFF: all responses become pure cat sounds — no italic narration, no prose\n"
+            "  Toggle again to bring the narrator back (comes with a return flavour message)\n"
             "- `!missing` / `!whosmissing` - who hasn't been seen in 5+ days\n"
             "- `!forget <concept>` / `!unlearn` - remove something from his vocabulary\n"
             "- `!dream` / `!hisdream` - ask what he dreamed (he tells The Creator more)\n"
@@ -28112,7 +28115,7 @@ async def countdown_cmd(ctx):
 # ==========================================
 # !broadcast [message] - Creator only: narrator-style message to home channel
 # ==========================================
-@bot.command(name="broadcast", aliases=["announce", "narrator", "yarnyannounce", "servermsg"])
+@bot.command(name="broadcast", aliases=["announce", "yarnyannounce", "servermsg"])
 async def broadcast_cmd(ctx, *, message: str = ""):
     """[Creator only] Send a narrator-style message to the home channel."""
     if ctx.author.id != DOCTOR_ID:
