@@ -6206,6 +6206,8 @@ async def on_message(message):
 
     # --- THE OTHERS (SOCIAL MATRIX) ---
     else:
+        is_doctor = message.author.id == DOCTOR_ID
+        score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
         if u_id in m["social_matrix"]:
             _last_seen_str = m["social_matrix"][u_id].get("last_seen")
             last_seen = (
