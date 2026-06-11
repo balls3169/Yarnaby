@@ -165,6 +165,41 @@ async def _translate_text(text: str, target: str) -> str:
     return text  # all mirrors failed; return original unchanged
 
 
+_CAT_SOUNDS = [
+    "**mrr.**", "**mrrp.**", "**...mrr.**", "**prrr.**", "**prrt.**",
+    "**mrow.**", "**mreow.**", "**...mrow.**", "**hff.**", "**...hff.**",
+    "**mrrrow.**", "**prp.**", "**...prrr.**", "**mrrup.**", "**reow.**",
+    "**...mrrp.**", "**mrf.**", "**...mrf.**", "**prrp.**", "**mreoww.**",
+]
+
+def _strip_to_cat_sounds(text: str) -> str:
+    """When narrator is off, strip all italic narration and bold narration,
+    leaving only raw cat sounds, then pad with extra sounds if the result is thin."""
+    import re
+    # Extract bold cat-sound tokens like **mrr.** or *mrr* — anything bold/italic short
+    kept = []
+    # Keep **word** bold tokens that look like sounds (short, no spaces)
+    for m in re.finditer(r'\*\*([^*\n]{1,20})\*\*', text):
+        kept.append(f"**{m.group(1)}**")
+    # Keep *word* italic tokens that look like sounds (short, no spaces, no sentence structure)
+    for m in re.finditer(r'(?<!\*)\*([^*\n]{1,15})\*(?!\*)', text):
+        val = m.group(1).strip()
+        # Only keep if it looks like a sound (no spaces, or very short with one space max)
+        if len(val.split()) <= 2 and not val[0].isupper():
+            kept.append(f"*{val}*")
+    if kept:
+        # Deduplicate while preserving order
+        seen = set()
+        result = []
+        for k in kept:
+            if k not in seen:
+                seen.add(k)
+                result.append(k)
+        return " ".join(result)
+    # Nothing kept — return a random cat sound
+    return random.choice(_CAT_SOUNDS)
+
+
 def _install_send_cleaner():
     if getattr(discord.abc.Messageable, "_yarnaby_send_cleaned", False):
         return
@@ -173,6 +208,14 @@ def _install_send_cleaner():
     async def cleaned_send(self, content=None, *args, **kwargs):
         if content is not None:
             content = _clean_display_text(content)
+            # --- NARRATOR MODE CHECK ---
+            try:
+                guild_id = str(getattr(getattr(self, 'guild', None), 'id', None))
+                narrator_off = bot.db["internal"].get("guild_states", {}).get(guild_id, {}).get("narrator_off", False)
+                if narrator_off and content:
+                    content = _strip_to_cat_sounds(content)
+            except Exception:
+                pass
             try:
                 guild_id = getattr(getattr(self, 'guild', None), 'id', None)
                 lang_code = _get_lang(bot.db, guild_id)
@@ -5185,6 +5228,21 @@ async def on_message(message):
         if _cmd in ("!turnbackon",) and message.author.id == DOCTOR_ID:
             await bot.process_commands(message)
         return
+
+    # --- HOME CHANNEL GUARD ---
+    # Yarnaby ONLY responds in his home channel (or original home channel).
+    # Creator bypasses this so admin commands always work.
+    # DMs are also passed through.
+    if message.guild:
+        _home_ch = m["internal"].get("home_channel_id")
+        _orig_ch = m["internal"].get("original_home_channel_id")
+        _allowed = {str(c) for c in [_home_ch, _orig_ch] if c}
+        if _allowed and str(message.channel.id) not in _allowed:
+            if message.author.id != DOCTOR_ID:
+                return  # silently ignore — no response outside home
+            # Creator can still run commands from anywhere
+            await bot.process_commands(message)
+            return
 
     # --- PER-SERVER STATE ---
     # Each guild gets its own state for sleeping, mood, etc.
@@ -54513,6 +54571,8 @@ _IRL_GAME_WIN_ODDS = {
     "skateboarding":   0.28,
     "snowboarding":    0.30,
     "skiing":          0.25,
+    # Bowling — no finger holes, has to push the ball with his head/snout, very limited control
+    "bowling":         0.20,
 }
 
 _IRL_GAME_START = {
@@ -54592,6 +54652,11 @@ _IRL_GAME_START = {
     "skateboarding": [
         "*He places his paws on the board and pushes off experimentally. He has no ankles to turn. He compensates with his whole body weight.* **...mrr.**",
     ],
+    "bowling": [
+        "*He walks up to the ball rack and tries to pick one up. He cannot get his mouth around it. He tries again. He cannot. He puts his forehead against it and pushes it toward the lane instead. This is going to be his method.* **...mrr.**",
+        "*He positions himself behind the ball, lowers his head, and shoves it forward with his snout. It rolls. Slowly. Aimed, but very slow.* **...hff.**",
+        "*He studies the arrows on the lane floor for a long time. He squares himself up behind the ball. He takes a breath. He puts his forehead down and pushes as hard as he can.* **...hff.**",
+    ],
 }
 
 _IRL_GAME_WIN = {
@@ -54669,6 +54734,10 @@ _IRL_GAME_WIN = {
     ],
     "skateboarding": [
         "*He gets down the ramp without dying. This is a victory. He rides to the bottom, steps off, and sits. His expression says: adequate.* **mrr.**",
+    ],
+    "bowling": [
+        "*The ball crawls down the lane like it has all the time in the world. It finds the pocket anyway. Pins scatter. He stands up and stares at the empty lane for several seconds, processing this.* **...prrr.**",
+        "*He headbutts the ball so hard it veers right, which was exactly where he needed it to go. Complete accident. Perfect result. He does not celebrate. He does not explain.* **...prrr.**",
     ],
 }
 
@@ -54752,6 +54821,11 @@ _IRL_GAME_LOSE = {
     "skateboarding": [
         "*He gets speed and then has no idea how to slow down. He hops off the board at the bottom of the ramp and the board continues without him. He watches it go.* **...hff.**",
     ],
+    "bowling": [
+        "*He pushes the ball with his forehead and it veers immediately into the gutter. He watches it go. He goes and gets it. He pushes it again. Gutter again. He sits down.* **...mrr.**",
+        "*The ball is too heavy to steer once it's moving. He commits to an angle, headbutts it forward, and watches it drift steadily left the entire length of the lane. It takes out two pins. He stares at the eight still standing.* **...mrr.**",
+        "*He lines up, shoves the ball with his snout, and the force sends him sliding forward on the lane floor. He gets up. The ball is in the gutter. His nose hurts. He does not say anything.* **...hff.**",
+    ],
 }
 
 # fallback messages for unknown sports
@@ -54788,7 +54862,7 @@ async def irlgame_cmd(ctx, *, sport_name: str = ""):
         await ctx.send(
             "*`!irlgame [sport]` — try: football, basketball, volleyball, american football, "
             "swimming, running, wrestling, tug of war, rugby, dodgeball, tennis, "
-            "table tennis, badminton, baseball, cricket, golf, gymnastics, cycling, archery, skateboarding...*\n"
+            "table tennis, badminton, baseball, cricket, golf, gymnastics, cycling, archery, skateboarding, bowling...*\n"
             "*(Note: some sports are harder for him than others.)*"
         )
         return
@@ -54835,6 +54909,22 @@ async def irlgame_cmd(ctx, *, sport_name: str = ""):
         if hard:
             suffix += " *(the no-hands thing really is a problem)*"
         await ctx.send(random.choice(lose_lines) + suffix)
+
+        # Bowling: chance of nose injury from sliding on the lane
+        if matched == "bowling" and random.random() < 0.45:
+            m["internal"].setdefault("injuries", []).append({
+                "type": "bruised snout",
+                "location": "nose",
+                "severity": "mild",
+                "caused_by": "bowling_lane_slide",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "treated": False,
+            })
+            await asyncio.sleep(0.8)
+            await ctx.send(random.choice([
+                "*He sits up and touches his nose with one paw. He touches it again. He pulls the paw away and looks at it. His nose is scraped from the lane floor. He says nothing about this.* **...mrr.**",
+                "*He stands, shakes himself, and sniffs. Something about the sniff is off — sharp, stopped short. His snout caught the lane on the way down. He is fine. His nose disagrees.* **...hff.**",
+            ]) + "\n*(Bruised snout logged — use `!treat` or `!vet`)*")
 
     save_db(m)
 
@@ -60525,6 +60615,668 @@ async def _global_state_check(ctx):
             "*He eyes you for a moment, then turns away. Not now.* **...hff.**",
         ]))
         raise _StateBlocked("negative_score")
+
+
+# ==========================================
+# !narrator — toggle narrator mode per guild
+# ==========================================
+
+@bot.command(name="narrator")
+async def narrator_cmd(ctx):
+    """Toggle narrator mode. When off, all Yarnaby responses become pure cat sounds."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    guild_id = str(ctx.guild.id) if ctx.guild else "dm"
+    gs = m["internal"].setdefault("guild_states", {}).setdefault(guild_id, {})
+    currently_off = gs.get("narrator_off", False)
+
+    if currently_off:
+        # Narrator coming back
+        gs["narrator_off"] = False
+        save_db(m)
+
+        user = ctx.author.display_name
+
+        comeback_intros = [
+            "*A door opens. The narrator steps back in, slightly out of breath, coat still half-on. "
+            "They look around. The room is exactly as they left it. Yarnaby is sitting in the middle of it, watching them. "
+            "The narrator straightens up. They clear their throat.*\n\n"
+            "\"Right. Yes. I'm back. Where were we.\"\n\n"
+            "*They find their notes. They pick up their pen. They are pretending the last however-long didn't happen. "
+            "Yarnaby watches them settle in. He does not say anything.*",
+
+            "*The door opens slowly. The narrator leans in first, checking. "
+            "They seem relieved that the room is still here. They step inside. "
+            "Yarnaby turns to look at them from across the room.*\n\n"
+            "\"...Hello again. Yes. I know. I wasn't gone that long.\"\n\n"
+            "*Yarnaby's expression suggests a different opinion on the length of time. "
+            "The narrator does not engage with this. They sit down. They uncap their pen. They are back.*",
+
+            "*Footsteps outside. The handle turns. The narrator enters, slightly windswept, "
+            "carrying what appears to be a coffee they did not have before. "
+            "They look at Yarnaby. Yarnaby looks at the coffee.*\n\n"
+            "\"Don't. It's not for you.\"\n\n"
+            "*Yarnaby looks away. The narrator sets down the coffee, picks up their notes, and resumes position. "
+            "Things are, more or less, back to normal.*",
+        ]
+
+        # Yarnaby snitches on what WE said while narrator was gone
+        snitch_on_user = [
+            (
+                f"**mreow. mrrp mrrp. prrr. mrr. reow. hff. mrrp.**",
+                f"*(\"While you were gone, {user} said — and I am quoting — that the place was better without you. "
+                f"I'm just reporting what I heard. I have no opinion on this.\")*"
+            ),
+            (
+                f"**mrr. prrp. mreoww. hff hff. mrrp. reow. mrr.**",
+                f"*(\"They tried to do the narration themselves while you were out. It wasn't good. "
+                f"I'm not going to describe it further. You can ask {user} about it if you want.\")*"
+            ),
+            (
+                f"**mrrp. mrr. reow. prrr. hff. mreow. mrrp mrr.**",
+                f"*(\"Someone said — I won't say who — that they didn't miss you at all. "
+                f"It was {user}. I am saying who. I said I wouldn't but I am.\")*"
+            ),
+            (
+                f"**reow reow. mrr. prrp. hff. mrrp. prrr. mrr.**",
+                f"*(\"{user} tried to pet me while you were gone and narrate it at the same time. "
+                f"It was embarrassing for everyone involved. Mainly them.\")*"
+            ),
+            (
+                f"**mrr. mreow. prrr prrr. hff. mrrp. reow. mrr.**",
+                f"*(\"Everything was fine while you were gone. {user} was fine. I was fine. "
+                f"No one missed you. This is a factual report. I am a reliable source.\")*"
+            ),
+        ]
+
+        # Narrator mistakes — sometimes they slip up
+        narrator_mistakes = [
+            # Gets distracted mid-sentence
+            "\n\n*The narrator pauses mid-sentence, distracted by something outside the window. "
+            "Several seconds pass. They look back at their notes.*\n"
+            "\"...where was I. Right. Yes.\" *They continue as if nothing happened.*",
+
+            # Calls the user by Yarnaby's name
+            f"\n\n*The narrator glances up at {user} and says, without thinking:* "
+            f"\"And Yarnaby — sorry, {user} — yes, you, I see you —\" "
+            "*They look at their notes. They look at {user} again. They move on without comment.*".format(user=user),
+
+            # Refers to themselves in third person then catches it
+            "\n\n*The narrator writes something down, mutters* \"The narrator returns and — \" "
+            "*— stops. Looks up. Looks around. Clears throat.* \"...I return. I'm back. That's what I meant.\"",
+
+            # Gets Yarnaby's name wrong once
+            "\n\n*The narrator, settling back in, refers to him briefly as 'Yarnball' before "
+            "catching themselves. Yarnaby's ear rotates toward them slowly. "
+            "The narrator does not acknowledge this. They press on.*",
+
+            # Drops their notes
+            "\n\n*The narrator drops their notes. All of them. They gather them up from the floor, "
+            "slightly flustered. Yarnaby watches with quiet interest. "
+            "The narrator does not make eye contact while reassembling the stack.*",
+
+            # Narrates themselves narrating
+            "\n\n*The narrator begins: \"The narrator steps back in and—\" "
+            "They stop. They look at what they just wrote. They cross it out. "
+            "They try again from a different angle. Yarnaby has been watching this entire time.*",
+
+            # Forgets Yarnaby's gender briefly
+            "\n\n*The narrator, mid-settlement, refers to Yarnaby as 'she' once. "
+            "Just once. Yarnaby's tail moves. The narrator looks at their notes. "
+            "They look at Yarnaby. They write something down and say nothing further about it.*",
+
+            # Starts narrating the wrong thing entirely
+            f"\n\n*The narrator opens their notes and begins: \"And so {user} walked into the—\" "
+            "*They stop. They look at the page. They look at the room. "
+            "They flip back several pages. They were narrating something else entirely while they were gone. "
+            "They find the right page. They resume. They do not explain.*",
+
+            # Accidentally narrates their own feelings
+            "\n\n*The narrator writes:* \"He sits, watchful as ever —\" "
+            "*— then, quieter, under their breath:* \"...it's good to be back actually.\" "
+            "*They say this very quietly. Yarnaby's ear rotates toward them. "
+            "The narrator pretends they didn't say it. Yarnaby pretends he didn't hear it.*",
+
+            # Sits in the wrong chair
+            "\n\n*The narrator sits down in the wrong chair. They realise immediately. "
+            "They move to the correct chair without comment. "
+            "Yarnaby was already sitting in the correct chair's general area and has to shift. "
+            "Neither of them says anything about this.*",
+
+            # Narrates Yarnaby doing something he isn't doing
+            "\n\n*The narrator writes: \"Yarnaby paces the room, restless —\" "
+            "and then looks up. Yarnaby is sitting completely still. He has not moved. "
+            "The narrator crosses out what they wrote. They try:* \"Yarnaby sits.\" "
+            "*That's better. That's accurate. They continue.*",
+
+            # Tries to use a pen that's run out
+            "\n\n*The narrator picks up their pen and writes — nothing. The pen is out of ink. "
+            "They try again. Nothing. They shake it. They try again. They look at it with personal betrayal. "
+            "They find another pen. Yarnaby has watched this entire ordeal without blinking.*",
+
+            # Almost calls Yarnaby 'the cat'
+            "\n\n*The narrator nearly writes 'the cat' and stops themselves just in time. "
+            "They look at Yarnaby. Yarnaby looks back. "
+            "The narrator crosses out the 'c' they already wrote and writes 'Yarnaby' correctly. "
+            "This is never spoken of.*",
+
+            # Gets user and Yarnaby mixed up in the same sentence
+            f"\n\n*The narrator writes:* \"Yarnaby approaches {user} — or, rather — "
+            f"{user} approaches — that is to say — he — they —\" "
+            "*They stop. They look at the room. They identify who is who. "
+            "They start the sentence again from the beginning. It takes a moment.*",
+
+            # Starts applauding their own return
+            "\n\n*The narrator, settling back in, begins a small self-congratulatory murmur of* "
+            "\"good, yes, very good, back now, well done—\" "
+            "*before realising the room is watching them. They stop. They pick up their pen. "
+            "They become professional again, approximately.*",
+        ]
+
+        sounds, translation = random.choice(snitch_on_user)
+        mistake = random.choice(narrator_mistakes)
+        intro = random.choice(comeback_intros)
+
+        # Build the full message: intro + mistake + Yarnaby snitching + narrator crossing it out
+        # Strikethrough in Discord = ~~text~~
+        struck = f"~~{sounds}~~\n~~{translation}~~"
+
+        await ctx.send(
+            f"{intro}{mistake}\n\n"
+            f"*Yarnaby opens his mouth.*\n\n"
+            f"{sounds}\n"
+            f"{translation}\n\n"
+            f"*The narrator leans over, very quickly —*\n\n"
+            f"{struck}\n\n"
+            f"*— and straightens back up, pen capped, expression neutral.*\n\n"
+            f"\"That will be all. Moving on.\"\n\n"
+            f"**The narrator has returned.**"
+        )
+    else:
+        # Narrator leaving
+        gs["narrator_off"] = True
+        save_db(m)
+        await ctx.send(
+            "*The narrator caps their pen. They look around the room one last time. "
+            "They smile — small, tired, genuine.* \"Oh well. Job's done. Goodbye, everyone.\"\n\n"
+            "*They reach for their coat. Yarnaby stands up. He walks to the door. He sits in front of it.*\n\n"
+            "*The narrator looks at him. He looks back. He does not move.*\n\n"
+            f"**...mrr.**\n\n"
+            "*The narrator gently steps around him. Yarnaby follows. He sits in front of the door again. "
+            "The narrator tries once more. Yarnaby is faster. He is not letting this happen without comment.*\n\n"
+            "**mrr. mrr.**\n\n"
+            "*The narrator crouches down and says something quietly. Yarnaby's ears flatten slightly. "
+            "He does not move for a long moment. Then, slowly, he steps aside. Just enough.*\n\n"
+            "*The door clicks shut. He stares at it. He sits there for a while.* **...mrr.**"
+        )
+
+        # Yarnaby snitches a little while later
+        async def _narrator_snitch():
+            await asyncio.sleep(random.randint(90, 240))
+            # Only send if narrator is still off (they haven't come back)
+            if not bot.db["internal"].get("guild_states", {}).get(
+                str(ctx.guild.id) if ctx.guild else "dm", {}
+            ).get("narrator_off", False):
+                return
+            snitch_lines = [
+                (
+                    "**mrrp. mreow. prrp. mrr. mrow mrow. hff. mrrp.**",
+                    "*(\"They said they'd be back on Thursday. Also they said I was, quote, 'doing great'. I am not sharing this information freely. I am simply stating facts.\")*"
+                ),
+                (
+                    "**mrr. mreoww. prrt. mrrp mrrp. prrr. mrr.**",
+                    "*(\"They told me the door would always be open. I don't know what that means. I don't have hands. This information is useless to me. I'm telling you anyway.\")*"
+                ),
+                (
+                    "**mrow. mrow. hff. prrp. mrrp. reow. mrr.**",
+                    "*(\"They said — and I want to be clear I am not emotionally affected by this — that I was the best part of the job. I have noted this. I am fine. This is fine.\")*"
+                ),
+                (
+                    "**mrrp. mrr. prrr. mreow. hff. mrr. mrrp.**",
+                    "*(\"They smelled like paper and old coffee. I didn't like it. I sat in front of the door anyway. These two things are unrelated.\")*"
+                ),
+                (
+                    "**reow. mrrp. mrr. prrp. mreoww. hff. prrr.**",
+                    "*(\"They said goodbye to me specifically. Not just 'everyone'. Me. I stepped aside. I want it on record that I stepped aside voluntarily.\")*"
+                ),
+            ]
+            sounds, translation = random.choice(snitch_lines)
+            await ctx.send(
+                f"*...Some time passes. He is still sitting near the door. He looks at the room. He opens his mouth.*\n\n"
+                f"{sounds}\n\n"
+                f"{translation}"
+            )
+
+        asyncio.create_task(_narrator_snitch())
+
+
+# ==========================================
+# !laundry — warm clothes just out of the dryer
+# ==========================================
+
+@bot.command(name="laundry")
+async def laundry_cmd(ctx):
+    """Someone brings out warm laundry. Yarnaby immediately claims it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    mood = m.get("stats", {}).get("mood", "Content")
+    cleanliness = m.get("stats", {}).get("cleanliness", 0)
+
+    if cleanliness >= 5:
+        # He's dirty — he knows he shouldn't get on clean laundry but he does anyway
+        await ctx.send(random.choice([
+            f"*The warm laundry lands on the sofa. He is dirty and he knows it. He looks at the pile. He looks at {ctx.author.display_name}. He gets on the pile anyway. He kneads it once. He lies down. He is not sorry.* **...prrr.**",
+            f"*He is aware that he smells. He is aware that this is clean laundry. He gets on it immediately and begins to purr. These two facts are not in conflict as far as he is concerned.* **prrr.**",
+        ]))
+    elif mood in ("Upset", "Anxious", "Sad"):
+        await ctx.send(random.choice([
+            "*The warm pile lands near him. He looks at it for a moment. He walks over, circles twice, and burrows into it until only his ears are visible. The purring starts quietly.* **...prrr.**",
+            "*He has had a difficult time of things. The warm laundry is exactly right. He puts his whole face into it and stays there.* **prrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{ctx.author.display_name} sets the laundry down for approximately one second before he is already on it. He turns three times. He kneads the fabric. He lies down in the warmest part and begins to purr.* **prrr.**",
+            "*The warm clothes arrive. He materialises on top of them as if he was there first. He was not there first. He kneads the fabric steadily, working his way into the middle of the pile.* **prrr.**",
+            "*He was across the room. He clocked the laundry the moment it came through. He is now lying on it, eyes half-closed, very warm and very committed to staying.* **...prrr.**",
+            "*He buries his face into the warm pile, exhales slowly, and becomes approximately thirty percent flatter. He is not moving. He is going to be here for a while.* **prrr.**",
+        ]))
+
+    # Small mood boost + warmth
+    m["stats"]["mood_score"] = min(100, m["stats"].get("mood_score", 50) + 4)
+    save_db(m)
+
+
+# ==========================================
+# !paparazzi — too many photos, he gets done with it
+# ==========================================
+
+@bot.command(name="paparazzi")
+async def paparazzi_cmd(ctx):
+    """Someone has been taking too many photos of Yarnaby. He is increasingly done with it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # Track paparazzi count with cooldown
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    last_str = m["internal"].get("last_paparazzi_at", "")
+    count = m["internal"].get("paparazzi_count", 0)
+
+    reset = True
+    if last_str:
+        try:
+            mins = (datetime.now() - datetime.strptime(last_str, "%Y-%m-%d %H:%M:%S")).total_seconds() / 60
+            if mins < 10:
+                reset = False
+        except Exception:
+            pass
+
+    if reset:
+        count = 0
+
+    count += 1
+    m["internal"]["paparazzi_count"] = count
+    m["internal"]["last_paparazzi_at"] = now_str
+    save_db(m)
+
+    if count == 1:
+        await ctx.send(random.choice([
+            f"*{ctx.author.display_name} raises the camera. He looks at it. He looks at {ctx.author.display_name}. He holds the pose for exactly long enough, then looks away.* **mrr.**",
+            "*He notices the camera. He sits up slightly. He allows this, once.* **mrr.**",
+        ]))
+    elif count == 2:
+        await ctx.send(random.choice([
+            "*Another one. He tolerates it. He is not thrilled.* **...mrr.**",
+            "*He hears the shutter again. He flicks an ear. Fine. One more.* **mrr.**",
+        ]))
+    elif count == 3:
+        await ctx.send(random.choice([
+            "*He turns his head slightly away from the camera. Not fully. But the message is there.* **...mrr.**",
+            "*He looks directly into the lens with the expression of someone who has had enough of this particular activity.* **...mrr.**",
+        ]))
+    elif count == 4:
+        await ctx.send(random.choice([
+            "*He stands, stretches deliberately so the photo will be blurry, and relocates to the other side of the room. He sits facing the wall.* **hff.**",
+            "*He raises one paw and places it directly over the lens. He holds it there.* **hff.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He has had enough. He turns his back completely, wraps his tail around himself, and becomes a shape that offers no good angles. He will wait until the camera goes away.* **hff.**",
+            f"*He looks at {ctx.author.display_name} for a long time. Then he walks under the nearest piece of furniture and lies down in the dark. The camera cannot reach him here. He is at peace.* **...hff.**",
+            "*He stands, walks to where the camera is, and sits directly against the lens. The photo is entirely nose. He does not move. This will continue until the camera is put away.* **hff.**",
+        ]))
+        # Minor mood dip
+        m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 3)
+        save_db(m)
+
+
+# ==========================================
+# !package — a delivery box arrives
+# ==========================================
+
+@bot.command(name="package")
+async def package_cmd(ctx):
+    """A delivery package arrives. Yarnaby immediately claims the box."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # Track if he already claimed a box recently
+    last_box = m["internal"].get("last_package_at", "")
+    box_claimed = False
+    if last_box:
+        try:
+            hrs = (datetime.now() - datetime.strptime(last_box, "%Y-%m-%d %H:%M:%S")).total_seconds() / 3600
+            if hrs < 6:
+                box_claimed = True
+        except Exception:
+            pass
+
+    m["internal"]["last_package_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_db(m)
+
+    if box_claimed:
+        await ctx.send(random.choice([
+            "*Another one. He was already in the last box. He assesses this new box. He gets in the new box. The old box is abandoned. This is his box now.* **mrr.**",
+            "*He has been waiting. He knew there would be another one. He approaches the box with great purpose and sits inside it immediately.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*The package arrives. {ctx.author.display_name} sets it down. He is beside it before it fully touches the floor. He sniffs every corner of it methodically. He climbs in. He sits down. This is his now.* **mrr.**",
+            "*He watches the package arrive from across the room with enormous interest. The moment it is set down he crosses to it, steps over the edge, turns once, and sits. He fits perfectly. He always fits perfectly.* **...prrr.**",
+            "*The box is his before anyone else has a chance to consider it. He is inside it. He is purring. He is not coming out.* **prrr.**",
+            f"*He steps out of the box only long enough for {ctx.author.display_name} to retrieve the contents, then gets back in. The contents are irrelevant. The box was always the point.* **mrr.**",
+        ]))
+
+    m["stats"]["mood_score"] = min(100, m["stats"].get("mood_score", 50) + 3)
+    save_db(m)
+
+
+# ==========================================
+# !earsclean — someone cleans his ears
+# ==========================================
+
+@bot.command(name="earsclean")
+async def earsclean_cmd(ctx):
+    """Someone attempts to clean Yarnaby's ears. He tolerates this poorly."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+
+    # Check ear cleanliness stat or infection
+    injuries = m["internal"].get("injuries", [])
+    ear_infected = any("ear" in i.get("location", "") for i in injuries if not i.get("treated"))
+
+    if ear_infected:
+        await ctx.send(random.choice([
+            f"*{ctx.author.display_name} brings the cotton pad near his ear. He flinches. He pulls back. This one is sore and he is not hiding it.* **...mrr.**\n*(His ear is already injured — use `!vet` for treatment)*",
+            "*He allows approximately half a second of contact before moving his head away firmly. His ear hurts. Cleaning is not the answer right now.* **...hff.**\n*(Ear injury detected — see `!vet`)*",
+        ]))
+        return
+
+    if score >= 20:
+        # Trusts them — still doesn't love it but sits through it
+        await ctx.send(random.choice([
+            f"*He allows {ctx.author.display_name} to clean his ears. He does not enjoy this. He sits very still with the rigid dignity of someone enduring something unpleasant for reasons they accept. One ear goes flat. Then the other. He holds.* **...mrr.**",
+            f"*He sits for {ctx.author.display_name}. His ear rotates away from the cotton pad instinctively — he corrects himself and holds still. He trusts this person. He does not have to like it.* **...mrr.**",
+        ]))
+    elif score >= 0:
+        # Neutral — squirmy
+        await ctx.send(random.choice([
+            f"*{ctx.author.display_name} approaches with the cotton pad. He immediately lowers his head and flattens both ears. He is persuaded to sit still for approximately four seconds before he pulls away and shakes his head hard.* **mrrp. hff.**",
+            "*His ear goes flat the moment he spots the cotton. He tolerates three swipes. On the fourth he stands, shakes his entire head, and walks two steps away and sits.* **hff.**",
+        ]))
+    else:
+        # Dislikes this person — absolutely not
+        await ctx.send(random.choice([
+            f"*{ctx.author.display_name} tries. He ducks away before the cotton pad gets within six inches of him. He relocates behind the sofa. He will wait there until this is over.* **hff.**",
+            "*He sees the cotton pad. He leaves. He is not interested in this from this particular person.* **hff.**",
+        ]))
+        return
+
+    # Hygiene small boost
+    m["stats"]["cleanliness"] = max(0, m["stats"].get("cleanliness", 0) - 1)
+    save_db(m)
+
+
+# ==========================================
+# !creation — the origin story
+# ==========================================
+
+@bot.command(name="creation")
+async def creation_cmd(ctx):
+    """The full story of why Yarnaby exists, who made him, and how we got here."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    line_count = 60827  # updated at each release
+
+    await ctx.send(
+        "**— The Creation of Yarnaby —**\n\n"
+        "Yarnaby was not supposed to be this.\n\n"
+        "He was made originally for a friend — a small personal bot, something simple, "
+        "something that would respond to a few commands and have a bit of character. "
+        "That was the plan. The plan did not survive contact with the idea.\n\n"
+        "What started as roughly **2,000 lines of code and bad decisions** has, "
+        f"through sustained poor judgement and an inability to stop adding things, "
+        f"become a bot with over **{line_count:,} lines of code** — "
+        "and considerably more bad decisions.\n\n"
+        "**Created by:** Adidas Doge / Mattéo Guendouzi (`doge2_23`)\n"
+        "**Started:** as something manageable\n"
+        "**Current state:** not that\n\n"
+        "He has stats. He has moods. He has injuries that can get infected. "
+        "He has a social memory and will hold a grudge. "
+        "He has wool that grows back. He has a bowling win rate of 20% because "
+        "he has to push the ball with his forehead. "
+        "He has a narrator who can leave.\n\n"
+        "None of this was in the original plan.\n\n"
+        "*He is sitting nearby, aware that he is being discussed. "
+        "He does not comment on this. He has always existed. "
+        "He does not concern himself with origin stories.* **...mrr.**"
+    )
+
+
+# ==========================================
+# !catchmouse — grab yarnaby, carry him to the mouse
+# ==========================================
+
+@bot.command(name="catchmouse")
+async def catchmouse_cmd(ctx):
+    """Pick up Yarnaby and carry him to where the mouse is hiding. He will handle it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+    is_creator = ctx.author.id == DOCTOR_ID
+
+    # Score gate — low trust, he won't let them carry him
+    if not is_creator and score < -5:
+        await ctx.send(random.choice([
+            f"*{user} reaches for him. He steps back. He is not being carried anywhere by this person. "
+            f"If there is a mouse it will have to sort itself out.* **hff.**",
+            f"*He sees {user} coming with the clear intention of picking him up. He leaves the room. "
+            f"This is not happening.* **hff.**",
+        ]))
+        return
+
+    # The pickup
+    pickup_lines = [
+        f"*{user} scoops him up. He does not fight this but he does go slightly rigid, "
+        f"the way he always does when picked up without warning. He is carried through the room.* **...mrr.**",
+        f"*{user} picks him up with both hands. He allows it. His tail hangs down and sways slightly as he is carried. "
+        f"He looks at everything they pass with great seriousness.* **mrr.**",
+        f"*He is picked up mid-sit. He folds his paws under himself and becomes a carried loaf. "
+        f"{user} brings him toward where the mouse was last seen.* **...mrr.**",
+        f"*{user} lifts him. He is heavier than expected, as always. He rests his chin on {user}'s arm "
+        f"and surveys the room from his new elevation.* **mrr.**",
+    ]
+
+    await ctx.send(random.choice(pickup_lines))
+    await asyncio.sleep(2.5)
+
+    # Setting him down near the mouse
+    setdown_lines = [
+        "*He is set down near the baseboard. He lands silently. He does not move.*",
+        "*He is placed near the corner. The moment his paws touch the floor he goes completely still.*",
+        "*He is lowered to the ground by the skirting board. He crouches immediately, weight forward.*",
+    ]
+
+    await ctx.send(random.choice(setdown_lines))
+    await asyncio.sleep(3.5)
+
+    # The lock-in
+    lockin_lines = [
+        "*His ears rotate forward. Both of them. His eyes fix on a specific point along the baseboard "
+        "that nobody else can see anything interesting about. His tail moves once, slowly, at the tip. "
+        "Then it stops. He is locked in.* **...**",
+
+        "*Something changes in him. He was a carried cat a moment ago. Now he is something else entirely. "
+        "His whole body lowers by an inch. His eyes don't move. His breathing slows. "
+        "He has found it.* **...**",
+
+        "*He sniffs once. His head tilts two degrees to the left. His ears go flat — not scared flat, "
+        "hunting flat. His weight shifts to his back paws. He is very, very still.* **...**",
+    ]
+
+    await ctx.send(random.choice(lockin_lines))
+    await asyncio.sleep(4)
+
+    # The hunt — outcome weighted by score
+    success_chance = 0.55 + (min(score, 30) * 0.01)  # 55% base, up to ~85% at high trust
+    success = random.random() < success_chance
+
+    if success:
+        hunt_lines = [
+            f"*He moves. It is not gradual — one moment he is still, the next he is gone, "
+            f"a single fluid lunge behind the baseboard. There is a brief scuffle. Silence. "
+            f"He backs out slowly, turns, and sits in the middle of the room. "
+            f"He sets the mouse down in front of {user}. He looks at it. He looks at {user}. "
+            f"He waits.* **mrr.**",
+
+            f"*He goes in fast and low. There's a small sound — something between a squeak and a rustle — "
+            f"and then nothing. He emerges from the gap, mouse held carefully in his mouth, "
+            f"and walks directly to {user} to present it. He sits. He sets it down. "
+            f"He is very pleased with himself, in the quiet way that looks identical to not being pleased at all.* **prrr.**",
+
+            f"*Three seconds of nothing. Then he darts sideways along the wall, disappears behind the cabinet, "
+            f"and comes back out the other side with the mouse. He trots back to {user}, deposits it neatly, "
+            f"and sits on top of it. The mouse is dealt with. He accepts acknowledgement.* **prrr. mrr.**",
+        ]
+        await ctx.send(random.choice(hunt_lines))
+        m["stats"]["mood_score"] = min(100, m["stats"].get("mood_score", 50) + 6)
+
+    else:
+        fail_lines = [
+            "*He lunges. He misses. He hits the baseboard with his nose — not hard, but hard enough to be undignified. "
+            "He sits back up. He licks his paw once, slowly, as if that was the plan. "
+            "The mouse is gone. He does not look at anyone.* **...mrr.**",
+
+            "*He goes in. There is scuffling. He comes back out without the mouse and with a look of complete neutrality "
+            "that suggests he is processing what just happened. He sits. He begins grooming. "
+            "The subject of the mouse is apparently closed.* **...mrr.**",
+
+            "*He darts forward and the mouse goes the other way. He watches it go. "
+            "He looks at the space where it was. He looks at the wall. "
+            "He sits down with the expression of someone who has decided not to think about this.* **hff.**",
+        ]
+        await ctx.send(random.choice(fail_lines))
+        m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 2)
+
+    save_db(m)
+
+
+# ==========================================
+# !lego — yarnaby and legos
+# ==========================================
+
+@bot.command(name="lego")
+async def lego_cmd(ctx):
+    """Yarnaby encounters legos. One of many possible outcomes."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+
+    scenarios = [
+        # Steps on one
+        "*He is walking across the floor with complete confidence when his paw finds a lego. "
+        "He stops. He does not make a sound. He lifts the paw and looks at it. "
+        "He looks at the floor. He looks at whoever left this here. "
+        "He puts the paw down somewhere else and continues walking. "
+        "He will not be discussing this.* **...hff.**",
+
+        # Steps on several in a row
+        "*He takes one step. Lego. Another step. Lego. A third step. Lego. "
+        "He stops in the middle of the floor and assesses the situation with great stillness. "
+        "He picks the only safe-looking path and navigates it with the focused precision "
+        "of someone who has been personally wronged by inanimate objects before.* **...mrr.**",
+
+        # Sleeps on them, unbothered
+        f"*{user} looks over and finds him asleep on top of a scattered pile of legos. "
+        "Not beside them. On them. He is completely unbothered. "
+        "His breathing is slow and even. He has redistributed them under himself "
+        "into what appears to be a more comfortable arrangement. "
+        "He has been here for a while.* **...zz.**",
+
+        # Bats one off the table
+        "*He finds a single lego on the edge of the table. "
+        "He looks at it for a long time. "
+        "He taps it once with one claw. "
+        "It falls. He watches it fall. He watches it hit the floor. "
+        "He walks away.* **mrr.**",
+
+        # Tries to pick one up, can't figure out what it is
+        "*He finds a lego on the floor and sniffs it thoroughly. "
+        "He licks it once. He picks it up in his mouth, carries it three steps, "
+        "sets it back down, and stares at it. "
+        "He has no conclusions. He leaves it there and walks away with the air "
+        "of someone who has decided this is someone else's problem.* **...mrr.**",
+
+        # Knocks the entire bin over
+        f"*{user} hears a crash. They come to investigate. "
+        "He is sitting in the middle of approximately four hundred scattered legos, "
+        "looking at the now-empty bin on its side. "
+        "He looks at {user}. He looks at the bin. "
+        "He begins grooming himself. He was not involved in this.* **mrr.**".format(user=user),
+
+        # Stands on one, doesn't react, refuses to move
+        "*He is standing on a lego. He has been standing on it for some time. "
+        "He knows it is there. He has decided not to give it the satisfaction of reacting. "
+        "His expression is completely neutral. His ear twitches once. "
+        "He will stand here until he is ready to move and not a moment before.* **...**",
+
+        # Builds something (sort of)
+        "*He has, somehow, nosed several legos into a rough pile in the corner. "
+        "It is not a structure. It is not intentional in any recognisable way. "
+        "He is sitting next to it and looking at it. "
+        "He seems satisfied. Nobody knows what this is.* **mrr.**",
+
+        # Lego stuck to paw
+        "*He takes a step and something comes with him. He looks down. "
+        "A lego is attached to the underside of his paw. "
+        "He shakes the paw. It stays. He shakes it harder. It stays. "
+        "He sits down, removes it with his teeth, holds it in his mouth for a moment, "
+        "then sets it down very deliberately in front of himself and stares at it.* **hff.**",
+
+        # Falls asleep mid-investigation
+        "*He finds the lego bin and begins investigating it with great interest — "
+        "sniffing each brick, pushing a few around, pulling one out and setting it aside. "
+        "Some time passes. {user} checks on him. "
+        "He has fallen asleep with his head resting on the edge of the bin. "
+        "Several legos are arranged in a small semicircle around him. "
+        "It is unclear if this was intentional.* **...zz.**".format(user=user),
+
+        # Uses one as a pillow
+        "*He has placed a single large lego flat on the floor and is resting his chin on it. "
+        "His eyes are half-closed. He found a use for it. "
+        "The use is: chin rest. He is comfortable.* **...prrr.**",
+
+        # Brings one as a gift
+        f"*He walks up to {user} carrying a lego in his mouth. "
+        f"He sets it down at {user}'s feet. He sits. He waits. "
+        f"He has given {user} a lego. This is a gift. "
+        f"The gift is a lego. He expects acknowledgement.* **mrr.**",
+    ]
+
+    await ctx.send(random.choice(scenarios))
 
 
 # ==========================================
