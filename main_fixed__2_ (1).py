@@ -12360,6 +12360,11 @@ async def help_cmd(ctx, *, section: str = None):
             "  Can go well (he helps), neutral (he watches), or end in a mess.\n"
             "- `!pillow` - give Yarnaby a pillow for his nest\n"
             "  His reaction depends on trust score, whether he's asleep, and whether he already has one.\n"
+            "- `!become [thing]` - ask Yarnaby to pretend to be something (a statue, a rock, etc.)\n"
+            "  If no thing is given, he picks something himself. How long he holds the pose depends on trust score.\n"
+            "- `!enroll [school name]` - enroll Yarnaby in school\n"
+            "  He's assigned a class (e.g. 1a, 2b, 3c...). Check back periodically (~6h) for school day updates.\n"
+            "  After class 4, he graduates elementary school. A few real/famous school names trigger special reactions.\n"
             "- `!wetness` / `!dryness` - check how wet or dry he currently is\n"
             "  Wetness drains at ~1pt/hr. Filled by swimming, lessons, and other water activities.\n"
             "- `!towel` - dry him with a towel (cozy, warm; he settles into it)\n"
@@ -61053,6 +61058,284 @@ async def pillow_cmd(ctx):
     m["internal"]["has_pillow"] = True
     _track_item(m, "a pillow", rarity="Loved", source="gift")
     save_db(m)
+
+
+# ==========================================
+# !become — Yarnaby pretends to be something
+# ==========================================
+
+@bot.command(name="become")
+async def become_cmd(ctx, *, thing: Optional[str] = None):
+    """Yarnaby attempts to become something. A statue. A rock. Whatever you ask."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*There's nothing here to become anything. The room stays as it is.*",
+            "*You ask the empty air to become something. It doesn't.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You ask him to become a statue. He's already still - too still - and it doesn't feel like a game right now.* **...mrr...**",
+            "*He doesn't perform. He doesn't pose. He's just quiet, in a way that asking him to 'become' something only makes more obvious.* **...mrr...**",
+        ]))
+        return
+
+    remaining = _cooldown_remaining(m, f"become:{u_id}", 45)
+    if remaining > 0 and not is_doctor:
+        await ctx.send(f"*He's still recovering from the last bit. (~{remaining}s)* **mrr.**")
+        return
+    _set_cooldown(m, f"become:{u_id}")
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if thing is None:
+        thing = random.choice([
+            "a statue", "a rock", "a houseplant", "a loaf of bread",
+            "a doorstop", "a particularly judgmental gargoyle",
+            "a sack of flour", "a very small, suspicious cloud",
+            "a coat draped over a chair", "a perfectly ordinary lamp",
+        ])
+    thing_clean = thing.strip().lower()
+    if thing_clean and not thing_clean.startswith(("a ", "an ", "the ")):
+        article = "an" if thing_clean[0] in "aeiou" else "a"
+        display_thing = f"{article} {thing_clean}"
+    else:
+        display_thing = thing_clean
+
+    # Break duration scales loosely with trust
+    if is_doctor:
+        hold_desc = "an unreasonably long time"
+    elif score >= 6:
+        hold_desc = "a surprisingly long time"
+    elif score <= -3:
+        hold_desc = "about half a second"
+    else:
+        hold_desc = "a few seconds"
+
+    if not is_doctor and score <= -3:
+        await ctx.send(random.choice([
+            f"*{your_name} asks Yarnaby to become {display_thing}. He looks at them for a long moment, decides this isn't worth it, and walks away without becoming anything.* **...hff.**",
+            f"*Yarnaby hears the request, considers becoming {display_thing}, and instead becomes a cat who is leaving the room.* **mrr.**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*{your_name} asks Yarnaby to become {display_thing}. He freezes instantly - mid-blink, one paw raised, utterly convincing - and holds it for {hold_desc}. Then his eye flicks toward {your_name}, just to make sure they're still watching, and he holds it longer anyway.* **...!**",
+            f"*Yarnaby becomes {display_thing} immediately and with total commitment, holding the pose for {hold_desc}. When he finally breaks, he immediately presses into {your_name}'s side as a reward for the audience's patience.* **mrrp! prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            f"*{your_name} asks Yarnaby to become {display_thing}. He goes completely still, eyes wide, not even his tail moving, holding the pose for {hold_desc} before a single whisker twitches and he collapses out of it, pleased with himself.* **mrrp!**",
+            f"*Yarnaby becomes {display_thing} with surprising commitment, holding perfectly still for {hold_desc}. He only breaks character when he can't resist a glance at {your_name} to see if it's working.* **...!**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{your_name} asks Yarnaby to become {display_thing}. He goes still for {hold_desc} - then a tail twitch ruins it completely, and he gives up, looking faintly embarrassed about the whole thing.* **mrr.**",
+            f"*Yarnaby attempts to become {display_thing}. He holds the pose for {hold_desc} before an ear flicks and the illusion collapses. He pretends that didn't happen.* **...mrr.**",
+        ]))
+
+
+# ==========================================
+# !enroll — enroll Yarnaby in school
+# ==========================================
+
+# Schools with their own special flavor text. Match is case-insensitive and
+# checks if the key appears anywhere in the provided school name.
+_SPECIAL_SCHOOLS = {
+    "ahrensburg": {
+        "display": "Gemeinschaftsschule Am Heimgarten Ahrensburg",
+        "enroll": [
+            "*{your_name} fills out the enrollment form for **Gemeinschaftsschule Am Heimgarten Ahrensburg**. Yarnaby peers at the paperwork upside down, recognizes absolutely nothing, and signs it anyway by stepping on it with an inky paw.* **mrrp?**",
+            "*Somehow, against all odds, Yarnaby is now enrolled at **Gemeinschaftsschule Am Heimgarten Ahrensburg**. He sits very straight, as if this changes something about his posture. It does not.* **mrr.**",
+        ],
+        "day": [
+            "*Yarnaby returns from another day at **Gemeinschaftsschule Am Heimgarten Ahrensburg**, looking deeply unbothered by the entire concept of school, carrying something he was definitely not supposed to bring home.* **mrrp.**",
+            "*Another day at **Gemeinschaftsschule Am Heimgarten Ahrensburg** comes and goes. Yarnaby reports that lunch was acceptable and everything else was beneath him.* **mrr.**",
+        ],
+    },
+    "hogwarts": {
+        "display": "a famous school of magic",
+        "enroll": [
+            "*{your_name} attempts to enroll Yarnaby at a famous school of magic. A letter arrives almost immediately, declining, on the grounds that 'cat' is not currently a recognized species for admission. Yarnaby reads the rejection letter, then eats it.* **hff.**",
+        ],
+        "day": [
+            "*Still no word back from the school of magic. Yarnaby has stopped checking the mail. He insists he never cared.* **...hff.**",
+        ],
+    },
+    "harvard": {
+        "display": "a very prestigious university",
+        "enroll": [
+            "*{your_name} submits an application to a very prestigious university on Yarnaby's behalf. The essay portion consists entirely of a single paw print. Somehow, it is still under review.* **mrr?**",
+        ],
+        "day": [
+            "*The prestigious university has not responded. Yarnaby has decided this means he got in, and is already acting accordingly.* **mrrp.**",
+        ],
+    },
+}
+
+_GENERIC_ENROLL = [
+    "*{your_name} enrolls Yarnaby at **{school}**. He inspects the building, the grounds, and one specific tree, and appears to approve.* **mrr.**",
+    "*Paperwork is filed. Yarnaby is now, technically, a student of **{school}**. He does not seem to fully grasp what this means, but he's willing to find out.* **mrrp?**",
+    "*{your_name} walks Yarnaby through the gates of **{school}** for the first time. He sticks close, ears swiveling at every new sound, trying very hard to look like he's done this before.* **...mrr.**",
+]
+
+_GENERIC_DAY = [
+    "*Another day at **{school}** behind him. Yarnaby returns looking faintly pleased with himself and smelling like a hallway.* **mrr.**",
+    "*Yarnaby comes back from **{school}** with a paper that has a sticker on it. He will not say what it's for. He will not put it down.* **mrrp!**",
+    "*School at **{school}** happened again today. Yarnaby reports, via a long stretch and an even longer yawn, that it was fine.* **...mrr.**",
+    "*Yarnaby returns from **{school}**, sits down, and stares at the wall for a while before announcing - in cat - that today was a lot.* **...hff.**",
+]
+
+_GRADUATION_MESSAGES = [
+    "*A small ceremony. A tiny paper hat, which Yarnaby immediately knocks off. He has, against most expectations, finished elementary school at **{school}**. {your_name} is somehow more emotional about this than he is.* **mrrp!! prrr...**",
+    "*Yarnaby crosses the stage - or rather, the living room rug - to a chorus of one person clapping. He has officially graduated elementary school at **{school}**. He carries himself like someone who always knew this would happen.* **mrr! prrr.**",
+]
+
+
+@bot.command(name="enroll")
+async def enroll_cmd(ctx, *, school: Optional[str] = None):
+    """Enroll Yarnaby in school. Check back later for updates."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*There's no one here to fill out the enrollment form.*",
+            "*The form sits blank. There's nothing to sign it.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You bring up the idea of school. He doesn't react to it - not with excitement, not with dread, nothing. It's too much right now, and you can tell.* **...mrr...**",
+            "*The enrollment form sits there. He looks at it, or near it, and doesn't pick it up.* **...mrr...**",
+        ]))
+        return
+
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    school_state = m["internal"].setdefault(
+        "school", {"name": None, "grade": 0, "class_letter": None, "graduated": False, "matched_class": False}
+    )
+
+    if school_state.get("name"):
+        # Already enrolled
+        current_school = school_state["name"]
+
+        if school_state.get("graduated"):
+            class_label = f"{school_state.get('grade', 4)}{school_state.get('class_letter', 'a')}"
+            await ctx.send(random.choice([
+                f"*Yarnaby already graduated elementary school at **{current_school}** (class **{class_label}**). He has no plans to go back. He considers the matter closed.* **mrr.**",
+                f"*He's done with **{current_school}** (class **{class_label}**). Diploma's around here somewhere - probably chewed.* **mrrp.**",
+            ]))
+            return
+
+        remaining = _cooldown_remaining(m, f"enroll:{u_id}", 21600)  # 6 hours per school day
+        if remaining > 0 and not is_doctor:
+            hours = max(1, remaining // 3600)
+            await ctx.send(f"*He's still at **{current_school}** for the day. Check back in ~{hours}h.* **mrr.**")
+            return
+        _set_cooldown(m, f"enroll:{u_id}")
+
+        school_state["grade"] = school_state.get("grade", 0) + 1
+        save_db(m)
+
+        class_letter = school_state.get("class_letter") or "a"
+        class_label = f"{school_state['grade']}{class_letter}"
+        is_ahrensburg = "ahrensburg" in current_school.lower()
+
+        # Special "7d" coincidence at Ahrensburg
+        if is_ahrensburg and class_label == "7d" and not school_state.get("matched_class"):
+            school_state["matched_class"] = True
+            save_db(m)
+            await ctx.send(random.choice([
+                f"*Yarnaby checks his class assignment for **{current_school}**: **{class_label}**. He stares at it for a long moment. Then he looks up at {your_name}. Neither of them says anything else about it.* **mrrp...?**",
+                f"*New class, posted on the board at **{current_school}**: **{class_label}**. Yarnaby reads it twice. He glances at {your_name}. {your_name} glances back. That's... that's the same one. Huh.* **mrr?**",
+            ]))
+            return
+
+        if not is_ahrensburg and school_state["grade"] >= 4:
+            school_state["graduated"] = True
+            save_db(m)
+            msg = random.choice(_GRADUATION_MESSAGES).format(school=current_school, your_name=your_name)
+            msg += f"\n\n*Final class: **{class_label}**.*"
+            await ctx.send(msg)
+            return
+
+        special = next((v for k, v in _SPECIAL_SCHOOLS.items() if k in current_school.lower()), None)
+        if special:
+            msg = random.choice(special["day"]).format(school=current_school, your_name=your_name)
+        else:
+            msg = random.choice(_GENERIC_DAY).format(school=current_school, your_name=your_name)
+        msg += f"\n\n*Class: **{class_label}**.*"
+        await ctx.send(msg)
+        return
+
+    # Not yet enrolled
+    if school is None:
+        await ctx.send("*`!enroll [school name]` - enroll Yarnaby in school.*")
+        return
+
+    special = next((v for k, v in _SPECIAL_SCHOOLS.items() if k in school.lower()), None)
+    school_display = special["display"] if special else school.strip()
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if not is_doctor and score <= -3:
+        await ctx.send(random.choice([
+            f"*{your_name} tries to enroll Yarnaby at **{school_display}**. He takes one look at the form, then at {your_name}, and walks away. Not happening.* **...hff.**",
+            f"*Yarnaby reviews the enrollment paperwork for **{school_display}** and declines to participate in any of it.* **mrr.**",
+        ]))
+        return
+
+    school_state["name"] = school_display
+    school_state["grade"] = 0
+    school_state["class_letter"] = random.choice(["a", "b", "c", "d"])
+    school_state["graduated"] = False
+    school_state["matched_class"] = False
+    _set_cooldown(m, f"enroll:{u_id}")
+    save_db(m)
+
+    if special:
+        msg = random.choice(special["enroll"]).format(school=school_display, your_name=your_name)
+    else:
+        msg = random.choice(_GENERIC_ENROLL).format(school=school_display, your_name=your_name)
+
+    msg += f"\n\n*He'll be starting in class **1{school_state['class_letter']}**.*"
+
+    if is_doctor:
+        msg += f"\n\n*{your_name} watches him go, just for a moment, before he disappears around the corner.* **mrr...**"
+
+    await ctx.send(msg)
 
 
 # ==========================================
