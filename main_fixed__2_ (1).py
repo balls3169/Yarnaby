@@ -12358,6 +12358,8 @@ async def help_cmd(ctx, *, section: str = None):
             "  Plants progress through stages (seedling → sprouting → budding → bloomed) as time passes.\n"
             "- `!cook [dish]` - cook something together; outcome depends on trust score\n"
             "  Can go well (he helps), neutral (he watches), or end in a mess.\n"
+            "- `!pillow` - give Yarnaby a pillow for his nest\n"
+            "  His reaction depends on trust score, whether he's asleep, and whether he already has one.\n"
             "- `!wetness` / `!dryness` - check how wet or dry he currently is\n"
             "  Wetness drains at ~1pt/hr. Filled by swimming, lessons, and other water activities.\n"
             "- `!towel` - dry him with a towel (cozy, warm; he settles into it)\n"
@@ -60972,7 +60974,88 @@ async def cook_cmd(ctx, *, dish: Optional[str] = None):
 
 
 # ==========================================
+# !pillow — give Yarnaby a pillow for his nest
+# ==========================================
 
+@bot.command(name="pillow")
+async def pillow_cmd(ctx):
+    """Give Yarnaby a pillow for his nest."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*You set the pillow down in the nest anyway. Nothing comes to claim it.*",
+            "*The nest sits empty. The pillow doesn't help.*",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You tuck the pillow under him. He doesn't adjust himself onto it, doesn't sink into it the way he normally would. He just stays where he was put, the pillow doing all the work.* **...mrr...**",
+            "*The pillow goes under his head. He doesn't react to the change. He's just there, on it now instead of beside it.* **...mrr...**",
+        ]))
+        return
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    had_pillow = m["internal"].get("has_pillow", False)
+
+    if m["internal"]["is_sleeping"]:
+        if had_pillow:
+            await ctx.send(random.choice([
+                f"*{your_name} quietly slides a second pillow in beside the one already there. Yarnaby, fast asleep, immediately migrates onto it without waking up.* **...zz... prrr...**",
+                f"*Yarnaby is already asleep on his pillow. {your_name} adds another to the pile. He shifts, unconsciously, to make use of the extra space.* **...zz...**",
+            ]))
+        else:
+            if is_doctor:
+                await ctx.send(random.choice([
+                    f"*{your_name} carefully tucks a pillow under Yarnaby's sleeping head. He doesn't wake, but he immediately presses into it, a low rumble starting up without him ever opening his eyes.* **...zz... prrr...**",
+                ]))
+            else:
+                await ctx.send(random.choice([
+                    f"*{your_name} slides a pillow under Yarnaby while he sleeps. He stirs slightly, adjusts, and settles back down - now noticeably more comfortable.* **...zz...**",
+                ]))
+        m["internal"]["has_pillow"] = True
+        _track_item(m, "a pillow", rarity="Loved", source="gift")
+        save_db(m)
+        return
+
+    if had_pillow:
+        await ctx.send(random.choice([
+            f"*{your_name} offers another pillow. Yarnaby looks at it, looks at the pillow he already has, and decides this is now a pillow fort. He arranges both with great care.* **mrrp.**",
+            f"*Yarnaby already has a pillow. He accepts the new one anyway, and spends a solid minute rearranging both into a configuration only he understands.* **mrr. prrr.**",
+        ]))
+        _track_item(m, "a pillow", rarity="Loved", source="gift")
+        save_db(m)
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*{your_name} sets a pillow down in Yarnaby's nest. He stares at it for a moment - then climbs directly onto it, turns to face {your_name}, and lets out a long, satisfied breath.* **prrr... mrrp.**",
+            f"*Yarnaby watches {your_name} place the pillow. The second it's down, he's on it, kneading it once, twice, then collapsing into it like it's always been there. He looks extremely smug about this.* **mrrp! prrr...**",
+        ]))
+        m["stats"]["affection_crave"] = max(0, m["stats"]["affection_crave"] - 2)
+    elif score <= -3:
+        await ctx.send(random.choice([
+            f"*{your_name} sets a pillow down near Yarnaby's nest. He glances at it, glances at {your_name}, and pointedly continues lying on the bare floor next to it.* **...hff.**",
+            f"*The pillow sits untouched. Yarnaby acknowledges it exists. That's as far as it goes for now.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{your_name} sets a pillow down in Yarnaby's nest. He sniffs it, circles it once, kneads it experimentally - and then folds himself onto it like he'd been waiting for this his whole life.* **mrrp! prrr...**",
+            f"*Yarnaby watches the pillow get placed with deep suspicion, walks over, sits on it to test it, and immediately reconsiders his entire personality. He is now a pillow cat.* **mrr! prrr.**",
+            f"*The pillow goes into the nest. Yarnaby headbutts it once, kneads it twice, and curls up on it with a soft, satisfied **prrr**, like this was always part of the plan.*",
+        ]))
+
+    m["internal"]["has_pillow"] = True
+    _track_item(m, "a pillow", rarity="Loved", source="gift")
+    save_db(m)
+
+
+# ==========================================
 @bot.command(name="narrator")
 async def narrator_cmd(ctx):
     """Toggle narrator mode. When off, all Yarnaby responses become pure cat sounds."""
