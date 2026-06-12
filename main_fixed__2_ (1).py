@@ -12352,6 +12352,12 @@ async def help_cmd(ctx, *, section: str = None):
             "  Each lesson shows more progress — until one day, he just does it.\n"
             "- `!swim` - go swimming with him (must know how first via `!teachswim`)\n"
             "  1st unskilled = near drown. 2nd = rescued but needs `!revive`. 3rd = dead (needs `!revive`).\n"
+            "- `!fishing` - go fishing together; he may catch something (junk, fish, or rare finds)\n"
+            "  Catches are added to his hoard (`!inventory`). Has a cooldown.\n"
+            "- `!garden` - tend a small garden together; plant seeds and watch them grow over time\n"
+            "  Plants progress through stages (seedling → sprouting → budding → bloomed) as time passes.\n"
+            "- `!cook [dish]` - cook something together; outcome depends on trust score\n"
+            "  Can go well (he helps), neutral (he watches), or end in a mess.\n"
             "- `!wetness` / `!dryness` - check how wet or dry he currently is\n"
             "  Wetness drains at ~1pt/hr. Filled by swimming, lessons, and other water activities.\n"
             "- `!towel` - dry him with a towel (cozy, warm; he settles into it)\n"
@@ -60623,7 +60629,348 @@ async def _global_state_check(ctx):
 
 
 # ==========================================
-# !narrator — toggle narrator mode per guild
+# !fishing — go fishing with Yarnaby
+# ==========================================
+
+@bot.command(name="fishing")
+async def fishing_cmd(ctx):
+    """Go fishing with Yarnaby. He may catch something - or nothing at all."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*The water sits still. There is no one to cast a line with.*",
+            "*You go down to the water alone. The spot beside you stays empty.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You sit down by the water with him. He doesn't lean toward it, doesn't watch the surface. He just sits where he's placed, eyes unfocused, while the water moves on without him.* **...mrr...**",
+            "*He's brought along, but the fascination isn't there. He stares at nothing in particular. The water could be a wall. He wouldn't know the difference right now.* **...mrr...**",
+        ]))
+        return
+
+    if m["internal"].get("unconscious_until"):
+        await ctx.send(random.choice([
+            "*He's completely unconscious. Fishing will have to wait.*",
+            "*He's out cold. Whatever's in the water stays in the water for now.*",
+        ]))
+        return
+
+    remaining = _cooldown_remaining(m, f"fishing:{u_id}", 90)
+    if remaining > 0 and not is_doctor:
+        await ctx.send(f"*He's still drying off from last time. (~{remaining}s)* **mrr.**")
+        return
+    _set_cooldown(m, f"fishing:{u_id}")
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    await ctx.send(random.choice([
+        f"*{your_name} finds an old pole, or something close enough to one, and heads to the water with Yarnaby. He sits at the edge, tail tucked, staring at the surface with total focus.* **...**",
+        f"*Yarnaby follows {your_name} down to the water, ears pricked, and takes up a low, patient crouch at the edge.* **...mrr...**",
+        f"*{your_name} casts a line in. Yarnaby watches the ripples spread with the stillness of a creature who has decided this is the most important thing happening anywhere.* **...**",
+    ]))
+
+    await asyncio.sleep(2)
+
+    _FISH_CATCHES = [
+        ("a small silver fish", "Common"),
+        ("a slightly larger fish, unimpressed by the whole ordeal", "Common"),
+        ("a fish with one strange, too-thoughtful eye", "Rare"),
+        ("an old waterlogged boot", "Common"),
+        ("a tangle of rusted wire shaped almost like a bow", "Rare"),
+        ("a smooth, perfectly round stone", "Common"),
+        ("a fish that glows very faintly along its spine", "Super Rare"),
+        ("a tiny sealed jar with something swimming in it that shouldn't be", "Epic"),
+        ("a key, corroded, that fits no lock anyone remembers", "Mythic"),
+    ]
+
+    roll = random.random()
+    if roll < 0.12 and not is_doctor and score < 4:
+        # Nothing this time, lower trust users more likely to whiff
+        await ctx.send(random.choice([
+            "*Nothing bites. Yarnaby waits a long time, then gives up and shakes the water off his paw, disgusted.* **hff.**",
+            "*The line comes back empty. He stares at it, then at you, like this is somehow your fault.* **mrr.**",
+        ]))
+        return
+
+    catch, rarity = random.choice(_FISH_CATCHES)
+    _track_item(m, catch, rarity=rarity, source="fishing")
+    save_db(m)
+
+    emoji = RARITY_EMOJI.get(rarity, "")
+    rarity_tag = f" {emoji}" if emoji else ""
+
+    if rarity in ("Epic", "Mythic", "Super Rare"):
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*The line goes suddenly, impossibly taut. Yarnaby's whole body goes rigid - and then he hauls back, and out of the water comes **{catch}**.{rarity_tag} He drops it at your feet immediately, tail high, looking up at you for approval.* **mrrrk!**",
+                f"*Something pulls hard enough to nearly drag him in. He digs his claws in and holds on - and surfaces with **{catch}**.{rarity_tag} He brings it straight to you, like it was always meant for you.* **prrk! prrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*The line goes suddenly, impossibly taut. Yarnaby's whole body goes rigid - and then he hauls back, and out of the water comes **{catch}**.{rarity_tag} He stares at it. He stares at you. **mrrrk?!***",
+                f"*Something pulls hard enough to nearly drag him in. He digs his claws in and holds on - and surfaces with **{catch}**.{rarity_tag} Neither of you quite believe it.* **...prrk!**",
+            ]))
+    elif not is_doctor and score <= -3:
+        await ctx.send(random.choice([
+            f"*A tug on the line - and up comes **{catch}**.{rarity_tag} Yarnaby looks at it, looks at you, and drops it back in the water without a second thought.* **hff.**",
+            f"*The line jerks. Up comes **{catch}**.{rarity_tag} He noses it once, decides it isn't worth the company it came with, and walks off without it.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*A tug on the line - and up comes **{catch}**.{rarity_tag} Yarnaby noses at it, decides it's acceptable, and carries it proudly back up the bank.* **mrrp!**",
+            f"*The line jerks. Yarnaby's ears shoot forward. Up comes **{catch}**.{rarity_tag} He looks extremely pleased with himself.* **prrt!**",
+            f"*A small splash, a wriggle, and **{catch}**{rarity_tag} lands on the bank. He pats it once with a paw, just to be sure it's not going anywhere.* **mrr.**",
+        ]))
+
+
+# ==========================================
+# !garden — tend the garden with Yarnaby
+# ==========================================
+
+@bot.command(name="garden")
+async def garden_cmd(ctx):
+    """Tend the garden with Yarnaby. Plant something, or check on what's growing."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*The garden sits untended. There is no one to dig alongside.*",
+            "*You crouch by the garden bed alone. Nothing noses in beside you.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You bring him out to the garden anyway. He sits where you put him, not digging, not sniffing, just present. The dirt stays untouched in front of him.* **...mrr...**",
+            "*He doesn't reach for the soil. He doesn't look at the plants. He sits beside the garden bed like a shape someone left there.* **...mrr...**",
+        ]))
+        return
+
+    if m["internal"].get("unconscious_until"):
+        await ctx.send(random.choice([
+            "*He's completely unconscious. The garden will have to wait.*",
+            "*He's out cold. Nothing gets planted today.*",
+        ]))
+        return
+
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    garden = m["internal"].setdefault("garden", {"plants": [], "last_tended": None})
+    now = datetime.now()
+
+    # Grow existing plants based on time elapsed since last tend
+    last_tended_str = garden.get("last_tended")
+    grown_messages = []
+    if last_tended_str and garden["plants"]:
+        try:
+            last_tended = datetime.strptime(last_tended_str, "%Y-%m-%d %H:%M:%S")
+            hours_passed = (now - last_tended).total_seconds() / 3600
+        except Exception:
+            hours_passed = 0
+        if hours_passed >= 6:
+            for plant in garden["plants"]:
+                if plant["stage"] < 3:
+                    plant["stage"] += 1
+                    if plant["stage"] == 3:
+                        grown_messages.append(f"**{plant['name']}** has fully bloomed")
+
+    garden["last_tended"] = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    remaining = _cooldown_remaining(m, f"garden:{u_id}", 120)
+    if remaining > 0 and not is_doctor:
+        if grown_messages:
+            save_db(m)
+            await ctx.send(
+                "*Yarnaby noses through the garden, checking on things.* **mrr.**\n"
+                + "\n".join(f"- {g}" for g in grown_messages)
+            )
+            return
+        await ctx.send(f"*He's already been through the garden recently. (~{remaining}s)* **mrr.**")
+        return
+    _set_cooldown(m, f"garden:{u_id}")
+
+    _SEEDS = [
+        "a sprig of something green and stubborn",
+        "a tightly curled bud, deep red",
+        "a strange spiral-shelled seed",
+        "a cluster of tiny white flowers, not yet open",
+        "something that looks more like a mushroom than a plant",
+        "a vine with leaves shaped like little hands",
+    ]
+
+    STAGE_LABELS = {0: "seedling", 1: "sprouting", 2: "budding", 3: "in full bloom"}
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if len(garden["plants"]) < 6 and random.random() < 0.6:
+        new_plant = random.choice(_SEEDS)
+        garden["plants"].append({"name": new_plant, "stage": 0})
+        save_db(m)
+        if is_doctor:
+            intro = random.choice([
+                f"*{your_name} kneels by the garden bed. Yarnaby presses close against their side, watching every motion as they tuck **{new_plant}** into the soil, then pats the dirt down himself with one careful paw, glancing up for approval.* **mrrp. prrr.**",
+                f"*Yarnaby digs a small hole, very precisely, glancing back at {your_name} as if to ask if it's good enough. {your_name} plants **{new_plant}** in it. He covers it back over and curls up right beside it, content.* **prrt. prrr.**",
+            ])
+        elif score <= -3:
+            intro = random.choice([
+                f"*{your_name} tucks **{new_plant}** into the soil. Yarnaby watches from a distance, ears low, and doesn't come any closer than he has to.* **...mrr.**",
+                f"*Yarnaby sits well back from the garden bed while {your_name} plants **{new_plant}**. He doesn't help. He doesn't stop it either.* **...hff.**",
+            ])
+        else:
+            intro = random.choice([
+                f"*{your_name} kneels by the garden bed. Yarnaby watches closely as they tuck **{new_plant}** into the soil, then pats the dirt down himself with one careful paw.* **mrrp.**",
+                f"*Yarnaby digs a small hole, very precisely, and waits. {your_name} plants **{new_plant}** in it. He covers it back over and sits beside it like a small, fierce guardian.* **prrt.**",
+            ])
+    else:
+        save_db(m)
+        if is_doctor:
+            intro = random.choice([
+                f"*{your_name} and Yarnaby walk the rows of the garden together. He stays pressed against their leg the whole way, sniffing each plant in turn, very seriously, as if conducting an inspection only he and {your_name} are allowed to oversee.* **mrr. prrr.**",
+                f"*Yarnaby leads the way along the garden bed, checking on everything, occasionally looking back to make sure {your_name} is keeping up.* **prrr.**",
+            ])
+        elif score <= -3:
+            intro = random.choice([
+                f"*{your_name} walks the rows of the garden. Yarnaby trails several steps behind, uninterested, occasionally sniffing at a plant and moving on without comment.* **...mrr.**",
+            ])
+        else:
+            intro = random.choice([
+                f"*{your_name} and Yarnaby walk the rows of the garden together. He sniffs each plant in turn, very seriously, as if conducting an inspection.* **mrr.**",
+                f"*Yarnaby pads along the garden bed, checking on everything. {your_name} follows behind, watching him work.* **prrr.**",
+            ])
+
+    if not garden["plants"]:
+        await ctx.send(intro)
+        return
+
+    status_lines = []
+    for plant in garden["plants"]:
+        status_lines.append(f"- **{plant['name']}** - {STAGE_LABELS.get(plant['stage'], 'seedling')}")
+
+    msg = intro + "\n\n**[Garden]**\n" + "\n".join(status_lines)
+    if grown_messages:
+        msg += "\n\n" + "\n".join(f"*{g} since you last checked.*" for g in grown_messages)
+
+    await ctx.send(msg)
+
+
+# ==========================================
+# !cook — cook something together with Yarnaby
+# ==========================================
+
+@bot.command(name="cook")
+async def cook_cmd(ctx, *, dish: Optional[str] = None):
+    """Cook something with Yarnaby. He helps. Or watches. Or causes a mess."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*The kitchen is quiet and stays that way. There is no one to cook with.*",
+            "*You stand in the kitchen alone. Nothing winds around your ankles.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You move around the kitchen. He's there, somewhere nearby, but he doesn't follow the smells, doesn't get underfoot, doesn't react to anything. He's just present.* **...mrr...**",
+            "*Normally he'd be impossible to cook around. Today he sits in the corner, still, while everything happens without him.* **...mrr...**",
+        ]))
+        return
+
+    if m["internal"].get("unconscious_until"):
+        await ctx.send(random.choice([
+            "*He's completely unconscious. Cooking will have to wait.*",
+            "*He's out cold. The kitchen stays quiet for now.*",
+        ]))
+        return
+
+    if dish is None:
+        await ctx.send("*`!cook [dish]` - cook something with Yarnaby.*")
+        return
+
+    remaining = _cooldown_remaining(m, f"cook:{u_id}", 90)
+    if remaining > 0 and not is_doctor:
+        await ctx.send(f"*The kitchen's still a mess from last time. (~{remaining}s)* **mrr.**")
+        return
+    _set_cooldown(m, f"cook:{u_id}")
+
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    roll = random.random()
+
+    if roll < 0.15:
+        # mess
+        await ctx.send(random.choice([
+            f"*{your_name} starts making **{dish}**. Yarnaby gets underfoot almost immediately, and something - a bag, a bowl, an entire shelf - goes over. Flour, or its closest equivalent, is now everywhere. He sits in the middle of it, looking enormously pleased with himself.* **mrrp!**",
+            f"*Things are going fine with the **{dish}** until Yarnaby decides to 'help' by climbing directly into the mixing bowl. The **{dish}** is, at this point, a loss. He does not seem to register this as a problem.* **prrt.**",
+        ]))
+    elif (is_doctor or score >= 6) and roll < 0.55:
+        # successful, warm
+        if is_doctor:
+            await ctx.send(random.choice([
+                f"*{your_name} and Yarnaby make **{dish}** together. He sits up on the counter the whole time, pressed against {your_name}'s arm, supervising with great seriousness and occasionally patting an ingredient closer with one paw. It turns out perfectly.* **mrrp! prrr.**",
+                f"*Yarnaby stays glued to {your_name}'s side the entire time **{dish}** comes together, weaving around their feet, occasionally headbutting their leg for no reason at all. When it's done, he claims the first taste.* **mrr! prrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{your_name} and Yarnaby make **{dish}** together. He sits up on the counter the whole time, supervising with great seriousness, occasionally patting an ingredient closer with one paw. It actually turns out well.* **prrr.**",
+                f"*Yarnaby stays close the entire time **{dish}** comes together, weaving gently around {your_name}'s feet, never quite in the way. When it's done, he sniffs it approvingly and sits back, satisfied.* **mrr. prrr.**",
+            ]))
+    else:
+        # neutral / watching
+        if not is_doctor and score <= -3:
+            await ctx.send(random.choice([
+                f"*{your_name} makes **{dish}** alone. Yarnaby is in the room, technically, sitting as far from the kitchen as the room allows, facing the other way.* **...hff.**",
+                f"*Yarnaby leaves the kitchen entirely while {your_name} makes **{dish}**, and doesn't come back until well after the smell has faded.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*{your_name} makes **{dish}** while Yarnaby watches from a safe distance, ears swiveling toward every sound the pan makes. He doesn't get involved. He doesn't look away either.* **...mrr.**",
+                f"*Yarnaby observes the making of **{dish}** from atop a nearby surface, tail curled neatly around himself, the picture of polite disinterest that is absolutely not disinterest.* **...prrt.**",
+            ]))
+
+
 # ==========================================
 
 @bot.command(name="narrator")
