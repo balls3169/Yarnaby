@@ -12365,6 +12365,11 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!enroll [school name]` - enroll Yarnaby in school\n"
             "  He's assigned a class (e.g. 1a, 2b, 3c...). Check back periodically (~6h) for school day updates.\n"
             "  After class 4, he graduates elementary school. A few real/famous school names trigger special reactions.\n"
+            "- `!enlist` - enlist Yarnaby for war\n"
+            "  Check back periodically (~6h) for rank updates (Private → ... → Sergeant Major), ending in an honorable discharge.\n"
+            "- `!vrmode [game]` - put Yarnaby in VR mode to play a game\n"
+            "  Knows Gorilla Tag, Big Scary Baboon, Egg VR, Downshot, VRChat, Rec Room, Beat Saber, and Population: One.\n"
+            "  Any other game name gets a generic reaction. If no game is given, he picks one himself.\n"
             "- `!wetness` / `!dryness` - check how wet or dry he currently is\n"
             "  Wetness drains at ~1pt/hr. Filled by swimming, lessons, and other water activities.\n"
             "- `!towel` - dry him with a towel (cozy, warm; he settles into it)\n"
@@ -61334,6 +61339,285 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
 
     if is_doctor:
         msg += f"\n\n*{your_name} watches him go, just for a moment, before he disappears around the corner.* **mrr...**"
+
+    await ctx.send(msg)
+
+
+# ==========================================
+# !enlist — enlist Yarnaby for war
+# ==========================================
+
+_MILITARY_RANKS = [
+    "Private",
+    "Private First Class",
+    "Corporal",
+    "Sergeant",
+    "Staff Sergeant",
+    "Sergeant Major",
+]
+
+_ENLIST_INTROS = [
+    "*{your_name} fills out the enlistment papers. Yarnaby signs by stepping in the inkwell, then on the form. He is now, officially, **{rank}**.* **mrr.**",
+    "*Somewhere, a stamp comes down. Yarnaby is enlisted, ranked **{rank}**, and visibly unaware of what any of this means. He salutes anyway, mostly by sitting up very straight.* **mrrp!**",
+]
+
+_ENLIST_DAY = [
+    "*Another day of service. Yarnaby returns looking exhausted, dignified, and extremely covered in mud. Current rank: **{rank}**.* **mrr.**",
+    "*Drills, apparently, happened. Yarnaby reports - via a long stare and a slow blink - that he performed admirably. Current rank: **{rank}**.* **mrrp.**",
+    "*Yarnaby comes back from duty, sets down something he was clearly not issued, and refuses to elaborate. Current rank: **{rank}**.* **...mrr.**",
+]
+
+_ENLIST_PROMOTION = [
+    "*A small ceremony. A slightly-too-big medal is pinned on, immediately falls off, and is re-pinned. Yarnaby has been promoted to **{rank}**.* **mrrp! prrr.**",
+    "*Word comes down: Yarnaby has been promoted to **{rank}**. He carries himself differently for the rest of the day. Possibly imagined. Possibly not.* **mrr! prrr.**",
+]
+
+_ENLIST_DISCHARGE = [
+    "*A final ceremony. Yarnaby stands at attention - or close enough - as he is honorably discharged at the rank of **{rank}**. {your_name} salutes. He does not know what that means, but he returns it anyway.* **mrrp!! prrr...**",
+    "*Service complete. Yarnaby is honorably discharged, **{rank}**, with full honors and one (1) slightly chewed medal. He retires immediately to the nearest soft surface.* **mrr! prrr.**",
+]
+
+
+@bot.command(name="enlist")
+async def enlist_cmd(ctx):
+    """Enlist Yarnaby for war. Check back later for rank updates."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*There's no one here to enlist.*",
+            "*The enlistment papers sit blank. There's nothing to sign them.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You bring up the idea of enlisting him. He doesn't react - not with pride, not with worry. Not right now.* **...mrr...**",
+            "*The papers sit there. He doesn't reach for them.* **...mrr...**",
+        ]))
+        return
+
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    military = m["internal"].setdefault(
+        "military", {"enlisted": False, "rank_index": 0, "discharged": False}
+    )
+
+    if military.get("enlisted"):
+        if military.get("discharged"):
+            rank = _MILITARY_RANKS[military.get("rank_index", 0)]
+            await ctx.send(random.choice([
+                f"*Yarnaby already served, and was honorably discharged as **{rank}**. He has no plans to re-enlist. He considers the matter closed.* **mrr.**",
+                f"*He's done with the service. **{rank}**, retired. The medal's around here somewhere - probably chewed.* **mrrp.**",
+            ]))
+            return
+
+        remaining = _cooldown_remaining(m, f"enlist:{u_id}", 21600)  # 6 hours per "tour"
+        if remaining > 0 and not is_doctor:
+            rank = _MILITARY_RANKS[military.get("rank_index", 0)]
+            hours = max(1, remaining // 3600)
+            await ctx.send(f"*He's still out on duty as **{rank}**. Check back in ~{hours}h.* **mrr.**")
+            return
+        _set_cooldown(m, f"enlist:{u_id}")
+
+        old_index = military.get("rank_index", 0)
+        promote = random.random() < 0.5
+
+        if promote and old_index < len(_MILITARY_RANKS) - 1:
+            military["rank_index"] = old_index + 1
+            new_rank = _MILITARY_RANKS[military["rank_index"]]
+            save_db(m)
+
+            if military["rank_index"] == len(_MILITARY_RANKS) - 1:
+                # final rank reached this time around - he'll be discharged on his NEXT check-in
+                msg = random.choice(_ENLIST_PROMOTION).format(rank=new_rank, your_name=your_name)
+                await ctx.send(msg)
+                return
+
+            msg = random.choice(_ENLIST_PROMOTION).format(rank=new_rank, your_name=your_name)
+            await ctx.send(msg)
+            return
+
+        if old_index == len(_MILITARY_RANKS) - 1:
+            military["discharged"] = True
+            save_db(m)
+            rank = _MILITARY_RANKS[old_index]
+            msg = random.choice(_ENLIST_DISCHARGE).format(rank=rank, your_name=your_name)
+            await ctx.send(msg)
+            return
+
+        rank = _MILITARY_RANKS[old_index]
+        save_db(m)
+        msg = random.choice(_ENLIST_DAY).format(rank=rank, your_name=your_name)
+        await ctx.send(msg)
+        return
+
+    # Not yet enlisted
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if not is_doctor and score <= -3:
+        await ctx.send(random.choice([
+            f"*{your_name} tries to enlist Yarnaby. He takes one look at the papers, then at {your_name}, and walks away. Not happening.* **...hff.**",
+            "*Yarnaby reviews the enlistment papers and declines to participate in any of it.* **mrr.**",
+        ]))
+        return
+
+    military["enlisted"] = True
+    military["rank_index"] = 0
+    military["discharged"] = False
+    _set_cooldown(m, f"enlist:{u_id}")
+    save_db(m)
+
+    rank = _MILITARY_RANKS[0]
+    msg = random.choice(_ENLIST_INTROS).format(rank=rank, your_name=your_name)
+
+    if is_doctor:
+        msg += f"\n\n*{your_name} watches him march off, slightly out of step, before he disappears around the corner.* **mrr...**"
+
+    await ctx.send(msg)
+
+
+# ==========================================
+# !vrmode — Yarnaby plays VR games
+# ==========================================
+
+_VR_GAMES = {
+    "gorilla tag": {
+        "display": "Gorilla Tag",
+        "msgs": [
+            "*Yarnaby puts on the headset for **Gorilla Tag** and immediately goes feral - swinging both controllers, knocking over a lamp, and producing sounds you didn't know he could make. He is, by all accounts, having the time of his life.* **mrrrk!! mrrrk!!**",
+            "*Within thirty seconds of **Gorilla Tag**, Yarnaby has climbed the entire couch using only his arms, and is now stuck on top of it, controllers still swinging.* **mrrk! mrrk!**",
+        ],
+    },
+    "big scary": {
+        "display": "Big Scary Baboon",
+        "msgs": [
+            "*Yarnaby loads up **Big Scary Baboon**. Something jumps out. He does not remove the headset. He simply goes completely vertical, hovers there for a second, and lands facing the opposite direction.* **MRRK?!**",
+            "*Five minutes into **Big Scary Baboon**, Yarnaby has not pressed a single button. He is just standing very still, headset on, ears flat, waiting for it to be over.* **...mrr...**",
+        ],
+    },
+    "egg vr": {
+        "display": "Egg VR",
+        "msgs": [
+            "*Yarnaby boots up **Egg VR**. He stares at the virtual eggs for a long, long moment. Then he very slowly reaches out one paw - controller and all - and gently bonks one off a virtual table. He watches it fall. He is satisfied.* **prrr...**",
+            "*In **Egg VR**, Yarnaby discovers he can knock things off surfaces with no real-world consequences. This may be the most dangerous discovery of his life.* **mrrp!**",
+        ],
+    },
+    "downshot": {
+        "display": "Downshot",
+        "msgs": [
+            "*Yarnaby tries **Downshot**. He is, against all odds, alarmingly good at it - until he gets distracted by a virtual bird in the background and spends the rest of the round chasing it instead.* **mrrk!**",
+            "*Round one of **Downshot** goes fine. Round two is interrupted entirely by a moth that is real, in this room, right now, and infinitely more interesting.* **mrrp?!**",
+        ],
+    },
+    "vrchat": {
+        "display": "VRChat",
+        "msgs": [
+            "*Yarnaby logs into **VRChat** and immediately picks the strangest avatar available. He spends the entire session just standing in a lobby, tilting his head at other players, occasionally letting out a small, confused **mrr?***",
+            "*In **VRChat**, Yarnaby finds a group of people doing something he doesn't understand, sits down next to them, and just... watches. He seems content.* **...prrr.**",
+        ],
+    },
+    "rec room": {
+        "display": "Rec Room",
+        "msgs": [
+            "*Yarnaby tries **Rec Room** and bounces between approximately six different minigames in two minutes, fully committing to none of them, leaving a trail of confused other players behind him.* **mrrp! mrrp!**",
+            "*Yarnaby finds the paintball room in **Rec Room** and treats it less like a game and more like a personal vendetta.* **MRRK!**",
+        ],
+    },
+    "beat saber": {
+        "display": "Beat Saber",
+        "msgs": [
+            "*Yarnaby puts on **Beat Saber** and discovers swords. He does not hit a single block correctly. He does not care. He has swords.* **mrrk! mrrk!**",
+        ],
+    },
+    "population one": {
+        "display": "Population: One",
+        "msgs": [
+            "*Yarnaby drops into **Population: One**, immediately climbs the nearest building purely because he can, and spends the rest of the match sitting on the roof, watching everyone else fight.* **...prrr.**",
+        ],
+    },
+}
+
+_VR_GENERIC = [
+    "*Yarnaby puts on the headset for **{game}** and goes very still for a moment, processing. Then he commits to it completely, swinging both controllers with total confidence and zero understanding of the rules.* **mrrp!**",
+    "*In **{game}**, Yarnaby finds one specific thing to be fascinated by and ignores everything else the game is trying to do.* **...mrr.**",
+]
+
+
+@bot.command(name="vrmode")
+async def vrmode_cmd(ctx, *, game: Optional[str] = None):
+    """Put Yarnaby in VR mode to play a game."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*The headset sits on the table, unused.*",
+            "*No one puts the headset on. The lobby screen times out.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You hold the headset up. He doesn't reach for it. He's not in the mood to go anywhere right now, virtual or otherwise.* **...mrr...**",
+            "*The headset stays on the table. He looks at it. He doesn't move toward it.* **...mrr...**",
+        ]))
+        return
+
+    remaining = _cooldown_remaining(m, f"vrmode:{u_id}", 90)
+    if remaining > 0 and not is_doctor:
+        await ctx.send(f"*He's still got the headset on from last time. (~{remaining}s)* **mrr.**")
+        return
+    _set_cooldown(m, f"vrmode:{u_id}")
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if not is_doctor and score <= -3:
+        await ctx.send(random.choice([
+            f"*{your_name} offers Yarnaby the headset. He sniffs it once and walks away. Not interested - not from {your_name}.* **...hff.**",
+            "*The headset is offered. Yarnaby looks at it, looks away, and finds something else to do.* **mrr.**",
+        ]))
+        return
+
+    if game is None:
+        game_key = random.choice(list(_VR_GAMES.keys()))
+        chosen = _VR_GAMES[game_key]
+        msg = random.choice(chosen["msgs"])
+    else:
+        game_lower = game.lower()
+        match = next((v for k, v in _VR_GAMES.items() if k in game_lower), None)
+        if match:
+            msg = random.choice(match["msgs"])
+        else:
+            msg = random.choice(_VR_GENERIC).format(game=game.strip())
+
+    if is_doctor:
+        msg += f"\n\n*Every so often, mid-game, he glances back over his shoulder toward {your_name} - just to check they're still there.* **mrr.**"
 
     await ctx.send(msg)
 
