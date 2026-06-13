@@ -28258,7 +28258,6 @@ async def broadcast_cmd(ctx, *, message: str = ""):
 async def raid_cmd(ctx, server_name: str = "", *, topic: str = ""):
     """[Creator only] Post a warning in the named server (see `!servers`) that it's a bad server (scam, etc.)."""
     if ctx.author.id != DOCTOR_ID:
-        await ctx.send("*He looks at you with mild confusion. That is a Creator command.* **mrr.**")
         return
     m = bot.db
     await _add_reactions(ctx, m)
