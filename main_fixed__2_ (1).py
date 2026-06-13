@@ -5301,6 +5301,44 @@ ACHIEVEMENTS = {
 _ACH_CAT_ORDER = ["Fetch", "Hoard", "Trust", "Interactions", "Feeding", "Gifting", "Events"]
 
 
+def _chunk_lines_to_fields(lines, sep="\n"):
+    """Split a list of text lines into chunks that each fit within Discord's
+    1024-char field value limit when joined by `sep`."""
+    chunks = []
+    current = []
+    current_len = 0
+    for line in lines:
+        add_len = len(line) + (len(sep) if current else 0)
+        if current and current_len + add_len > 1024:
+            chunks.append(sep.join(current))
+            current = [line]
+            current_len = len(line)
+        else:
+            current.append(line)
+            current_len += add_len
+    if current:
+        chunks.append(sep.join(current))
+    return chunks
+
+
+def _add_paginated_fields(embeds_list, make_embed, cat_label, lines, sep="\n", max_total=5800, max_fields=24):
+    """Add a category's lines as one or more fields, splitting into new embeds
+    (created via make_embed(part_num)) as needed to respect Discord's per-embed
+    6000-char total and 25-field limits."""
+    chunks = _chunk_lines_to_fields(lines, sep=sep)
+    n = len(chunks)
+    for i, chunk in enumerate(chunks, start=1):
+        fname = cat_label if n == 1 else f"{cat_label} ({i}/{n})"
+        addition = len(fname) + len(chunk)
+        current = embeds_list[-1]
+        if current._char_total + addition > max_total or len(current.fields) >= max_fields:
+            current = make_embed(len(embeds_list) + 1)
+            embeds_list.append(current)
+        current.add_field(name=fname, value=chunk, inline=False)
+        current._char_total += addition
+
+
+
 def _grant_achievement(m, uid, ach_id):
     """Grant an achievement. Returns True if newly granted."""
     if ach_id not in ACHIEVEMENTS:
@@ -22869,14 +22907,25 @@ async def achievements_cmd(ctx, *, target: str = ""):
     bar_filled = pct // 5
     prog_bar = "█" * bar_filled + "░" * (20 - bar_filled)
 
-    embed = discord.Embed(
-        title=f"🏅  Achievements — {display_name}",
-        description=(
-            f"**{earned_count} / {total}** unlocked  ·  **{pct}%** complete\n"
-            f"`{prog_bar}`"
-        ),
-        color=0xF0C070 if earned_count > 0 else 0x888888,
-    )
+    def _new_embed(part_num):
+        title = f"🏅  Achievements — {display_name}"
+        if part_num > 1:
+            title += f" (cont. {part_num})"
+        emb = discord.Embed(
+            title=title,
+            color=0xF0C070 if earned_count > 0 else 0x888888,
+        )
+        if part_num == 1:
+            emb.description = (
+                f"**{earned_count} / {total}** unlocked  ·  **{pct}%** complete\n"
+                f"`{prog_bar}`"
+            )
+            emb._char_total = len(emb.title) + len(emb.description)
+        else:
+            emb._char_total = len(emb.title)
+        return emb
+
+    embeds = [_new_embed(1)]
 
     for cat_name in _ACH_CAT_ORDER:
         if cat_name not in cats:
@@ -22889,22 +22938,19 @@ async def achievements_cmd(ctx, *, target: str = ""):
                 lines.append(f"{ach['emoji']} **{ach['name']}** — {ach['desc']}  *(earned {ts})*")
             else:
                 lines.append(f"🔒 ~~{ach['name']}~~ — {ach['desc']}")
-        field_val = "\n".join(lines)
-        if len(field_val) <= 1024:
-            embed.add_field(name=f"**{cat_name}**", value=field_val, inline=False)
-        else:
-            half = len(lines) // 2
-            embed.add_field(name=f"**{cat_name}** (1/2)", value="\n".join(lines[:half]), inline=False)
-            embed.add_field(name=f"**{cat_name}** (2/2)", value="\n".join(lines[half:]), inline=False)
+
+        _add_paginated_fields(embeds, _new_embed, f"**{cat_name}**", lines)
 
     if earned_count == total:
-        embed.set_footer(text="All achievements unlocked. He would be impressed. He won't say so.")
+        embeds[-1].set_footer(text="All achievements unlocked. He would be impressed. He won't say so.")
     elif earned_count == 0:
-        embed.set_footer(text="No achievements yet. Start by using !fetch.")
+        embeds[-1].set_footer(text="No achievements yet. Start by using !fetch.")
     else:
-        embed.set_footer(text="🔒 = not yet unlocked  ·  Use !achievements @user to check someone else.")
+        embeds[-1].set_footer(text="🔒 = not yet unlocked  ·  Use !achievements @user to check someone else.")
 
-    await ctx.send(embed=embed)
+    for emb in embeds:
+        del emb._char_total
+        await ctx.send(embed=emb)
 
 
 
@@ -23698,13 +23744,21 @@ async def quests_cmd(ctx, *, target: str = ""):
     hrs, rem = divmod(secs_to_reset, 3600)
     mins = rem // 60
 
-    embed = discord.Embed(
-        title=f"📋  Quests — {display_name}",
-        description=(
-            f"Complete quests to earn bonus trust score.\nDaily resets in **{hrs}h {mins}m**  ·  Claim with `!claim_quest <id>`"
-        ),
-        color=0x7B8FBF,
-    )
+    def _new_quest_embed(part_num):
+        title = f"📋  Quests — {display_name}"
+        if part_num > 1:
+            title += f" (cont. {part_num})"
+        emb = discord.Embed(title=title, color=0x7B8FBF)
+        if part_num == 1:
+            emb.description = (
+                f"Complete quests to earn bonus trust score.\nDaily resets in **{hrs}h {mins}m**  ·  Claim with `!claim_quest <id>`"
+            )
+            emb._char_total = len(emb.title) + len(emb.description)
+        else:
+            emb._char_total = len(emb.title)
+        return emb
+
+    embeds = [_new_quest_embed(1)]
 
     for cat_label, qtype in [("📅  Daily", "daily"), ("📆  Weekly", "weekly"), ("⭐  Special", "one_time")]:
         cat_quests = [(qid, q) for qid, q in QUESTS.items() if q["type"] == qtype]
@@ -23726,17 +23780,12 @@ async def quests_cmd(ctx, *, target: str = ""):
                 f"{q['desc']}  ·  *{q['reward_desc']}*\n"
                 f"{status}"
             )
-        field_val = "\n\n".join(lines)
-        if len(field_val) > 1024:
-            # split
-            half = len(lines) // 2
-            embed.add_field(name=f"{cat_label} (1/2)", value="\n\n".join(lines[:half]), inline=False)
-            embed.add_field(name=f"{cat_label} (2/2)", value="\n\n".join(lines[half:]), inline=False)
-        else:
-            embed.add_field(name=cat_label, value=field_val, inline=False)
+        _add_paginated_fields(embeds, _new_quest_embed, cat_label, lines, sep="\n\n")
 
-    embed.set_footer(text="💡 Daily quests reset at midnight  ·  Weekly quests reset on Monday")
-    await ctx.send(embed=embed)
+    embeds[-1].set_footer(text="💡 Daily quests reset at midnight  ·  Weekly quests reset on Monday")
+    for emb in embeds:
+        del emb._char_total
+        await ctx.send(embed=emb)
 
 
 @bot.command(name="claim_quest")
