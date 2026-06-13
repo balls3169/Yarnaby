@@ -5321,21 +5321,31 @@ def _chunk_lines_to_fields(lines, sep="\n"):
     return chunks
 
 
+class _PaginatedEmbed:
+    """Lightweight wrapper pairing a discord.Embed with a running char count.
+    (discord.Embed uses __slots__, so we can't attach extra attributes to it directly.)"""
+    __slots__ = ("embed", "char_total")
+
+    def __init__(self, embed, char_total):
+        self.embed = embed
+        self.char_total = char_total
+
+
 def _add_paginated_fields(embeds_list, make_embed, cat_label, lines, sep="\n", max_total=5800, max_fields=24):
     """Add a category's lines as one or more fields, splitting into new embeds
-    (created via make_embed(part_num)) as needed to respect Discord's per-embed
-    6000-char total and 25-field limits."""
+    (created via make_embed(part_num) -> _PaginatedEmbed) as needed to respect
+    Discord's per-embed 6000-char total and 25-field limits."""
     chunks = _chunk_lines_to_fields(lines, sep=sep)
     n = len(chunks)
     for i, chunk in enumerate(chunks, start=1):
         fname = cat_label if n == 1 else f"{cat_label} ({i}/{n})"
         addition = len(fname) + len(chunk)
         current = embeds_list[-1]
-        if current._char_total + addition > max_total or len(current.fields) >= max_fields:
+        if current.char_total + addition > max_total or len(current.embed.fields) >= max_fields:
             current = make_embed(len(embeds_list) + 1)
             embeds_list.append(current)
-        current.add_field(name=fname, value=chunk, inline=False)
-        current._char_total += addition
+        current.embed.add_field(name=fname, value=chunk, inline=False)
+        current.char_total += addition
 
 
 
@@ -22920,10 +22930,10 @@ async def achievements_cmd(ctx, *, target: str = ""):
                 f"**{earned_count} / {total}** unlocked  ·  **{pct}%** complete\n"
                 f"`{prog_bar}`"
             )
-            emb._char_total = len(emb.title) + len(emb.description)
+            char_total = len(emb.title) + len(emb.description)
         else:
-            emb._char_total = len(emb.title)
-        return emb
+            char_total = len(emb.title)
+        return _PaginatedEmbed(emb, char_total)
 
     embeds = [_new_embed(1)]
 
@@ -22942,15 +22952,14 @@ async def achievements_cmd(ctx, *, target: str = ""):
         _add_paginated_fields(embeds, _new_embed, f"**{cat_name}**", lines)
 
     if earned_count == total:
-        embeds[-1].set_footer(text="All achievements unlocked. He would be impressed. He won't say so.")
+        embeds[-1].embed.set_footer(text="All achievements unlocked. He would be impressed. He won't say so.")
     elif earned_count == 0:
-        embeds[-1].set_footer(text="No achievements yet. Start by using !fetch.")
+        embeds[-1].embed.set_footer(text="No achievements yet. Start by using !fetch.")
     else:
-        embeds[-1].set_footer(text="🔒 = not yet unlocked  ·  Use !achievements @user to check someone else.")
+        embeds[-1].embed.set_footer(text="🔒 = not yet unlocked  ·  Use !achievements @user to check someone else.")
 
-    for emb in embeds:
-        del emb._char_total
-        await ctx.send(embed=emb)
+    for item in embeds:
+        await ctx.send(embed=item.embed)
 
 
 
@@ -23753,10 +23762,10 @@ async def quests_cmd(ctx, *, target: str = ""):
             emb.description = (
                 f"Complete quests to earn bonus trust score.\nDaily resets in **{hrs}h {mins}m**  ·  Claim with `!claim_quest <id>`"
             )
-            emb._char_total = len(emb.title) + len(emb.description)
+            char_total = len(emb.title) + len(emb.description)
         else:
-            emb._char_total = len(emb.title)
-        return emb
+            char_total = len(emb.title)
+        return _PaginatedEmbed(emb, char_total)
 
     embeds = [_new_quest_embed(1)]
 
@@ -23782,10 +23791,9 @@ async def quests_cmd(ctx, *, target: str = ""):
             )
         _add_paginated_fields(embeds, _new_quest_embed, cat_label, lines, sep="\n\n")
 
-    embeds[-1].set_footer(text="💡 Daily quests reset at midnight  ·  Weekly quests reset on Monday")
-    for emb in embeds:
-        del emb._char_total
-        await ctx.send(embed=emb)
+    embeds[-1].embed.set_footer(text="💡 Daily quests reset at midnight  ·  Weekly quests reset on Monday")
+    for item in embeds:
+        await ctx.send(embed=item.embed)
 
 
 @bot.command(name="claim_quest")
