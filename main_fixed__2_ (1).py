@@ -2983,6 +2983,26 @@ class Yarnaby(commands.Bot):
 
         save_db(self.db)
 
+        # --- GRANT ALL ACHIEVEMENTS & QUESTS TO CREATOR ON STARTUP ---
+        try:
+            _creator_uid = str(CREATOR_ID)
+            _creator_entry = self.db.setdefault("social_matrix", {}).setdefault(_creator_uid, {})
+            _creator_achs = _creator_entry.setdefault("achievements", {})
+            _now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for _aid in ACHIEVEMENTS:
+                if _aid not in _creator_achs:
+                    _creator_achs[_aid] = _now_str
+            _creator_entry["score"] = 100
+            # Mark all quests as claimable/completed for creator
+            _creator_qs = _creator_entry.setdefault("quest_states", {})
+            for _qid, _q in QUESTS.items():
+                _cs = _creator_qs.setdefault(_qid, {})
+                _cs["claimed"] = True
+                _cs["period_key"] = _quest_period_key(_q["type"])
+            save_db(self.db)
+        except Exception as _ce:
+            print(f"[on_ready] creator init error: {_ce}")
+
         # --- ONLINE ANNOUNCEMENT + UPDATE NOTES ---
         _ann_channel_id = (
             self.db["internal"].get("home_channel_id")
@@ -5296,9 +5316,12 @@ ACHIEVEMENTS = {
     "night_owl":             {"name": "Night Owl",           "desc": "Interacted with Yarnaby after midnight.",          "emoji": "🦉", "cat": "Events"},
     "early_bird":            {"name": "Early Bird",          "desc": "Interacted with Yarnaby before 6am.",              "emoji": "🐦", "cat": "Events"},
     "weekend_visitor":       {"name": "Weekend Regular",     "desc": "Visited Yarnaby on a weekend.",                    "emoji": "📅", "cat": "Events"},
+    # ── SPECIAL (creator-only / endgame) ──
+    "the_creator":           {"name": "The Creator",         "desc": "You made him. He knows.",                                       "emoji": "👑", "cat": "Special"},
+    "endgame":               {"name": "Endgame",             "desc": "Unlocked every single achievement. He stares at you for a very long time.", "emoji": "🌌", "cat": "Special"},
 }
 
-_ACH_CAT_ORDER = ["Fetch", "Hoard", "Trust", "Interactions", "Feeding", "Gifting", "Events"]
+_ACH_CAT_ORDER = ["Fetch", "Hoard", "Trust", "Interactions", "Feeding", "Gifting", "Events", "Special"]
 
 
 def _chunk_lines_to_fields(lines, sep="\n"):
@@ -5401,6 +5424,12 @@ async def _grant_and_announce(m, uid, ach_id, channel=None):
             if ach_total >= 40: await _grant_and_announce(m, uid, "ach_40", channel)
             if ach_total >= 50: await _grant_and_announce(m, uid, "ach_50", channel)
             if ach_total >= 60: await _grant_and_announce(m, uid, "ach_60", channel)
+            # Endgame: check if ALL non-special achievements are now unlocked
+            if ach_id not in ("endgame", "the_creator"):
+                _all_normal = set(k for k, v in ACHIEVEMENTS.items() if v.get("cat") != "Special")
+                _earned_set = set(m.get("social_matrix", {}).get(str(uid), {}).get("achievements", {}).keys())
+                if _all_normal.issubset(_earned_set):
+                    await _grant_and_announce(m, uid, "endgame", channel)
         return True
     return False
 
@@ -12924,6 +12953,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!sick` - sickness level 0-4 with progress bar, description, care tips\n"
             "- `!blanket` / `!warm` - wrap him up when he's cold\n"
             "- `!medicine` / `!med` / `!pills` - give medicine (speeds up toxic recovery)\n"
+            "- `!force_medicine [1-10]` - force his mouth open; up to 10 doses, he shuts at 11\n"
+            "- `!force_medicine [1-10]` - force his mouth open and administer doses\n"
             "- `!soup` / `!broth` - warm broth: heals +20 HP, clears cold/fever\n"
             "- `!heatpad` / `!hotwater` - heat pad: heals +10 HP, warms him up\n"
             "- `!vet` / `!checkup` - **Creator only**: full heal + detailed status report\n"
@@ -13250,6 +13281,8 @@ async def help_cmd(ctx, *, section: str = None):
             "  Also accessible at score ≥ 5 for non-Creator\n\n"
             "**Creator + co-owner (vets)**\n"
             "- `!vet` / `!checkup` - full heal + status report\n"
+            "- `!force_medicine [1-10]` - force-administer medicine; max 10 doses, mouth closes at 11\n"
+            "- `!force_medicine [1-10]` - force-administer medicine doses; 10 max, he closes mouth at 11\n"
             "- `!forgive @user` / `!pardon` / `!absolve` - formally clear a grievance\n"
             "  Clears toxic attempt log + resets negative score; response varies by offense severity\n"
             "- `!reset @user` - clear one person's score"
@@ -13520,11 +13553,11 @@ async def help_cmd(ctx, *, section: str = None):
             "**What gets logged automatically:**\n"
             "✏️ Message edited  🗑️ Message deleted  📝 Nickname changed\n"
             "➕➖ Role added/removed  🔇 Timeout applied/removed\n"
-            "👤 Username changed  🖼️ Avatar changed\n"
+            "👤 Username changed  🖼️ Avatar changed (shows old + new image)\n"
             "📥 Member joined  📤 Member left  👢 Member kicked  🔨 Ban / ✅ Unban\n"
             "📢 Channel created/deleted  🎭 Role created/deleted\n"
             "🏷️ Server name changed  🖼️ Server icon changed\n\n"
-            "Requires **View Audit Log** permission for kick detection."
+            "Requires **View Audit Log** for kick/ban detection. Invite, pin, server-update events also logged."
         ),
         "safety": (
             "**Safety & NSFW system** - `yarn!help safety`\n"
@@ -13561,14 +13594,34 @@ async def help_cmd(ctx, *, section: str = None):
             "Translation via LibreTranslate (free/open-source). Turkish mood responses are\n"
             "hand-written and more natural than the machine-translated languages."
         ),
+        "quests": (
+            "**Quests & achievements** - `yarn!help quests`\n"
+            "He has a background quest system.\n\n"
+            "**Quests**\n"
+            "- `!quests` - see all quests and your current progress\n"
+            "- `!claim_quest [quest_id]` - claim a finished quest for its reward\n"
+            "- `!reroll_quest` - swap your active quest for a random new one\n"
+            "  Picks incomplete quests first. If all done, resets a daily/weekly so you can repeat it.\n\n"
+            "**Achievements**\n"
+            "- `!achievements` / `!achs` - see your unlocked achievements\n"
+            "- `!achievements @user` - check someone else's achievements\n"
+            "  Unlock automatically when thresholds are crossed.\n"
+            "  `\U0001f30c Endgame` - unlocks when every other achievement is earned.\n"
+            "  `\U0001f451 The Creator` - granted automatically to The Creator."
+        ),
+
+
     }
 
-    # Keyword aliases that map to section keys
     ALIASES: dict = {
         "interactions": "core", "touch": "core", "actions": "core", "pets": "core",
         "petting": "core", "hug": "core", "commands": "core",
         "feed": "food", "feeding": "food", "eat": "food", "eating": "food", "feeding him": "food",
         "care": "health", "sick": "health", "healing": "health", "medicine": "health", "hp": "health",
+        "quests": "quests", "quest": "quests", "achievements": "quests", "achieve": "quests",
+        "claim_quest": "quests", "reroll_quest": "quests", "achs": "quests",
+        "quests": "quests", "quest": "quests", "claim_quest": "quests",
+        "reroll_quest": "quests", "achievements": "quests", "achieve": "quests",
         "wear": "outfit", "clothes": "outfit", "wearing": "outfit", "dress": "outfit",
         "fun": "games", "play": "games", "fetch": "games", "game": "games", "vidgame": "games",
         "memory": "social", "trust": "social", "ranking": "social", "score": "social",
@@ -13662,12 +13715,14 @@ async def help_cmd(ctx, *, section: str = None):
         "fb           - Fenerbahçe commands + !debug\n"
         "food         - !feed, !gift, cooldowns, special reactions, toxic/allergy items\n"
         "games        - !fetch, !play, !vidgame, !find, !pounce, !throwliquid\n"
-        "health       - HP, sickness tiers, medicine, soup, vet\n"
+        "health       - HP, sickness tiers, medicine, `!force_medicine`, soup, vet\n"
         "identity     - his name, his room, time of day\n"
         "incidents    - disasters: !earthquake, !meteorite, !fallingstar, etc.\n"
         "items        - inventory, hoard, gifts, loot, rarity tiers\n"
+        "quests       - quests, !claim_quest, !reroll_quest, achievements, endgame\n"
+        "quests       - !quests, !claim_quest, !reroll_quest, achievements, Endgame\n"
         "language     - !language [code] — per-server response language (TR/DE/ES/FR/ZH/JA)\n"
-        "logs         - !logset, !logsetchannel — server event logging\n"
+        "logs         - !logset, !logsetchannel \u2014 edit/delete/member/invite/server/pin events — server event logging\n"
         "memorial     - !wyg full summary, absence tracking, !missing, !comfortyarny\n"
         "mood         - mood states and how they drift\n"
         "outfit       - !wear, !takeoff, !inspect, what he's wearing\n"
@@ -19087,6 +19142,137 @@ async def medicine_cmd(ctx, *, food: str = ""):
         ]))
 
 
+
+
+@bot.command(name="force_medicine")
+async def force_medicine_cmd(ctx, amount: int = 1):
+    """Force-feed Yarnaby medicine. He is completely helpless. Amount 1-10 (11+ closes his mouth)."""
+    import asyncio
+    m = bot.db
+    await _add_reactions(ctx, m)
+    amount = max(1, min(amount, 11))
+
+    DOSE_EMOJI = [
+        "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣",
+        "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟",
+    ]
+
+    opening_lines = [
+        "*The grip comes first — a firm, practiced hold just behind his jaw. His eyes go wide. "
+        "He tries to pull back. He can't. Slowly, inevitably, his mouth opens — "
+        "not because he wants it to, but because it has no choice. "
+        "His tongue curls. His teeth gleam. He is completely open. He is completely still. "
+        "He is waiting.* **...mrr.**",
+
+        "*He knows what this is. He sets his jaw — but the hand finds the right spot, "
+        "applies the right pressure, and his mouth swings open like a door with a broken lock. "
+        "Wide. Clear. He stares at the ceiling and decides not to make it worse.* **...mrr.**",
+
+        "*He tries to turn his head. The turn is caught. His chin is held. "
+        "He opens his mouth with exactly the amount of resistance a creature manages "
+        "when it has already calculated that resistance will not help. "
+        "All the way open. Teeth. Tongue. The full interior of his compliance.* **...mrr.**",
+    ]
+
+    DOSE_MSGS = [
+        "*The first dose drops in. He swallows — a single, deliberate motion. "
+        "His throat works. His ears stay flat. His mouth stays open.* **...**",
+
+        "*The second. He takes it the same way — because the grip hasn't changed "
+        "and neither has anything else. Swallow. Blink. Waiting.* **...**",
+
+        "*Third. He shudders once — not protest, just reflex. A small involuntary shake "
+        "through his whole body. His mouth is still open. His throat works again.* **...**",
+
+        "*Fourth. He is not fighting. He is enduring. Each swallow the same — "
+        "practiced, reluctant, complete. His paws are pressed flat.* **...**",
+
+        "*Five. He blinks very slowly. His mouth is open. He swallows.* **...**",
+
+        "*Sixth. He shifts, almost imperceptibly — not pulling away, just acknowledging "
+        "that this has been going on for some time. His mouth stays open. He swallows.* **...**",
+
+        "*Seventh. His tail twitches once. That’s all — one twitch and then stillness. "
+        "His throat works. He takes it.* **...**",
+
+        "*Eight. He looks at you now — not with defiance or fear. Something quieter. "
+        "He has stopped counting. He just keeps swallowing.* **...**",
+
+        "*Ninth. His breathing has gone deeper, slower. His whole chest works with the effort "
+        "of staying still. His mouth is still open. He swallows.* **...**",
+
+        "*The tenth. He takes it. His throat works one last time — slower, heavier — "
+        "and the swallow goes all the way down. He is shaking. Not violently. "
+        "A fine, deep shiver from ears to tail — a single long tremor, then stillness. "
+        "He holds his mouth open a moment longer than he needs to, "
+        "as if making sure there is nothing left.* **...mrr...**",
+    ]
+
+    CLOSE_MSG = (
+        "*The eleventh dose is coming.\n"
+        "His mouth closes.\n"
+        "Not dramatically — not yanking away, not a protest. Just: his mouth closes. Jaw shut.\n"
+        "He looks at you. His eyes are very clear. He has decided that ten was enough. "
+        "He does not open his mouth again. Not for this. Not now. "
+        "He has drawn a line and he is standing on it.* **mrr.**"
+    )
+
+    DONE_MSGS = [
+        "*His mouth closes at last — slow, careful. He swallows once more, just to make sure. "
+        "He blinks. He stares at the floor and then presses himself against the wall. "
+        "His mouth is clear. Everything was swallowed. He is shaking slightly — "
+        "a fine, even shiver that will take a while to leave.* **...mrr.**",
+
+        "*When his mouth finally closes, it closes all the way — no leftover gap. "
+        "His jaw locks shut with a small click. He breathes through his nose. "
+        "He is very still. His mouth is clean.* **...mrr.**",
+
+        "*He closes his mouth and holds it shut deliberately, as if making absolutely certain. "
+        "His throat bobs once more. Clear. Done. He sits with ears flat and eyes elsewhere.* **...mrr.**",
+    ]
+
+    # ── Health effects ──
+    health = m["stats"].get("health", 100)
+    m["stats"]["temperature"] = "warm"
+    m["stats"]["health"] = min(100, health + min(40 + 5 * min(amount, 10), 100 - health))
+    m["internal"]["recovering_from_toxic_until"] = None
+    was_helpless = m["internal"].get("helpless", False)
+    m["internal"]["helpless"] = True
+    m["internal"]["helpless_reason"] = "being force-fed medicine"
+    m["internal"]["helpless_by"] = str(ctx.author.id)
+    save_db(m)
+
+    await ctx.send(random.choice(opening_lines))
+
+    actual_doses = min(amount, 10)
+    for i in range(actual_doses):
+        await asyncio.sleep(1.5)
+        if i < len(DOSE_EMOJI):
+            try:
+                await ctx.message.add_reaction(DOSE_EMOJI[i])
+            except Exception:
+                pass
+        await ctx.send(DOSE_MSGS[i])
+        if amount > 10 and i == 9:
+            await asyncio.sleep(1.5)
+            await ctx.send(CLOSE_MSG)
+            m["internal"]["helpless"] = was_helpless
+            if not was_helpless:
+                m["internal"].pop("helpless_reason", None)
+                m["internal"].pop("helpless_by", None)
+            save_db(m)
+            return
+
+    await asyncio.sleep(1.5)
+    await ctx.send(random.choice(DONE_MSGS))
+
+    m["internal"]["helpless"] = was_helpless
+    if not was_helpless:
+        m["internal"].pop("helpless_reason", None)
+        m["internal"].pop("helpless_by", None)
+    save_db(m)
+
+
 @bot.command(name="soup", aliases=["broth", "warm_soup", "give_soup", "chicken_soup"])
 async def soup_cmd(ctx):
     """Warm soup or broth - heals, warms, and soothes him."""
@@ -23854,6 +24040,67 @@ async def claim_quest_cmd(ctx, *, quest_id: str = ""):
         await _check_score_achievements(m, uid, ctx.channel)
     except Exception:
         pass
+
+
+
+
+@bot.command(name="reroll_quest")
+async def reroll_quest_cmd(ctx):
+    """Reroll your active quest — assigns a random quest you haven't completed this period."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    uid = str(ctx.author.id)
+    entry = m.setdefault("social_matrix", {}).setdefault(uid, {})
+    quest_states = entry.setdefault("quest_states", {})
+
+    pool_incomplete = []
+    pool_repeatable = []
+    for qid, q in QUESTS.items():
+        prog, tgt, claimed = _quest_progress(m, uid, qid)
+        if not claimed and prog < tgt:
+            pool_incomplete.append(qid)
+        elif claimed and q.get("type") in ("daily", "weekly"):
+            pool_repeatable.append(qid)
+
+    prev_pinned = entry.get("pinned_quest_id")
+    chosen = None
+
+    if pool_incomplete:
+        choices = [q for q in pool_incomplete if q != prev_pinned] or pool_incomplete
+        chosen = random.choice(choices)
+    elif pool_repeatable:
+        choices = [q for q in pool_repeatable if q != prev_pinned] or pool_repeatable
+        chosen = random.choice(choices)
+        state = quest_states.setdefault(chosen, {})
+        state["claimed"] = False
+        state["period_key"] = _quest_period_key(QUESTS[chosen]["type"])
+        counter = QUESTS[chosen].get("counter", "")
+        if counter:
+            state["baseline"] = _ach_count(m, uid, counter)
+        alt = QUESTS[chosen].get("alt_counter")
+        if alt:
+            state["alt_baseline"] = _ach_count(m, uid, alt)
+        save_db(m)
+    else:
+        await ctx.send("*He tilts his head. No quests to reroll right now — everything is done or in progress.* **mrr.**")
+        return
+
+    entry["pinned_quest_id"] = chosen
+    save_db(m)
+
+    q = QUESTS[chosen]
+    prog, tgt, _ = _quest_progress(m, uid, chosen)
+    pct = prog / tgt if tgt else 0
+    bar = "█" * int(pct * 8) + "░" * (8 - int(pct * 8))
+    embed = discord.Embed(
+        title="🎲  Quest Rerolled",
+        description=f"**{q['name']}** `{chosen}`\n{q['desc']}\n\n*{q['reward_desc']}*",
+        color=0x7B8FBF,
+    )
+    embed.add_field(name="Progress", value=f"`{bar}` {prog}/{tgt}", inline=True)
+    embed.add_field(name="Type", value=q["type"].replace("_", " ").title(), inline=True)
+    embed.set_footer(text=f"Use !claim_quest {chosen} when done  ·  !quests to see all")
+    await ctx.send(embed=embed)
 
 
 @bot.command(name="compare", aliases=["versus", "vs", "sidebyside", "comparetrust", "whodoeshelikemore"])
@@ -47672,22 +47919,36 @@ async def on_message_edit(before, after):
 async def on_message_delete(message):
     if not message.guild or message.author.bot:
         return
-    if not message.content and not message.attachments:
+    if not message.content and not message.attachments and not message.embeds:
         return
     content = (message.content or "*(no text)*")[:800]
-    attach = f"\n📎 {len(message.attachments)} attachment(s)" if message.attachments else ""
     entry = await _audit(message.guild, discord.AuditLogAction.message_delete)
     deleter = f"{entry.user.mention} {_uid(entry.user)}" if entry else "*(unknown / self-delete)*"
-    e = _log_embed("🗑️ Message Deleted", color=0xed4245, fields=[
+    fields = [
         ("Author", f"{message.author.mention} {_uid(message.author)}", True),
         ("Channel", message.channel.mention, True),
         ("Deleted by", deleter, True),
-        ("Content", content + attach, False),
-    ])
+        ("Content", content, False),
+    ]
+    # Full attachment details
+    if message.attachments:
+        attach_lines = []
+        for att in message.attachments:
+            size_kb = att.size // 1024 if att.size else 0
+            ct = att.content_type or "unknown type"
+            attach_lines.append(f"• **{att.filename}** ({ct}, {size_kb}KB)\n  `{att.url}`")
+        fields.append(("Attachments", "\n".join(attach_lines)[:1020], False))
+    # Stickers
+    if message.stickers:
+        fields.append(("Stickers", ", ".join(s.name for s in message.stickers), False))
+    e = _log_embed("🗑️ Message Deleted", color=0xed4245, fields=fields)
     e.set_thumbnail(url=message.author.display_avatar.url)
+    # If single image attachment, show it in the embed
+    if message.attachments and len(message.attachments) == 1:
+        att = message.attachments[0]
+        if att.content_type and att.content_type.startswith("image/") and att.proxy_url:
+            e.set_image(url=att.proxy_url)
     await _send_log(message.guild.id, e)
-
-
 @bot.event
 async def on_bulk_message_delete(messages):
     if not messages or not messages[0].guild:
@@ -47839,8 +48100,10 @@ async def on_user_update(before, after):
     if str(before.display_avatar) != str(after.display_avatar):
         e = _log_embed("🖼️ Avatar Changed", color=0x5865f2, fields=[
             ("User", f"{after.mention} {_uid(after)}", True),
+            ("Old avatar URL", str(before.display_avatar)[:200], False),
         ])
         e.set_thumbnail(url=after.display_avatar.url)
+        e.set_image(url=str(after.display_avatar))
         for g in shared:
             await _send_log(g.id, e)
 
@@ -48048,24 +48311,10 @@ async def on_invite_delete(invite):
 async def on_voice_log(member, before, after):
     if not member.guild:
         return
-    # Only log join/leave/move — not mute/deafen (too spammy)
     if before.channel == after.channel:
         return
-    if before.channel is None and after.channel is not None:
-        e = _log_embed("🔊 Joined Voice", color=0x57f287, fields=[
-            ("User", f"{member.mention} {_uid(member)}", True),
-            ("Channel", after.channel.name, True),
-        ])
-        e.set_thumbnail(url=member.display_avatar.url)
-        await _send_log(member.guild.id, e)
-    elif before.channel is not None and after.channel is None:
-        e = _log_embed("🔇 Left Voice", color=0xed4245, fields=[
-            ("User", f"{member.mention} {_uid(member)}", True),
-            ("Channel", before.channel.name, True),
-        ])
-        e.set_thumbnail(url=member.display_avatar.url)
-        await _send_log(member.guild.id, e)
-    elif before.channel != after.channel:
+    # Only log channel moves — join/leave are too spammy
+    if before.channel is not None and after.channel is not None and before.channel != after.channel:
         e = _log_embed("🔀 Moved Voice Channel", color=0xfee75c, fields=[
             ("User", f"{member.mention} {_uid(member)}", True),
             ("From", before.channel.name, True),
@@ -48073,9 +48322,6 @@ async def on_voice_log(member, before, after):
         ])
         e.set_thumbnail(url=member.display_avatar.url)
         await _send_log(member.guild.id, e)
-
-
-# ── Emoji / Stickers ───────────────────────────────────────────────────────────
 
 @bot.event
 async def on_guild_emojis_update(guild, before, after):
@@ -48175,6 +48421,92 @@ async def on_scheduled_event_delete(event):
     ])
     await _send_log(event.guild_id, e)
 
+
+
+# \u2500\u2500 Member Leave \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.event
+async def on_member_remove(member):
+    entry = await _audit(member.guild, discord.AuditLogAction.kick)
+    kick_mod = f"{entry.user.mention} — **Kicked**" if entry and (datetime.now(timezone.utc).replace(tzinfo=None) - entry.created_at.replace(tzinfo=None)).total_seconds() < 5 else None
+    roles = [r for r in member.roles if r.name != "@everyone"]
+    roles_str = " ".join(r.mention for r in roles[-10:]) if roles else "*(none)*"
+    e = _log_embed("📤 Member Left", color=0xffa500, fields=[
+        ("User", f"{member.mention} {_uid(member)}", True),
+        ("Joined", f"<t:{int(member.joined_at.timestamp())}:R>" if member.joined_at else "*(unknown)*", True),
+        ("Reason", kick_mod or "*(left on their own)*", True),
+        ("Roles held", roles_str, False),
+    ])
+    e.set_thumbnail(url=member.display_avatar.url)
+    await _send_log(member.guild.id, e)
+
+
+# \u2500\u2500 Invites \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.event
+async def on_invite_create(invite):
+    e = _log_embed("🔗 Invite Created", color=0x57f287, fields=[
+        ("Code", f"`{invite.code}`", True),
+        ("By", f"{invite.inviter.mention} {_uid(invite.inviter)}" if invite.inviter else "*(unknown)*", True),
+        ("Channel", invite.channel.mention if invite.channel else "*(unknown)*", True),
+        ("Max uses", str(invite.max_uses) if invite.max_uses else "unlimited", True),
+        ("Expires", f"<t:{int(invite.expires_at.timestamp())}:R>" if invite.expires_at else "never", True),
+        ("URL", f"discord.gg/{invite.code}", False),
+    ])
+    if invite.guild:
+        await _send_log(invite.guild.id, e)
+
+
+@bot.event
+async def on_invite_delete(invite):
+    e = _log_embed("🔗 Invite Deleted", color=0xed4245, fields=[
+        ("Code", f"`{invite.code}`", True),
+        ("Channel", invite.channel.mention if invite.channel else "*(unknown)*", True),
+    ])
+    if invite.guild:
+        await _send_log(invite.guild.id, e)
+
+
+# \u2500\u2500 Server (Guild) Changes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.event
+async def on_guild_update(before, after):
+    changes = []
+    if before.name != after.name:
+        changes.append(("Server Name", f"{before.name} → {after.name}", False))
+    if before.icon != after.icon:
+        changes.append(("Icon", "Changed (see thumbnail)", True))
+    if before.description != after.description:
+        changes.append(("Description", f"{before.description or '*(none)*'} → {after.description or '*(none)*'}", False))
+    if before.verification_level != after.verification_level:
+        changes.append(("Verification", f"{before.verification_level} → {after.verification_level}", True))
+    if not changes:
+        return
+    entry = await _audit(after, discord.AuditLogAction.guild_update)
+    mod = f"{entry.user.mention}" if entry else "*(unknown)*"
+    e = _log_embed("🏠 Server Updated", color=0x5865f2, fields=[("Updated by", mod, True)] + changes)
+    if after.icon:
+        e.set_thumbnail(url=str(after.icon.url))
+    await _send_log(after.id, e)
+
+
+# \u2500\u2500 Message Pins \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.event
+async def on_guild_channel_pins_update(channel, last_pin):
+    if not channel.guild:
+        return
+    entry = await _audit(channel.guild, discord.AuditLogAction.message_pin)
+    if entry:
+        mod = f"{entry.user.mention} {_uid(entry.user)}"
+        e = _log_embed("📌 Message Pinned", color=0x5865f2, fields=[
+            ("Channel", channel.mention, True),
+            ("Pinned by", mod, True),
+        ])
+        await _send_log(channel.guild.id, e)
+
+
+# \u2500\u2500 Nickname from audit (self-applied) \u2014 catch edge cases \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 # ==========================================
 # !kickNSFW — scan members for NSFW servers
