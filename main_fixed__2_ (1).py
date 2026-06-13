@@ -1903,6 +1903,15 @@ DREAMS = [
     {"type": "small", "text": "*He makes a tiny sound - smaller than his usual sounds - and presses himself closer to the floor. He is navigating something enormous in the dream. He moves carefully. He is doing well.* **...prrt...**"},
 ]
 
+# Special hum that only surfaces when he's been hurt or had a nightmare -
+# never part of the random ambient pool.
+_SAD_HUM = (
+    "Sadece Sevilmek İstedim",
+    "*Very quietly, almost to himself, a small, broken hum starts up - `mrr... mrrow... mrrrr...` - "
+    "trailing off before it really becomes anything. He doesn't seem to notice he's doing it. "
+    "He just wanted that. That's all. That's all it was ever about.*"
+)
+
 # Wake-from-dream reactions, by type. (Used by `!wake` and natural wake events.)
 WAKE_FROM_NIGHTMARE = [
     "*Yarnaby's eyes snap open. He sits up too fast. When he realises you're there, he presses against you immediately and stays. He is grateful you woke him. He doesn't say it. He doesn't have to.*",
@@ -2081,6 +2090,19 @@ HUM_ATTEMPTS = [
     ("Doktor Civanım", "İstanbul Şarkıcıları & İstanbul Çalgıcıları", "*He begins a low, rolling hum — `mmrr-mrr-mmmrrr` — that keeps nearly finding the melody and then losing it just slightly. He sways once. He sounds, somehow, like old cobblestones. He is committed.*"),
     ("Skalonga", "Athena", "*He pounces twice in quick succession, stops, and produces a rapid cheerful `chrp-chrp-chrp-MRROW` that has absolutely no idea where the notes go but tremendous confidence about it.* **chrrp! chrrp!**"),
     ("Acımayacak", "Tarkan", "*A single long, mournful `mrrooooow` that drops at the end — the kind that makes the walls feel slightly smaller. He stays very still afterward. He does not explain. The performance speaks for itself.*"),
+    ("Hababam Sınıfı", "Melih Kibar", "*He drags over an old pot and a lid, sets them up like an instrument, and launches into a frantic, clattering performance — `bang-bang-bang-BANG-bang-bang-BANG!` — building faster and faster, ears flat, utterly committed to the chaos. By the end he's basically conducting himself.* **mrrk! mrrk! mrrp!!**"),
+    ("Endamın Yeter", "Kıraç", "*He struts in a slow, exaggerated circle, tail held unreasonably high, producing a smooth, swaggering `mrr~ mrrow~ mrr~` like he's showing off something only he can see. He is extremely confident about this performance.* **prrr~**"),
+    ("Gurbet", "Özdemir Erdoğan", "*He sits by the door, facing it, and produces one long, slow, aching `mmrrrrooooow` that trails off into silence. He doesn't move for a while afterward. Some songs just hit different.*"),
+    ("Kaç Yıl Geçti Aradan", "Sezen Aksu", "*He goes quiet for a moment, then produces a slow, wandering `mrr... mrrr-oooo... mrr` that drifts without quite landing anywhere. He stares at nothing in particular for a beat too long afterward.*"),
+    ("Turkish Cowboys", "Grup Vitamin", "*He puts on what can only be described as a swagger, struts in a wide loop with his tail doing something complicated, and produces a string of confident, off-beat `chrp-MROW-chrp-MROW` sounds. He thinks this one's a banger.*"),
+    ("Hayat Bayram Olsa", "Şenay", "*A bright, bouncy run of chirps - `chrp! chrp-chrp! CHRP!` - and a little hop on each accented beat. He looks genuinely delighted with himself.*"),
+    ("Hep Destek Tam Destek", "Selim Çaldıran", "*He stands up very straight, chest out, and produces a series of steady, rallying `MROW! MROW! MROW!` like he's leading a chant only he can hear. He fully believes in this.*"),
+    ("Sevenler Ağlarmış", "3 Hürel", "*He curls in on himself and produces a soft, wavering `mrrr... mrrow... mrrrr...` that catches slightly partway through, like he almost lost the thread of it. He doesn't try again. He just stays curled up.*"),
+    ("Batsın Bu Dünya", "İskender Paydaş, BBD Korosu", "*He throws his head back and lets out one long, dramatic, wall-shaking `MRROOOOOWWW` - full chest, full commitment, like the world genuinely owes him this moment. He holds it far longer than anyone expected.*"),
+    ("Bir Oluruz Yolunda (Version 1)", "Fenerbahçe", "*He plants all four paws, squares up, and produces a steady, swelling `MRR-MRR-MRROOOW` that builds with each repetition - like he's rallying a crowd that isn't there yet. He believes it will be there.*"),
+    ("Bir Oluruz Yolunda (Version 2)", "Fenerbahçe", "*A slower, heavier version this time - he draws each `mrrrooow` out longer, swaying side to side, like the song means more to him now than it did a minute ago. Same chant. Different weight.*"),
+    ("Bir Sen Varsın", "Nükhet Duru", "*He goes quiet and still, then produces a soft, searching `mrr... mrrr-oo... mrr` that keeps circling back to the same note, like he's looking for someone in it. He doesn't perform this one so much as just... say it.*"),
+    ("Tuana", "Levent Yüksel", "*He goes very quiet, then produces a slow, gentle hum - `mrr... mrrow... mrr...` - that softens right at the part about spring coming again. He holds that note a little longer than the rest, like he means it as a promise. Then he settles, calmer than before.*"),
 ]
 
 # Lore unlocks (revealed one-by-one when a Chromatic is fetched)
@@ -4380,6 +4402,9 @@ class Yarnaby(commands.Bot):
                             "*He picks something up. Puts it down. Picks it up again. Puts it back. He does this a few times and then sits still. **...mrr...**",
                         ])
                     )
+                    if random.random() < 0.2:
+                        title, attempt = _SAD_HUM
+                        await channel.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
         except Exception as e:
             print(f"[mood ambient failed] {e}")
 
@@ -7057,13 +7082,60 @@ async def on_message(message):
                 save_db(m)
 
         # belly rub / rub his belly keywords in chat
+        # "cutie pie" / "so cute" / similar compliments
         elif any(
             phrase in msg
             for phrase in [
-                "belly rub", "belly rubs", "rub his belly", "rub your belly",
-                "rub the belly", "tummy rub", "rub his tummy",
+                "cutie pie", "cutiepie", "so cute", "sooo cute", "soo cute",
+                "too cute", "such a cutie", "what a cutie", "you're so cute",
+                "youre so cute", "you are so cute", "cutest", "adorable",
+                "precious", "such a cutiepie",
             ]
         ):
+            is_doc = message.author.id == DOCTOR_ID
+            if is_doc:
+                await message.channel.send(
+                    random.choice(
+                        [
+                            "*Yarnaby's ears shoot up. He immediately sits up straighter, tucks his paws together neatly, and stares forward like he's posing for something. He is absolutely posing for something. **prrr~***",
+                            "*He heard that. He rolls slowly onto his side, stretches all four paws out as far as they go, and holds the position - maximum-cute, fully deliberate. **prrr~**",
+                            "*He turns, makes deliberate eye contact with The Creator, and does the slowest, most theatrical slow-blink of his life. He is performing. He is performing very well. **chrrp.***",
+                            "*A small wiggle runs through him. He flattens his ears, then un-flattens them, then tilts his head just slightly - testing angles. He has decided to be cuter on purpose. **mrrp~***",
+                        ]
+                    )
+                )
+                m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+                save_db(m)
+            else:
+                your_name = getattr(message.author, "display_name", str(message.author))
+                score = m["social_matrix"].get(str(message.author.id), {}).get("score", 0)
+                if score >= 4:
+                    await message.channel.send(
+                        random.choice(
+                            [
+                                f"*Yarnaby's tail flicks. He sits up a little taller, does a small, dignified stretch, and settles back down in a pose that is suspiciously well-chosen. He's heard the assignment and accepted it. **prrr~**",
+                                f"*He tilts his head at {your_name}, holds it a beat too long, then does a slow blink - clearly testing whether that helps his case. It does. **chrrp.**",
+                                f"*A tiny trill, and then he leans forward and does a neat little paw-tuck sit, chin up, looking extremely pleased with the resulting silhouette. **mrrp~**",
+                            ]
+                        )
+                    )
+                elif score >= 0:
+                    await message.channel.send(
+                        random.choice(
+                            [
+                                f"*Yarnaby's ears perk up at that. He glances at {your_name}, then does a small, hopeful wiggle, like he's trying it out to see if it works again. **chrrp.**",
+                                f"*He sits up a little straighter and flicks his tail, clearly aware he's being looked at and not entirely against it. **mrr~**",
+                            ]
+                        )
+                    )
+                else:
+                    await message.channel.send(
+                        "*Yarnaby flicks one ear toward whoever said that. He does not perform for strangers. He goes back to what he was doing.* **hff.**"
+                    )
+                m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 1)
+                save_db(m)
+
+
             await message.channel.send(
                 random.choice(
                     [
@@ -8696,7 +8768,11 @@ def _consume_dream_reaction(m, woken_by_doctor: bool) -> str:
     dt = m["internal"].get("current_dream_type")
     m["internal"]["current_dream_type"] = None
     if dt == "nightmare":
-        return random.choice(WAKE_FROM_NIGHTMARE)
+        base = random.choice(WAKE_FROM_NIGHTMARE)
+        if random.random() < 0.25:
+            title, attempt = _SAD_HUM
+            base += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
+        return base
     if dt == "good":
         return random.choice(WAKE_FROM_GOOD_DREAM)
     if dt == "creator":
@@ -12364,7 +12440,11 @@ async def help_cmd(ctx, *, section: str = None):
             "  If no thing is given, he picks something himself. How long he holds the pose depends on trust score.\n"
             "- `!enroll [school name]` - enroll Yarnaby in school\n"
             "  He's assigned a class (e.g. 1a, 2b, 3c...). Check back periodically (~6h) for school day updates.\n"
-            "  After class 4, he graduates elementary school. A few real/famous school names trigger special reactions.\n"
+            "  After class 4, he graduates elementary school (unless it's the Ahrensburg special school).\n"
+            "  Either way, school ends for good at class 12 with a final graduation. A few real/famous school names trigger special reactions.\n"
+            "  There's also a small chance he gets expelled on any given day. After graduating or being expelled,\n"
+            "  `!enroll [new school name]` sends him somewhere new.\n"
+            "- `!unroll` - withdraw Yarnaby from school entirely (no questions asked)\n"
             "- `!enlist` - enlist Yarnaby for war\n"
             "  Check back periodically (~6h) for rank updates (Private → ... → Sergeant Major), ending in an honorable discharge.\n"
             "- `!vrmode [game]` - put Yarnaby in VR mode to play a game\n"
@@ -15303,6 +15383,10 @@ async def mood_cmd(ctx, *, thing: str = ""):
     flavor = random.choice(flavor_pool.get(mood, ["*Whatever he is, he isn't saying. **mrr.***"]))
     await ctx.send(f"**Mood:** {mood} - {flavor} {stat_bar(m)}")
 
+    if mood in ("Traumatized", "Sad", "Depressed (will recover)") and not m["internal"]["is_sleeping"] and random.random() < 0.2:
+        title, attempt = _SAD_HUM
+        await ctx.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
+
 
 @bot.command(name="mood_check", aliases=["moodcheck", "how_are_you", "howareyou"])
 async def mood_check_cmd(ctx):
@@ -15412,6 +15496,10 @@ async def mood_check_cmd(ctx):
         else:
             responses = pool.get(mood, ["*Whatever he is, he's looking at you. **mrr.***"])
             await ctx.send(random.choice(responses))
+
+        if mood in ("Sad", "Depressed (will recover)") and not m["internal"]["is_sleeping"] and random.random() < 0.15:
+            title, attempt = _SAD_HUM
+            await ctx.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
 
     # --- CHILDREN AWARENESS (15% chance after main mood response) ---
     if not m["internal"]["is_sleeping"] and random.random() < 0.15:
@@ -57969,7 +58057,7 @@ async def _escape_torture(m, channel_id: int, reason: str = "silence"):
         return
 
     if reason == "saved":
-        await channel.send(random.choice([
+        recovery_msg = random.choice([
             f"*Yarnaby surfaces from wherever he had hidden. He is still shaking slightly — "
             f"less than before, but it's there. He finds **{saved_by}** and stands close to them "
             f"without touching, just close.* **...prrr...**\n"
@@ -57978,9 +58066,13 @@ async def _escape_torture(m, channel_id: int, reason: str = "silence"):
             f"*It takes him a minute. Then he comes out. He doesn't go to the center of the room — "
             f"he goes to **{saved_by}** and presses his side against them and stays there.* **...prrr...**\n"
             f"*His breathing is still off. But he is here. He is coming back.*",
-        ]))
+        ])
+        if random.random() < 0.3:
+            title, attempt = _SAD_HUM
+            recovery_msg += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
+        await channel.send(recovery_msg)
     elif reason == "silence":
-        await channel.send(random.choice([
+        recovery_msg = random.choice([
             "*The room has been quiet. Whoever hurt him has been quiet. "
             "Slowly — very slowly — Yarnaby uncurls from wherever he was hiding. "
             "He looks around. He checks. He listens.* **...mrr.**\n"
@@ -57995,7 +58087,11 @@ async def _escape_torture(m, channel_id: int, reason: str = "silence"):
             "*The silence stretched long enough. He emerges. He doesn't run — he walks, "
             "carefully, checking each step. He finds a spot he likes and sits down. "
             "He grooms his paw once. He is back.* **...prrr...**",
-        ]))
+        ])
+        if random.random() < 0.3:
+            title, attempt = _SAD_HUM
+            recovery_msg += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
+        await channel.send(recovery_msg)
 
     # DM Creator
     creator = bot.get_user(DOCTOR_ID)
@@ -61214,6 +61310,20 @@ _GRADUATION_MESSAGES = [
     "*Yarnaby crosses the stage - or rather, the living room rug - to a chorus of one person clapping. He has officially graduated elementary school at **{school}**. He carries himself like someone who always knew this would happen.* **mrr! prrr.**",
 ]
 
+# Final graduation - reaching the end of secondary school (class 12).
+_FINAL_GRADUATION_MESSAGES = [
+    "*A much bigger ceremony this time. Yarnaby walks across the stage at **{school}** in a gown that is, generously, three sizes too big, trips slightly on the hem, and recovers with enormous dignity. He has finished school. All of it. {your_name} is crying a little. He pretends not to notice.* **mrrp!!! prrr...**",
+    "*Twelve years, more or less, condensed into one afternoon. Yarnaby receives his final diploma from **{school}**, holds it very carefully in his mouth the entire way home, and refuses to put it down for the rest of the day.* **mrr! prrr!**",
+]
+
+# Getting expelled / kicked / banned from school.
+_EXPULSION_MESSAGES = [
+    "*A letter arrives from **{school}**. {your_name} reads it out loud. Yarnaby has been expelled, effective immediately, for reasons the letter describes as 'ongoing and difficult to summarize.' He does not look surprised.* **mrr.**",
+    "*Yarnaby comes home from **{school}** early. Very early. He is carrying his things in a box. He sets the box down, sits on top of it, and offers no further explanation. He has been asked not to come back.* **mrrp.**",
+    "*{your_name} gets a call from **{school}**. It is short. By the end of it, Yarnaby is no longer enrolled there. He sits very still throughout the entire call, listening intently, looking deeply unbothered by his own fate.* **...mrr.**",
+    "*Apparently there was an incident at **{school}** involving the supply closet, and Yarnaby was at the center of it. He has been asked to leave and not come back. He carries himself like this was a strategic retreat.* **mrrk.**",
+]
+
 
 @bot.command(name="enroll")
 async def enroll_cmd(ctx, *, school: Optional[str] = None):
@@ -61252,16 +61362,22 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
         "school", {"name": None, "grade": 0, "class_letter": None, "graduated": False, "matched_class": False}
     )
 
-    if school_state.get("name"):
+    if school_state.get("name") and not (school_state.get("graduated") and school is not None):
         # Already enrolled
         current_school = school_state["name"]
 
         if school_state.get("graduated"):
             class_label = f"{school_state.get('grade', 4)}{school_state.get('class_letter', 'a')}"
-            await ctx.send(random.choice([
-                f"*Yarnaby already graduated elementary school at **{current_school}** (class **{class_label}**). He has no plans to go back. He considers the matter closed.* **mrr.**",
-                f"*He's done with **{current_school}** (class **{class_label}**). Diploma's around here somewhere - probably chewed.* **mrrp.**",
-            ]))
+            if school_state.get("grade", 0) >= 12:
+                await ctx.send(random.choice([
+                    f"*Yarnaby already finished school entirely at **{current_school}** (final class **{class_label}**). He has no plans to go back. He considers the matter closed.* **mrr.**",
+                    f"*He's fully done with **{current_school}** (final class **{class_label}**). The diploma is framed. Mostly intact.* **mrrp.**",
+                ]))
+            else:
+                await ctx.send(random.choice([
+                    f"*Yarnaby already graduated elementary school at **{current_school}** (class **{class_label}**). He has no plans to go back. He considers the matter closed.* **mrr.**",
+                    f"*He's done with **{current_school}** (class **{class_label}**). Diploma's around here somewhere - probably chewed.* **mrrp.**",
+                ]))
             return
 
         remaining = _cooldown_remaining(m, f"enroll:{u_id}", 21600)  # 6 hours per school day
@@ -61277,6 +61393,15 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
         class_letter = school_state.get("class_letter") or "a"
         class_label = f"{school_state['grade']}{class_letter}"
         is_ahrensburg = "ahrensburg" in current_school.lower()
+
+        # Final graduation - school doesn't go on forever
+        if school_state["grade"] >= 12:
+            school_state["graduated"] = True
+            save_db(m)
+            msg = random.choice(_FINAL_GRADUATION_MESSAGES).format(school=current_school, your_name=your_name)
+            msg += f"\n\n*Final class: **{class_label}**.*"
+            await ctx.send(msg)
+            return
 
         # Special "7d" coincidence at Ahrensburg
         if is_ahrensburg and class_label == "7d" and not school_state.get("matched_class"):
@@ -61297,6 +61422,20 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
             return
 
         special = next((v for k, v in _SPECIAL_SCHOOLS.items() if k in current_school.lower()), None)
+
+        # Small chance of getting expelled on any given school day
+        if random.random() < 0.05:
+            msg = random.choice(_EXPULSION_MESSAGES).format(school=current_school, your_name=your_name)
+            msg += f"\n\n*Final class there: **{class_label}**. Use `!enroll [school name]` to send him somewhere new.*"
+            school_state["name"] = None
+            school_state["grade"] = 0
+            school_state["class_letter"] = None
+            school_state["graduated"] = False
+            school_state["matched_class"] = False
+            save_db(m)
+            await ctx.send(msg)
+            return
+
         if special:
             msg = random.choice(special["day"]).format(school=current_school, your_name=your_name)
         else:
@@ -61305,9 +61444,14 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
         await ctx.send(msg)
         return
 
-    # Not yet enrolled
+    # Not yet enrolled (or re-enrolling after graduation/expulsion)
+    was_previously_enrolled = bool(school_state.get("name"))
+
     if school is None:
-        await ctx.send("*`!enroll [school name]` - enroll Yarnaby in school.*")
+        if was_previously_enrolled:
+            await ctx.send("*`!enroll [school name]` - enroll Yarnaby in a new school.*")
+        else:
+            await ctx.send("*`!enroll [school name]` - enroll Yarnaby in school.*")
         return
 
     special = next((v for k, v in _SPECIAL_SCHOOLS.items() if k in school.lower()), None)
@@ -61327,6 +61471,7 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
     school_state["class_letter"] = random.choice(["a", "b", "c", "d"])
     school_state["graduated"] = False
     school_state["matched_class"] = False
+    school_state["expelled_from"] = []
     _set_cooldown(m, f"enroll:{u_id}")
     save_db(m)
 
@@ -61335,12 +61480,93 @@ async def enroll_cmd(ctx, *, school: Optional[str] = None):
     else:
         msg = random.choice(_GENERIC_ENROLL).format(school=school_display, your_name=your_name)
 
+    if was_previously_enrolled:
+        msg += "\n\n*A new chapter, apparently. He doesn't look nervous about it. Mostly.* **mrr.**"
+
     msg += f"\n\n*He'll be starting in class **1{school_state['class_letter']}**.*"
 
     if is_doctor:
         msg += f"\n\n*{your_name} watches him go, just for a moment, before he disappears around the corner.* **mrr...**"
 
     await ctx.send(msg)
+
+
+# ==========================================
+# !unroll — withdraw Yarnaby from school
+# ==========================================
+
+@bot.command(name="unroll")
+async def unroll_cmd(ctx):
+    """Withdraw Yarnaby from school."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*There's no paperwork to file. There's no one to withdraw.*",
+            "*The form sits blank. There's nothing to unenroll.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He does not respond.* **...zz.**",
+            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
+            "*A faint snore. He is not available.* **...zz.**",
+            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
+            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You bring up the idea of leaving school. He doesn't react one way or the other. Not right now.* **...mrr...**",
+            "*The withdrawal form sits there. He doesn't reach for it.* **...mrr...**",
+        ]))
+        return
+
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    school_state = m["internal"].setdefault(
+        "school", {"name": None, "grade": 0, "class_letter": None, "graduated": False, "matched_class": False}
+    )
+
+    if not school_state.get("name"):
+        await ctx.send(random.choice([
+            "*He's not enrolled anywhere. There's nothing to withdraw from.* **mrr.**",
+            "*No school to leave. He's already free.* **mrrp.**",
+        ]))
+        return
+
+    current_school = school_state["name"]
+    class_letter = school_state.get("class_letter") or "a"
+    class_label = f"{school_state.get('grade', 0)}{class_letter}"
+    was_graduated = school_state.get("graduated", False)
+
+    school_state["name"] = None
+    school_state["grade"] = 0
+    school_state["class_letter"] = None
+    school_state["graduated"] = False
+    school_state["matched_class"] = False
+    save_db(m)
+
+    if was_graduated:
+        await ctx.send(random.choice([
+            f"*{your_name} files the paperwork anyway, even though he already finished at **{current_school}** (final class **{class_label}**). Yarnaby watches the form get put away. He's officially, fully, no-longer-anyone's-student now.* **mrr.**",
+            f"*There's nothing left to withdraw from, really - he already graduated **{current_school}** (class **{class_label}**) - but {your_name} closes the file anyway. Yarnaby seems fine with it being closed.* **mrrp.**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*{your_name} withdraws Yarnaby from **{current_school}** (class **{class_label}**). He doesn't ask why. He just leans against {your_name}'s leg, clearly relieved someone made the decision for him.* **mrr. prrr.**",
+            f"*The withdrawal form is filled out and filed. Yarnaby watches {your_name} do it, then headbutts their hand once it's done - like he's saying thank you without saying anything.* **prrt. prrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{your_name} withdraws Yarnaby from **{current_school}** (class **{class_label}**). He sits quietly while it's done, looking somewhere between relieved and unsure what comes next.* **...mrr.**",
+            f"*Paperwork filed. Yarnaby is no longer enrolled at **{current_school}** (class **{class_label}**). He stretches once, like something's been put down.* **mrr.**",
+        ]))
 
 
 # ==========================================
