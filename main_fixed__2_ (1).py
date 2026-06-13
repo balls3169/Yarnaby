@@ -5303,6 +5303,114 @@ async def on_message(message):
         _sm_entry["first_seen"] = now.strftime("%Y-%m-%d %H:%M:%S")
         _sm_entry["first_message"] = message.content[:200]
 
+    # --- ANTI-RAID DETECTION ---
+    if message.guild:
+        _ar_guilds = m.get("internal", {}).get("antiraid_guilds", {})
+        _ar_cfg = _ar_guilds.get(str(message.guild.id), {})
+        if _ar_cfg.get("enabled", False):
+            # Exempt: Creator, server owner, admins, manage_guild permission
+            _is_exempt = (
+                message.author.id == DOCTOR_ID
+                or message.author.id == message.guild.owner_id
+                or message.author.guild_permissions.administrator
+                or message.author.guild_permissions.manage_guild
+                or message.author.guild_permissions.kick_members
+            )
+            if not _is_exempt:
+                import re as _re
+                from collections import deque as _deque
+                _content = message.content
+
+                # Initialise per-guild per-user speed tracker
+                if not hasattr(bot, "_antiraid_tracker"):
+                    bot._antiraid_tracker = {}
+                _gid = str(message.guild.id)
+                _uid = str(message.author.id)
+                _tracker = bot._antiraid_tracker.setdefault(_gid, {})
+                _timestamps = _tracker.setdefault(_uid, _deque(maxlen=25))
+                _timestamps.append(now.timestamp())
+
+                _ar_threshold = _ar_cfg.get("threshold", 5)
+                _ar_window = _ar_cfg.get("window", 3)
+
+                # Graduated speed check: 5 in 3s, 6 in 4s, 7 in 5s, 8 in 6s
+                _now_ts = now.timestamp()
+                _speed_raid = False
+                _speed_reason = ""
+                for _w, _t in [(3, _ar_threshold), (4, _ar_threshold + 1), (5, _ar_threshold + 2), (6, _ar_threshold + 3)]:
+                    _recent = [ts for ts in _timestamps if _now_ts - ts <= _w]
+                    if len(_recent) >= _t:
+                        _speed_raid = True
+                        _speed_reason = f"{len(_recent)} messages in {_w}s"
+                        break
+
+                # 15+ repeated characters in a row
+                _char_spam = bool(_re.search(r"(.)\1{14,}", _content))
+
+                # 5+ user or role mentions
+                _mention_count = len(message.mentions) + len(message.role_mentions)
+                _mention_spam = _mention_count >= 5
+
+                # 800+ chars with ≤8 unique (garbage flood)
+                _garbage = len(_content) >= 800 and len(set(_content)) <= 8
+
+                # 3+ discord invite links
+                _invite_spam = len(_re.findall(r"discord(?:\.gg|app\.com/invite)/\S+", _content, _re.I)) >= 3
+
+                _triggered = _speed_raid or _char_spam or _mention_spam or _garbage or _invite_spam
+
+                if _triggered:
+                    # Determine reason
+                    if _speed_raid:
+                        _reason = f"message flood ({_speed_reason})"
+                    elif _char_spam:
+                        _reason = "character spam"
+                    elif _mention_spam:
+                        _reason = f"mention spam ({_mention_count} mentions)"
+                    elif _garbage:
+                        _reason = "garbage flood (long repeated content)"
+                    else:
+                        _reason = "invite link spam"
+
+                    # Clear their speed tracker
+                    _tracker.pop(_uid, None)
+
+                    # Delete the message
+                    try:
+                        await message.delete()
+                    except Exception:
+                        pass
+
+                    # Kick
+                    _kicked = False
+                    try:
+                        await message.author.kick(reason=f"Anti-raid: {_reason}")
+                        _kicked = True
+                    except Exception:
+                        pass
+
+                    # Post warning embed
+                    try:
+                        _embed = discord.Embed(
+                            title="⚔️ Raider removed" if _kicked else "⚔️ Raid attempt detected",
+                            description=(
+                                f"**{message.author.display_name}** was kicked — **{_reason}**.\n\n"
+                                f"*Yarnaby steps into the doorway. His ears are forward. He is still.*\n"
+                                f"*He doesn't say anything. He doesn't need to. The message is deleted. The person is gone.*\n"
+                                f"**...mrr.**"
+                            ) if _kicked else (
+                                f"**{message.author.display_name}** triggered anti-raid ({_reason}) "
+                                f"but couldn't be kicked — missing permissions.\n**...mrr.**"
+                            ),
+                            color=discord.Color.red(),
+                        )
+                        _embed.set_footer(text="Anti-raid is active. Use !antiraid status for settings.")
+                        await message.channel.send(embed=_embed)
+                    except Exception:
+                        pass
+                    return  # don't process further
+
+
     # --- LOCKDOWN GUARD ---
     # While in lockdown Yarnaby is hiding. He ignores almost everything.
     # Commands still work (so !unlock can end it), but passive chat gets silence.
@@ -12698,9 +12806,6 @@ async def help_cmd(ctx, *, section: str = None):
             "  milestones reached, first message, toxic attempts, last gift / last food\n"
             "- `!broadcast [message]` / `!announce` - send a narrator-style italicised message\n"
             "  directly to the home channel, not attributed to any user\n"
-            "- `!raid [server name] [topic]` - post a single serious warning (as an embed) in another server\n"
-            "  (from `!servers`) that it's a bad server (e.g. scam, phishing). Pings @everyone if he has\n"
-            "  permission to in that channel. Posts once, doesn't spam every channel. Use sparingly.\n"
             "- `!narrator` - toggle narrator mode per server\n"
             "  When OFF: all responses become pure cat sounds — no italic narration, no prose\n"
             "  Toggle again to bring the narrator back (comes with a return flavour message)\n"
@@ -28256,7 +28361,7 @@ async def broadcast_cmd(ctx, *, message: str = ""):
 # ==========================================
 @bot.command(name="raid")
 async def raid_cmd(ctx, server_name: str = "", *, topic: str = ""):
-    """[Creator only] Post a warning in the named server (see `!servers`) that it's a bad server (scam, etc.)."""
+    """[Creator only] BROADCAST a danger warning to every channel in the named server. Use sparingly."""
     if ctx.author.id != DOCTOR_ID:
         return
     m = bot.db
@@ -28264,8 +28369,316 @@ async def raid_cmd(ctx, server_name: str = "", *, topic: str = ""):
 
     if not server_name.strip() or not topic.strip():
         await ctx.send(
-            "*`!raid [server name] [topic]` - pick a server from `!servers` and a topic (e.g. `scam`, `phishing`).*\n"
-            "*Posts one warning message in that server. Does not spam every channel.*"
+            "*`!raid [server name] [topic]` — pick a server from `!servers` and describe the danger "
+            "(e.g. `scam`, `phishing`, `malware`).*\n"
+            "*This will post urgent warnings to **every** channel in that server. Use with care.* **mrr.**"
+        )
+        return
+
+    # --- Find the target server ---
+    target_guild = None
+    for g in bot.guilds:
+        if server_name.lower() in g.name.lower() or server_name == str(g.id):
+            target_guild = g
+            break
+
+    if not target_guild:
+        await ctx.send(
+            f"*He can't find a server called **{server_name}**. "
+            f"Use `!servers` for the full list.* **mrr.**"
+        )
+        return
+
+    topic_clean = topic.strip()
+
+    # Collect every text channel he can write in
+    writable_channels = [
+        ch for ch in target_guild.text_channels
+        if ch.permissions_for(target_guild.me).send_messages
+    ]
+
+    if not writable_channels:
+        await ctx.send(
+            f"*He's in **{target_guild.name}**, but there's nowhere he can speak. "
+            f"He can't post any warnings there.* **mrr.**"
+        )
+        return
+
+    # Acknowledgement back to the caller first
+    await ctx.send(
+        f"*He sets his jaw. His ears go flat. He moves.*\n"
+        f"*Broadcasting danger warning to **{len(writable_channels)}** channel(s) in "
+        f"**{target_guild.name}** — topic: **{topic_clean}**.* **mrr.**"
+    )
+
+    # --- Warning messages (rotated across repeats so it doesn't look like a stuck record) ---
+    WARNING_ROUNDS = [
+        (
+            f"⚠️ **DANGER — {topic_clean.upper()} SERVER** ⚠️",
+            (
+                f"*Yarnaby stops. He's not playing anymore — not even a little. "
+                f"He looks straight at whoever's reading this.*\n\n"
+                f"**\"This server is a {topic_clean} server. Don't click anything. Don't share anything. "
+                f"Don't trust anyone here. If you were linked here, that's the trap — close the tab and "
+                f"warn whoever sent you.\"**\n\n"
+                f"*He holds the look a moment longer. Then he turns away, ears low.* **...mrr.**"
+            ),
+        ),
+        (
+            f"🚨 STILL HERE? GET OUT — {topic_clean.upper()} SERVER 🚨",
+            (
+                f"*He is posting this again because people don't always see the first one.*\n\n"
+                f"**This server is flagged as a {topic_clean} server. Leave now. "
+                f"Do not engage with anyone here. Do not click any links. "
+                f"Report it to Discord: <https://dis.gd/request>**\n\n"
+                f"*His tail is still. His ears are back. He is serious.* **mrr.**"
+            ),
+        ),
+        (
+            f"⚠️ FINAL WARNING — {topic_clean.upper()} SERVER ⚠️",
+            (
+                f"*He posts this one last time for anyone who missed the others.*\n\n"
+                f"**{topic_clean.upper()} SERVER. Leave. Report. Don't come back.**\n\n"
+                f"*He turns and walks away without looking back. He has done what he can.* **...mrr.**"
+            ),
+        ),
+    ]
+
+    channels_warned = 0
+    channels_failed = 0
+
+    for ch in writable_channels:
+        perms = ch.permissions_for(target_guild.me)
+        can_ping = perms.mention_everyone
+
+        for i, (title, description) in enumerate(WARNING_ROUNDS):
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=discord.Color.red(),
+            )
+            embed.set_footer(text="Posted by Yarnaby at the request of The Creator. This is a safety warning.")
+
+            # @everyone only on the first message per channel to avoid full spam-lockout
+            ping_content = "@everyone" if (can_ping and i == 0) else None
+
+            try:
+                await ch.send(
+                    content=ping_content,
+                    embed=embed,
+                    allowed_mentions=discord.AllowedMentions(everyone=(can_ping and i == 0)),
+                )
+                await asyncio.sleep(0.8)  # slight gap between rounds so they land in order
+            except Exception:
+                channels_failed += 1
+                break  # skip remaining rounds for this channel if it errors
+
+        else:
+            channels_warned += 1
+            await asyncio.sleep(0.4)  # brief pause between channels
+
+    # Final report
+    fail_note = f" ({channels_failed} channel(s) blocked him.)" if channels_failed else ""
+    await ctx.send(
+        f"*He's done. Warning posted to **{channels_warned}** channel(s) in "
+        f"**{target_guild.name}**.{fail_note}*\n"
+        f"*If this is a genuine scam/raid/phishing server, also report it to Discord directly — "
+        f"<https://dis.gd/request> — that's the only way permanent action gets taken.* **...mrr.**"
+    )
+
+    # Persist raided guild info for !raidstop
+    bot.db.setdefault("internal", {}).update({
+        "last_raid_guild_id": str(target_guild.id),
+        "last_raid_channel_ids": [str(ch.id) for ch in writable_channels],
+        "last_raid_topic": topic_clean,
+    })
+
+    # Append to persistent raid log
+    raid_log = bot.db.setdefault("internal", {}).setdefault("raid_log", [])
+    raid_log.append({
+        "guild_id": str(target_guild.id),
+        "guild_name": target_guild.name,
+        "topic": topic_clean,
+        "channels_warned": channels_warned,
+        "channels_failed": channels_failed,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    # Cap log at 50 entries
+    if len(raid_log) > 50:
+        bot.db["internal"]["raid_log"] = raid_log[-50:]
+
+    # DM the Creator a ready-to-paste Discord Trust & Safety report
+    try:
+        creator_user = await bot.fetch_user(DOCTOR_ID)
+        report_body = (
+            f"**Server name:** {target_guild.name}\n"
+            f"**Server ID:** {target_guild.id}\n"
+            f"**Issue type:** {topic_clean}\n"
+            f"**Member count:** {target_guild.member_count}\n"
+            f"**Channels warned:** {channels_warned}\n"
+            f"**Reported by:** Yarnaby (!raid command)\n\n"
+            f"Paste the above into the Discord Trust & Safety form:\n"
+            f"<https://dis.gd/request>"
+        )
+        dm_embed = discord.Embed(
+            title=f"📋 Report ready — {target_guild.name}",
+            description=report_body,
+            color=discord.Color.orange(),
+        )
+        dm_embed.set_footer(text="Copy the details above and paste them into the T&S form. The server ID is the most important field.")
+        await creator_user.send(embed=dm_embed)
+    except Exception:
+        pass  # DM blocked or failed — non-fatal
+
+
+# ==========================================
+# ==========================================
+# !raidstop — post an all-clear to every channel that was raided
+# ==========================================
+@bot.command(name="raidstop", aliases=["allclear", "raidover", "safenow"])
+async def raidstop_cmd(ctx):
+    """[Creator only] Post an all-clear message to every channel that was raided with !raid."""
+    if ctx.author.id != DOCTOR_ID:
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    internal = m.get("internal", {})
+    guild_id_str = internal.get("last_raid_guild_id")
+    channel_ids = internal.get("last_raid_channel_ids", [])
+    topic_clean = internal.get("last_raid_topic", "unknown")
+
+    if not guild_id_str or not channel_ids:
+        await ctx.send(
+            "*He looks around blankly. There's no record of a recent raid broadcast — "
+            "use `!raid` first.* **mrr.**"
+        )
+        return
+
+    target_guild = bot.get_guild(int(guild_id_str))
+    if not target_guild:
+        await ctx.send(
+            "*He can't find the server that was raided. He may have left it, or it no longer exists.* **mrr.**"
+        )
+        return
+
+    await ctx.send(
+        f"*He exhales slowly. He begins the rounds.*\n"
+        f"*Posting all-clear to **{len(channel_ids)}** channel(s) in **{target_guild.name}**...* **mrr.**"
+    )
+
+    cleared = 0
+    failed = 0
+    for ch_id in channel_ids:
+        ch = target_guild.get_channel(int(ch_id))
+        if ch is None:
+            failed += 1
+            continue
+        if not ch.permissions_for(target_guild.me).send_messages:
+            failed += 1
+            continue
+        embed = discord.Embed(
+            title="✅ All clear — danger has passed",
+            description=(
+                f"*Yarnaby reappears in the doorway. He looks different — quieter, settled.*\n\n"
+                f"**The earlier {topic_clean} warning has been resolved. "
+                f"The Creator has confirmed the situation is under control. "
+                f"You can stand down.**\n\n"
+                f"*He sits down. He blinks slowly. He is done.* **prrr.**"
+            ),
+            color=discord.Color.green(),
+        )
+        embed.set_footer(text="All-clear posted by Yarnaby at the request of The Creator.")
+        try:
+            await ch.send(embed=embed)
+            cleared += 1
+            await asyncio.sleep(0.6)
+        except Exception:
+            failed += 1
+
+    # Clear stored raid data so stale !raidstop can't be reused
+    internal.pop("last_raid_guild_id", None)
+    internal.pop("last_raid_channel_ids", None)
+    internal.pop("last_raid_topic", None)
+
+    fail_note = f" ({failed} channel(s) were unreachable.)" if failed else ""
+    await ctx.send(
+        f"*All-clear posted to **{cleared}** channel(s) in **{target_guild.name}**.{fail_note}*\n"
+        f"*Raid record cleared. He's done.* **mrr.**"
+    )
+
+
+# ==========================================
+# !raidlog — show history of all !raid broadcasts
+# ==========================================
+@bot.command(name="raidlog", aliases=["raidhistory", "raidrecord", "raids"])
+async def raidlog_cmd(ctx, action: str = ""):
+    """[Creator only] Show or clear the log of every !raid broadcast."""
+    if ctx.author.id != DOCTOR_ID:
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # ── clear subcommand ──
+    if action.strip().lower() == "clear":
+        m.setdefault("internal", {}).pop("raid_log", None)
+        await ctx.send(
+            "*He sweeps the notes off the desk. They're gone — the raid log is empty.* **mrr.**"
+        )
+        return
+
+    raid_log = m.get("internal", {}).get("raid_log", [])
+
+    if not raid_log:
+        await ctx.send(
+            "*He checks his notes. There's nothing there. No raids have been broadcast yet.* **mrr.**"
+        )
+        return
+
+    lines_out = [f"*He spreads his notes flat. He has broadcast warnings to **{len(raid_log)}** server(s):*\n"]
+    for i, entry in enumerate(reversed(raid_log), 1):
+        fail_note = f" ({entry.get('channels_failed', 0)} failed)" if entry.get("channels_failed") else ""
+        lines_out.append(
+            f"`{i}.` **{entry['guild_name']}** — `{entry['guild_id']}` — "
+            f"topic: **{entry['topic']}** — "
+            f"{entry.get('channels_warned', '?')} channel(s) warned{fail_note} — "
+            f"`{entry['timestamp']}`"
+        )
+    lines_out.append("\n*Newest first. Up to 50 entries. Use `!raidlog clear` to wipe.* **mrr.**")
+
+    full_text = "\n".join(lines_out)
+    if len(full_text) <= 2000:
+        await ctx.send(full_text)
+    else:
+        chunk = []
+        char_count = 0
+        for line in lines_out:
+            if char_count + len(line) + 1 > 1900:
+                await ctx.send("\n".join(chunk))
+                chunk = [line]
+                char_count = len(line)
+            else:
+                chunk.append(line)
+                char_count += len(line) + 1
+        if chunk:
+            await ctx.send("\n".join(chunk))
+
+
+# ==========================================
+# !raidban — broadcast warning then leave the server
+# ==========================================
+@bot.command(name="raidban", aliases=["raidandleave", "banserver", "nukeandleave"])
+async def raidban_cmd(ctx, server_name: str = "", *, topic: str = ""):
+    """[Creator only] Broadcast danger warnings to every channel in a server, then leave it."""
+    if ctx.author.id != DOCTOR_ID:
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if not server_name.strip() or not topic.strip():
+        await ctx.send(
+            "*`!raidban [server name] [topic]` — like `!raid`, but he leaves the server afterwards too.*\n"
+            "*Pick a server from `!servers`. This cannot be undone.* **mrr.**"
         )
         return
 
@@ -28276,61 +28689,240 @@ async def raid_cmd(ctx, server_name: str = "", *, topic: str = ""):
             break
 
     if not target_guild:
-        await ctx.send(f"*He can't find a server called **{server_name}**. Use `!servers` for the full list.* **mrr.**")
-        return
-
-    # Pick a channel to post in: prefer system channel, else first text channel he can speak in
-    target_channel = None
-    if target_guild.system_channel and target_guild.system_channel.permissions_for(target_guild.me).send_messages:
-        target_channel = target_guild.system_channel
-    else:
-        for ch in target_guild.text_channels:
-            if ch.permissions_for(target_guild.me).send_messages:
-                target_channel = ch
-                break
-
-    if not target_channel:
-        await ctx.send(f"*He's in **{target_guild.name}**, but there's nowhere he's allowed to speak. He can't post a warning there.* **mrr.**")
+        await ctx.send(
+            f"*He can't find a server called **{server_name}**. "
+            f"Use `!servers` for the full list.* **mrr.**"
+        )
         return
 
     topic_clean = topic.strip()
-    warning_text = (
-        f"*Yarnaby stops. He's not playing anymore - not even a little. He looks straight out, like he's looking at whoever's reading this.*\n\n"
-        f"**\"This server is a {topic_clean} server. Don't click anything. Don't share anything. Don't stick around. "
-        f"If you got linked here, that's the scam working as intended - leave, and warn whoever sent it to you.\"**\n\n"
-        f"*He holds the look a moment longer. Then he turns away, ears low.* **...mrr.**"
-    )
 
-    perms = target_channel.permissions_for(target_guild.me)
-    can_ping_everyone = perms.mention_everyone
-    ping_prefix = "@everyone\n" if can_ping_everyone else ""
+    writable_channels = [
+        ch for ch in target_guild.text_channels
+        if ch.permissions_for(target_guild.me).send_messages
+    ]
 
-    embed = discord.Embed(
-        title=f"⚠️ This server is a {topic_clean} server",
-        description=warning_text,
-        color=discord.Color.red(),
-    )
-
-    try:
-        await target_channel.send(
-            content=ping_prefix or None,
-            embed=embed,
-            allowed_mentions=discord.AllowedMentions(everyone=can_ping_everyone),
+    if not writable_channels:
+        await ctx.send(
+            f"*He's in **{target_guild.name}**, but there's nowhere he can speak. "
+            f"He can't post warnings — but he'll still leave.* **mrr.**"
         )
-    except Exception as e:
-        await ctx.send(f"*He tried to post in **{target_guild.name}** but something stopped him. ({e})* **mrr.**")
+        try:
+            await target_guild.leave()
+        except Exception:
+            pass
         return
 
-    ping_note = "" if can_ping_everyone else "\n*(He doesn't have permission to ping @everyone there, so this didn't notify the whole server.)*"
     await ctx.send(
-        f"*Warning posted in **#{target_channel.name}** on **{target_guild.name}**.* **mrr.**{ping_note}\n\n"
-        f"*This only posts one message - it doesn't spam the server. "
-        f"If this is a genuine scam/raid server, report it to Discord directly via the in-app "
-        f"Report feature or <https://dis.gd/request>, since that's the only way action actually gets taken on it.*"
+        f"*He sets his jaw. This is the last thing he'll do in **{target_guild.name}**.*\n"
+        f"*Broadcasting warning to **{len(writable_channels)}** channel(s) — then he walks out.* **mrr.**"
     )
+
+    WARNING_ROUNDS = [
+        (
+            f"⚠️ **DANGER — {topic_clean.upper()} SERVER** ⚠️",
+            (
+                f"*Yarnaby stops. He's not playing anymore — not even a little. "
+                f"He looks straight at whoever's reading this.*\n\n"
+                f"**\"This server is a {topic_clean} server. Don't click anything. Don't share anything. "
+                f"Don't trust anyone here. If you were linked here, that's the trap — close the tab and "
+                f"warn whoever sent you.\"**\n\n"
+                f"*He holds the look a moment longer. Then he turns away, ears low.* **...mrr.**"
+            ),
+        ),
+        (
+            f"🚨 STILL HERE? GET OUT — {topic_clean.upper()} SERVER 🚨",
+            (
+                f"*He is posting this again because people don't always see the first one.*\n\n"
+                f"**This server is flagged as a {topic_clean} server. Leave now. "
+                f"Do not engage with anyone here. Do not click any links. "
+                f"Report it to Discord: <https://dis.gd/request>**\n\n"
+                f"*His tail is still. His ears are back. He is serious.* **mrr.**"
+            ),
+        ),
+        (
+            f"⚠️ FINAL WARNING — {topic_clean.upper()} SERVER ⚠️",
+            (
+                f"*He posts this one last time for anyone who missed the others.*\n\n"
+                f"**{topic_clean.upper()} SERVER. Leave. Report. Don't come back.**\n\n"
+                f"*He turns and walks away without looking back. He has done what he can.* **...mrr.**"
+            ),
+        ),
+    ]
+
+    channels_warned = 0
+    channels_failed = 0
+
+    for ch in writable_channels:
+        perms = ch.permissions_for(target_guild.me)
+        can_ping = perms.mention_everyone
+        for i, (title, description) in enumerate(WARNING_ROUNDS):
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=discord.Color.red(),
+            )
+            embed.set_footer(text="Posted by Yarnaby at the request of The Creator. This is a safety warning.")
+            ping_content = "@everyone" if (can_ping and i == 0) else None
+            try:
+                await ch.send(
+                    content=ping_content,
+                    embed=embed,
+                    allowed_mentions=discord.AllowedMentions(everyone=(can_ping and i == 0)),
+                )
+                await asyncio.sleep(0.8)
+            except Exception:
+                channels_failed += 1
+                break
+        else:
+            channels_warned += 1
+            await asyncio.sleep(0.4)
+
+    # Persist to raid log
+    raid_log = m.setdefault("internal", {}).setdefault("raid_log", [])
+    raid_log.append({
+        "guild_id": str(target_guild.id),
+        "guild_name": target_guild.name,
+        "topic": topic_clean,
+        "channels_warned": channels_warned,
+        "channels_failed": channels_failed,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "action": "raidban",
+    })
+    if len(raid_log) > 50:
+        m["internal"]["raid_log"] = raid_log[-50:]
+
+    # DM the Creator with report info before leaving
+    try:
+        creator_user = await bot.fetch_user(DOCTOR_ID)
+        report_body = (
+            f"**Server name:** {target_guild.name}\n"
+            f"**Server ID:** {target_guild.id}\n"
+            f"**Issue type:** {topic_clean}\n"
+            f"**Member count:** {target_guild.member_count}\n"
+            f"**Channels warned:** {channels_warned}\n"
+            f"**Action taken:** Left the server after broadcast\n\n"
+            f"Paste the above into the Discord Trust & Safety form:\n"
+            f"<https://dis.gd/request>"
+        )
+        dm_embed = discord.Embed(
+            title=f"📋 Report ready — {target_guild.name} (left)",
+            description=report_body,
+            color=discord.Color.orange(),
+        )
+        dm_embed.set_footer(text="He has already left this server. Use the server ID for the T&S report.")
+        await creator_user.send(embed=dm_embed)
+    except Exception:
+        pass
+
+    guild_name_saved = target_guild.name
+    try:
+        await target_guild.leave()
+        fail_note = f" ({channels_failed} channel(s) blocked him.)" if channels_failed else ""
+        await ctx.send(
+            f"*He warned **{channels_warned}** channel(s) in **{guild_name_saved}**.{fail_note} "
+            f"Then he left. He's not going back.* **mrr.**\n"
+            f"*Report details sent to your DMs.*"
+        )
+    except Exception as e:
+        await ctx.send(
+            f"*He posted the warnings, but couldn't leave **{guild_name_saved}**. ({e})* **mrr.**"
+        )
+
 
 
 # ==========================================
+# !antiraid — auto-kick raiders in this server
+# ==========================================
+@bot.command(name="antiraid")
+async def antiraid_cmd(ctx, action: str = ""):
+    """[Admin/Creator only] Toggle auto-kick for raiders in this server."""
+    is_admin = (
+        ctx.author.id == DOCTOR_ID
+        or ctx.author.guild_permissions.administrator
+        or ctx.author.guild_permissions.manage_guild
+    )
+    if not is_admin:
+        return  # silent — looks like it doesn't exist
+
+    m = bot.db
+    guild_id = str(ctx.guild.id)
+    ar_guilds = m.setdefault("internal", {}).setdefault("antiraid_guilds", {})
+
+    action = action.strip().lower()
+
+    # Show status
+    if action == "status":
+        enabled = ar_guilds.get(guild_id, {}).get("enabled", False)
+        threshold = ar_guilds.get(guild_id, {}).get("threshold", 5)
+        window = ar_guilds.get(guild_id, {}).get("window", 3)
+        state_str = "**ON** 🟢" if enabled else "**OFF** 🔴"
+        embed = discord.Embed(
+            title="⚔️ Anti-raid status",
+            description=(
+                f"Status: {state_str}\n"
+                f"Speed trigger: **{threshold}** messages in **{window}s**\n\n"
+                f"**Triggers that cause a kick:**\n"
+                f"• {threshold}+ messages in {window} seconds\n"
+                f"• 15+ repeated characters in one message\n"
+                f"• 5+ user/role mentions in one message\n"
+                f"• 800+ characters with ≤8 unique chars\n"
+                f"• 3+ Discord invite links in one message\n\n"
+                f"*Admins, server owner, and The Creator are immune.*\n"
+                f"Use `!antiraid` to toggle, `!antiraid threshold N` or `!antiraid window N` to tune."
+            ),
+            color=discord.Color.green() if enabled else discord.Color.red(),
+        )
+        await ctx.send(embed=embed)
+        return
+
+    # Tune threshold (messages per window)
+    if action == "threshold":
+        await ctx.send("*`!antiraid threshold [number]` — e.g. `!antiraid threshold 4`* **mrr.**")
+        return
+
+    # Tune time window
+    if action == "window":
+        await ctx.send("*`!antiraid window [seconds]` — e.g. `!antiraid window 10`* **mrr.**")
+        return
+
+    # Handle !antiraid threshold N
+    if action.startswith("threshold"):
+        parts = action.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            n = max(2, min(int(parts[1]), 20))
+            ar_guilds.setdefault(guild_id, {})["threshold"] = n
+            await ctx.send(f"*Speed trigger set to **{n}** messages per window.* **mrr.**")
+            return
+
+    if action.startswith("window"):
+        parts = action.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            n = max(3, min(int(parts[1]), 30))
+            ar_guilds.setdefault(guild_id, {})["window"] = n
+            await ctx.send(f"*Time window set to **{n}** seconds.* **mrr.**")
+            return
+
+    # Default: toggle on/off
+    current = ar_guilds.get(guild_id, {}).get("enabled", False)
+    new_state = not current
+    ar_guilds.setdefault(guild_id, {})["enabled"] = new_state
+
+    if new_state:
+        await ctx.send(
+            "*He stands up. He is paying attention now.*\n"
+            "**Anti-raid is ON.** *Anyone flooding, spamming identical characters, mass-mentioning, "
+            "or posting invite spam will be kicked automatically.*\n"
+            "*Use `!antiraid status` to see the full trigger list.* **mrr.**"
+        )
+    else:
+        await ctx.send(
+            "*He relaxes. He sits back down.*\n"
+            "**Anti-raid is OFF.** *He'll stop watching for raiders in this server.* **mrr.**"
+        )
+
+
+
 # !birb - Yarnaby spots a bird at the window
 # ==========================================
 @bot.command(name="birb", aliases=["bird", "abird", "heseesabird", "birdbirdbird", "window_bird", "birbwatch"])
