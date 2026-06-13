@@ -5125,6 +5125,270 @@ class Yarnaby(commands.Bot):
 
 bot = Yarnaby()
 
+
+# ==========================================
+# ACHIEVEMENT SYSTEM
+# ==========================================
+
+ACHIEVEMENTS = {
+    # ── FETCH ──
+    "first_fetch": {"name": "Retriever",          "desc": "Used !fetch for the first time.",          "emoji": "🎾", "cat": "Fetch"},
+    "fetch_10":    {"name": "Regular Retriever",   "desc": "Fetched 10 times.",                       "emoji": "🎾", "cat": "Fetch"},
+    "fetch_50":    {"name": "Dedicated Fetcher",   "desc": "Fetched 50 times.",                       "emoji": "🎾", "cat": "Fetch"},
+    "fetch_100":   {"name": "Fetch Veteran",       "desc": "Fetched 100 times.",                      "emoji": "🥇", "cat": "Fetch"},
+    "fetch_rare":            {"name": "Something Shiny",    "desc": "Fetched a Rare item.",               "emoji": "✨", "cat": "Fetch"},
+    "fetch_epic":            {"name": "Deep Find",          "desc": "Fetched an Epic item.",              "emoji": "💠", "cat": "Fetch"},
+    "fetch_mythic":          {"name": "Mythic Find",        "desc": "Fetched a Mythic item.",             "emoji": "🌟", "cat": "Fetch"},
+    "fetch_legendary":       {"name": "Legend Has It",      "desc": "Fetched a Legendary item.",          "emoji": "🏆", "cat": "Fetch"},
+    "fetch_ultra_legendary": {"name": "Beyond Legend",      "desc": "Fetched an Ultra Legendary item.",   "emoji": "💫", "cat": "Fetch"},
+    "fetch_chromatic":       {"name": "Chromatic",          "desc": "Fetched a Chromatic item — the rarest of all.", "emoji": "🌈", "cat": "Fetch"},
+    "fetch_cursed":          {"name": "You Shouldn't Have","desc": "Fetched a Cursed item.",             "emoji": "💀", "cat": "Fetch"},
+    # ── HOARD ──
+    "hoard_10": {"name": "Collector",       "desc": "The hoard has reached 10 unique items.", "emoji": "📦", "cat": "Hoard"},
+    "hoard_25": {"name": "Pack Rat",        "desc": "The hoard has reached 25 unique items.", "emoji": "🗃️", "cat": "Hoard"},
+    "hoard_50": {"name": "The Great Hoard", "desc": "The hoard has reached 50 unique items.", "emoji": "🏛️", "cat": "Hoard"},
+    # ── TRUST ──
+    "score_10":  {"name": "Known Face", "desc": "Reached a trust score of 10.",            "emoji": "🤝", "cat": "Trust"},
+    "score_25":  {"name": "Trusted",    "desc": "Reached a trust score of 25.",            "emoji": "💛", "cat": "Trust"},
+    "score_50":  {"name": "Beloved",    "desc": "Reached a trust score of 50.",            "emoji": "🧡", "cat": "Trust"},
+    "score_100": {"name": "Chosen",     "desc": "Reached the maximum trust score of 100.", "emoji": "❤️", "cat": "Trust"},
+    # ── INTERACTIONS ──
+    "first_hug":  {"name": "First Embrace",       "desc": "Hugged Yarnaby for the first time.",    "emoji": "🤗", "cat": "Interactions"},
+    "hug_10":     {"name": "Hugger",              "desc": "Hugged Yarnaby 10 times.",              "emoji": "🤗", "cat": "Interactions"},
+    "hug_25":     {"name": "Professional Hugger", "desc": "Hugged Yarnaby 25 times.",              "emoji": "🤗", "cat": "Interactions"},
+    "first_pet":  {"name": "Gentle Hands",        "desc": "Pet Yarnaby for the first time.",       "emoji": "🐾", "cat": "Interactions"},
+    "pet_10":     {"name": "Devoted Petter",      "desc": "Pet Yarnaby 10 times.",                 "emoji": "🐾", "cat": "Interactions"},
+    "first_play": {"name": "Playtime",            "desc": "Played with Yarnaby for the first time.","emoji": "🧶", "cat": "Interactions"},
+    "play_10":    {"name": "Play Partner",        "desc": "Played with Yarnaby 10 times.",         "emoji": "🧶", "cat": "Interactions"},
+    # ── FEEDING ──
+    "first_feed":       {"name": "First Meal",        "desc": "Fed Yarnaby for the first time.",    "emoji": "🍽️", "cat": "Feeding"},
+    "feed_10":          {"name": "Consistent Feeder", "desc": "Fed Yarnaby 10 times.",              "emoji": "🍽️", "cat": "Feeding"},
+    "feed_50":          {"name": "Personal Chef",     "desc": "Fed Yarnaby 50 times.",              "emoji": "👨‍🍳", "cat": "Feeding"},
+    "feed_toxic":       {"name": "That Was a Mistake","desc": "Fed Yarnaby something toxic.",       "emoji": "☠️", "cat": "Feeding"},
+    "feed_loved":       {"name": "His Favourite",     "desc": "Fed Yarnaby something he loves.",    "emoji": "❤️", "cat": "Feeding"},
+    # ── GIFTING ──
+    "first_gift":  {"name": "Bearing Gifts",         "desc": "Gave Yarnaby his first gift.",                "emoji": "🎁", "cat": "Gifting"},
+    "gift_10":     {"name": "Generous",              "desc": "Given Yarnaby 10 gifts.",                    "emoji": "🎁", "cat": "Gifting"},
+    "gift_50":     {"name": "Benefactor",            "desc": "Given Yarnaby 50 gifts.",                    "emoji": "🎀", "cat": "Gifting"},
+    "gift_adidas": {"name": "Streetwear Benefactor", "desc": "Gave Yarnaby something Adidas.",             "emoji": "👟", "cat": "Gifting"},
+    "gift_loves":  {"name": "He Appreciates This",   "desc": "Gave Yarnaby something he genuinely loves.", "emoji": "💝", "cat": "Gifting"},
+    # ── EVENTS ──
+    "woke_him_up":         {"name": "Early Riser",           "desc": "Woke Yarnaby up from sleep.",                          "emoji": "⏰", "cat": "Events"},
+    "caught_stealing":     {"name": "Caught Red-Handed",     "desc": "Got caught trying to steal from Yarnaby's hoard.",    "emoji": "🚨", "cat": "Events"},
+    "stole_successfully":  {"name": "Nimble Fingers",        "desc": "Successfully stole an item from Yarnaby's hoard.",    "emoji": "🎭", "cat": "Events"},
+    "threw_glitter":       {"name": "Glitter Bomber",        "desc": "Threw glitter at Yarnaby. He is permanently sparkly.", "emoji": "✨", "cat": "Events"},
+    "threw_blood":         {"name": "Why Would You Do This", "desc": "Threw blood at Yarnaby.",                              "emoji": "🩸", "cat": "Events"},
+    "put_out_fire":        {"name": "Firefighter",           "desc": "Put out a fire on Yarnaby.",                           "emoji": "🧯", "cat": "Events"},
+    # ── SOCIAL / MISC ──
+    "first_bath":    {"name": "Bathtime",            "desc": "Bathed Yarnaby for the first time.",          "emoji": "🛁", "cat": "Interactions"},
+    "bath_10":       {"name": "Professional Bather",  "desc": "Bathed Yarnaby 10 times.",                   "emoji": "🛁", "cat": "Interactions"},
+    "first_boop":    {"name": "Nose Touch",           "desc": "Booped Yarnaby for the first time.",          "emoji": "👆", "cat": "Interactions"},
+    "boop_10":       {"name": "Chronic Booper",        "desc": "Booped Yarnaby 10 times.",                  "emoji": "👆", "cat": "Interactions"},
+    "first_poke":    {"name": "Poke",                 "desc": "Poked Yarnaby for the first time.",           "emoji": "☝️", "cat": "Interactions"},
+    "poke_10":       {"name": "Persistent Poker",      "desc": "Poked Yarnaby 10 times.",                   "emoji": "☝️", "cat": "Interactions"},
+    "first_sing":    {"name": "Serenade",             "desc": "Sang to Yarnaby for the first time.",         "emoji": "🎵", "cat": "Interactions"},
+    "first_drink":   {"name": "Something to Drink",   "desc": "Offered Yarnaby a drink for the first time.", "emoji": "🥤", "cat": "Interactions"},
+    "drink_10":      {"name": "Drinks Provider",       "desc": "Offered Yarnaby 10 drinks.",                "emoji": "🥤", "cat": "Interactions"},
+    "first_cuddle":  {"name": "Snuggle Time",          "desc": "Cuddled with Yarnaby for the first time.",  "emoji": "🌙", "cat": "Interactions"},
+    "cuddle_10":     {"name": "Permanent Fixture",     "desc": "Cuddled with Yarnaby 10 times.",            "emoji": "🌙", "cat": "Interactions"},
+    "first_vet":     {"name": "Concerned",             "desc": "Took Yarnaby to the vet.",                  "emoji": "🏥", "cat": "Events"},
+    "first_treat":   {"name": "Field Medic",           "desc": "Treated one of Yarnaby's injuries.",        "emoji": "🩹", "cat": "Events"},
+    "score_negative":{"name": "In His Bad Books",      "desc": "Reached a negative trust score.",            "emoji": "😤", "cat": "Trust"},
+    "fetch_200":     {"name": "Marathon Fetcher",      "desc": "Fetched 200 times total.",                   "emoji": "🏃", "cat": "Fetch"},
+    "feed_100":      {"name": "A Hundred Meals",       "desc": "Fed Yarnaby 100 times.",                     "emoji": "🍽️", "cat": "Feeding"},
+    "gift_100":      {"name": "Grand Benefactor",      "desc": "Given Yarnaby 100 gifts.",                   "emoji": "🎀", "cat": "Gifting"},
+    "steal_5":       {"name": "Career Criminal",       "desc": "Attempted to steal 5 times total.",          "emoji": "🦹", "cat": "Events"},
+    "ach_20":        {"name": "Overachiever",          "desc": "Unlocked 20 achievements.",                  "emoji": "🏅", "cat": "Trust"},
+    "survived_toxic_feed": {"name": "Witness",               "desc": "Watched Yarnaby pass out from something toxic.",       "emoji": "😱", "cat": "Events"},
+    # ── FETCH (extended) ──
+    "fetch_25":              {"name": "Getting Into It",     "desc": "Fetched 25 times.",                                  "emoji": "🎾", "cat": "Fetch"},
+    "fetch_75":              {"name": "On A Roll",           "desc": "Fetched 75 times.",                                  "emoji": "🎾", "cat": "Fetch"},
+    "fetch_150":             {"name": "Seasoned Retriever",  "desc": "Fetched 150 times.",                                 "emoji": "🎾", "cat": "Fetch"},
+    "fetch_300":             {"name": "Triple Century",      "desc": "Fetched 300 times. He's beginning to expect it.",   "emoji": "🏃", "cat": "Fetch"},
+    "fetch_500":             {"name": "Five Hundred",        "desc": "Fetched 500 times. He has stopped being surprised.", "emoji": "🥇", "cat": "Fetch"},
+    "fetch_1000":            {"name": "The Eternal Fetcher", "desc": "Fetched 1000 times. A legend.",                     "emoji": "👑", "cat": "Fetch"},
+    "fetch_common":          {"name": "Standard Issue",      "desc": "Fetched a Common item.",                            "emoji": "📦", "cat": "Fetch"},
+    "fetch_uncommon":        {"name": "A Little Better",     "desc": "Fetched an Uncommon item.",                         "emoji": "📦", "cat": "Fetch"},
+    "fetch_5_mythic":        {"name": "Mythic Devotee",      "desc": "Fetched 5 Mythic+ items total.",                    "emoji": "🌟", "cat": "Fetch"},
+    # ── HOARD (extended) ──
+    "hoard_75":              {"name": "Serious Collector",   "desc": "The hoard has reached 75 unique items.",            "emoji": "🗃️", "cat": "Hoard"},
+    "hoard_100":             {"name": "A Hundred Treasures", "desc": "The hoard has reached 100 unique items.",           "emoji": "🏰", "cat": "Hoard"},
+    "hoard_150":             {"name": "Overwhelming Wealth", "desc": "The hoard has reached 150 unique items.",           "emoji": "💎", "cat": "Hoard"},
+    # ── TRUST (extended) ──
+    "score_5":               {"name": "Noticed",             "desc": "Reached a trust score of 5.",                      "emoji": "👁️", "cat": "Trust"},
+    "score_75":              {"name": "Cherished",           "desc": "Reached a trust score of 75.",                     "emoji": "💖", "cat": "Trust"},
+    "score_minus_10":        {"name": "Deeply Unpopular",    "desc": "Reached -10 trust. He is actively avoiding you.",  "emoji": "😾", "cat": "Trust"},
+    "score_minus_50":        {"name": "Enemy Of The Cat",    "desc": "Reached -50 trust. Impressive, in the worst way.", "emoji": "💢", "cat": "Trust"},
+    "ach_10":                {"name": "Getting There",       "desc": "Unlocked 10 achievements.",                        "emoji": "🏅", "cat": "Trust"},
+    "ach_30":                {"name": "Accomplished",        "desc": "Unlocked 30 achievements.",                        "emoji": "🏅", "cat": "Trust"},
+    "ach_40":                {"name": "Very Dedicated",      "desc": "Unlocked 40 achievements.",                        "emoji": "🏅", "cat": "Trust"},
+    "ach_50":                {"name": "Half A Hundred",      "desc": "Unlocked 50 achievements.",                        "emoji": "🏆", "cat": "Trust"},
+    "ach_60":                {"name": "Completionist",       "desc": "Unlocked 60 achievements.",                        "emoji": "👑", "cat": "Trust"},
+    # ── INTERACTIONS (extended) ──
+    "hug_50":                {"name": "Cannot Stop Hugging", "desc": "Hugged Yarnaby 50 times.",                         "emoji": "🤗", "cat": "Interactions"},
+    "hug_100":               {"name": "The Hugger",          "desc": "Hugged Yarnaby 100 times. He's used to it now.",  "emoji": "🤗", "cat": "Interactions"},
+    "pet_25":                {"name": "Dedicated Hands",     "desc": "Pet Yarnaby 25 times.",                            "emoji": "🐾", "cat": "Interactions"},
+    "pet_50":                {"name": "Full Time Petter",    "desc": "Pet Yarnaby 50 times.",                            "emoji": "🐾", "cat": "Interactions"},
+    "pet_100":               {"name": "Hand Model",          "desc": "Pet Yarnaby 100 times. He tolerates this.",        "emoji": "🐾", "cat": "Interactions"},
+    "play_25":               {"name": "Regular Playmate",    "desc": "Played with Yarnaby 25 times.",                    "emoji": "🧶", "cat": "Interactions"},
+    "play_50":               {"name": "The Fun One",         "desc": "Played with Yarnaby 50 times.",                    "emoji": "🧶", "cat": "Interactions"},
+    "play_100":              {"name": "Entertainment Staple","desc": "Played with Yarnaby 100 times.",                   "emoji": "🧶", "cat": "Interactions"},
+    "bath_25":               {"name": "Bath Technician",     "desc": "Bathed Yarnaby 25 times. He still hates it.",      "emoji": "🛁", "cat": "Interactions"},
+    "bath_50":               {"name": "Professional Scrubber","desc": "Bathed Yarnaby 50 times.",                        "emoji": "🛁", "cat": "Interactions"},
+    "boop_25":               {"name": "Boop Veteran",        "desc": "Booped Yarnaby 25 times.",                         "emoji": "👆", "cat": "Interactions"},
+    "boop_50":               {"name": "The Booper",          "desc": "Booped Yarnaby 50 times. He is resigned to this.", "emoji": "👆", "cat": "Interactions"},
+    "poke_25":               {"name": "Relentless",          "desc": "Poked Yarnaby 25 times.",                          "emoji": "☝️", "cat": "Interactions"},
+    "poke_50":               {"name": "Pointy Person",       "desc": "Poked Yarnaby 50 times. He has noted this.",       "emoji": "☝️", "cat": "Interactions"},
+    "sing_5":                {"name": "Returning Performer", "desc": "Sang to Yarnaby 5 times.",                         "emoji": "🎵", "cat": "Interactions"},
+    "sing_10":               {"name": "Resident Bard",       "desc": "Sang to Yarnaby 10 times.",                        "emoji": "🎵", "cat": "Interactions"},
+    "sing_25":               {"name": "Concert Soloist",     "desc": "Sang to Yarnaby 25 times.",                        "emoji": "🎶", "cat": "Interactions"},
+    "drink_25":              {"name": "Personal Barkeep",    "desc": "Offered Yarnaby 25 drinks.",                       "emoji": "🥤", "cat": "Interactions"},
+    "drink_50":              {"name": "Hydration Specialist","desc": "Offered Yarnaby 50 drinks.",                       "emoji": "🥤", "cat": "Interactions"},
+    "cuddle_25":             {"name": "Warmth Provider",     "desc": "Cuddled with Yarnaby 25 times.",                   "emoji": "🌙", "cat": "Interactions"},
+    "cuddle_50":             {"name": "Primary Nap Companion","desc": "Cuddled with Yarnaby 50 times.",                  "emoji": "🌙", "cat": "Interactions"},
+    "vet_3":                 {"name": "Responsible Owner",   "desc": "Took Yarnaby to the vet 3 times.",                 "emoji": "🏥", "cat": "Events"},
+    "vet_10":                {"name": "Hypochondriac",       "desc": "Took Yarnaby to the vet 10 times.",                "emoji": "🏥", "cat": "Events"},
+    "treat_5":               {"name": "Field Medic II",      "desc": "Treated Yarnaby's injuries 5 times.",             "emoji": "🩹", "cat": "Events"},
+    "treat_10":              {"name": "Combat Medic",        "desc": "Treated Yarnaby's injuries 10 times.",            "emoji": "🩹", "cat": "Events"},
+    "wake_3":                {"name": "Alarm Clock",         "desc": "Woke Yarnaby up 3 times.",                         "emoji": "⏰", "cat": "Events"},
+    "wake_10":               {"name": "Sleep Villain",       "desc": "Woke Yarnaby up 10 times. He remembers.",          "emoji": "😤", "cat": "Events"},
+    # ── FEEDING (extended) ──
+    "feed_25":               {"name": "Reliable Feeder",     "desc": "Fed Yarnaby 25 times.",                            "emoji": "🍽️", "cat": "Feeding"},
+    "feed_75":               {"name": "Dedicated Chef",      "desc": "Fed Yarnaby 75 times.",                            "emoji": "🍽️", "cat": "Feeding"},
+    "feed_200":              {"name": "Two Hundred Meals",   "desc": "Fed Yarnaby 200 times. He expects this now.",      "emoji": "👨‍🍳", "cat": "Feeding"},
+    "feed_500":              {"name": "Lifelong Caterer",    "desc": "Fed Yarnaby 500 times.",                           "emoji": "👑", "cat": "Feeding"},
+    "feed_junk":             {"name": "Irresponsible",       "desc": "Fed Yarnaby junk food.",                           "emoji": "🍟", "cat": "Feeding"},
+    "feed_luxury":           {"name": "Spoilt Rotten",       "desc": "Fed Yarnaby something luxury.",                    "emoji": "🍱", "cat": "Feeding"},
+    "feed_5_toxic":          {"name": "Why Are You Like This","desc": "Fed Yarnaby 5 toxic items. He is displeased.",    "emoji": "☠️", "cat": "Feeding"},
+    "feed_yarn_attempt":     {"name": "That Is Not Food",    "desc": "Tried to feed Yarnaby yarn. He is offended.",      "emoji": "🧶", "cat": "Feeding"},
+    "feed_fish":             {"name": "Fishmonger",          "desc": "Fed Yarnaby fresh fish.",                          "emoji": "🐟", "cat": "Feeding"},
+    "feed_cake":             {"name": "It's A Treat",       "desc": "Fed Yarnaby cake.",                                "emoji": "🎂", "cat": "Feeding"},
+    # ── GIFTING (extended) ──
+    "gift_25":               {"name": "Regular Donor",       "desc": "Given Yarnaby 25 gifts.",                          "emoji": "🎁", "cat": "Gifting"},
+    "gift_75":               {"name": "Very Generous",       "desc": "Given Yarnaby 75 gifts.",                          "emoji": "🎁", "cat": "Gifting"},
+    "gift_150":              {"name": "Major Benefactor",    "desc": "Given Yarnaby 150 gifts.",                         "emoji": "🎀", "cat": "Gifting"},
+    "gift_200":              {"name": "The Great Giver",     "desc": "Given Yarnaby 200 gifts.",                         "emoji": "👑", "cat": "Gifting"},
+    "gift_luxury":           {"name": "Fine Tastes",         "desc": "Gifted Yarnaby something luxury.",                 "emoji": "💎", "cat": "Gifting"},
+    "gift_yarn":             {"name": "Core Contribution",   "desc": "Gifted Yarnaby yarn. He approves.",                "emoji": "🧶", "cat": "Gifting"},
+    "gift_wool":             {"name": "Raw Materials",       "desc": "Gifted Yarnaby raw wool.",                         "emoji": "🐑", "cat": "Gifting"},
+    "gift_10_loved":         {"name": "He Loves Everything You Give","desc": "Given 10 gifts he genuinely loves.",       "emoji": "💝", "cat": "Gifting"},
+    # ── EVENTS (extended) ──
+    "steal_10":              {"name": "Committed Criminal",  "desc": "Attempted to steal 10 times total.",               "emoji": "🦹", "cat": "Events"},
+    "steal_20":              {"name": "Professional Thief",  "desc": "Attempted to steal 20 times.",                     "emoji": "🎭", "cat": "Events"},
+    "steal_success_3":       {"name": "Three-Time Thief",    "desc": "Successfully stolen from Yarnaby 3 times.",        "emoji": "💰", "cat": "Events"},
+    "steal_success_5":       {"name": "Master Thief",        "desc": "Successfully stolen from Yarnaby 5 times.",        "emoji": "🌟", "cat": "Events"},
+    "threw_confetti":        {"name": "Party Mode",          "desc": "Threw confetti at Yarnaby.",                       "emoji": "🎉", "cat": "Events"},
+    "threw_water":           {"name": "Spray Bottle",        "desc": "Threw water at Yarnaby. He is offended.",          "emoji": "💧", "cat": "Events"},
+    "threw_socks":           {"name": "Sock Bomber",         "desc": "Threw socks at Yarnaby.",                          "emoji": "🧦", "cat": "Events"},
+    "threw_glitter_twice":   {"name": "Already Sparkly",     "desc": "Threw glitter at an already-glittery Yarnaby.",    "emoji": "✨", "cat": "Events"},
+    "glitter_sparkly":       {"name": "Permanent Glitter",   "desc": "Made Yarnaby permanently sparkly.",                "emoji": "🌈", "cat": "Events"},
+    "fire_survived":         {"name": "Fire Safety Trained", "desc": "Yarnaby survived a fire with your help.",          "emoji": "🔥", "cat": "Events"},
+    "rain_visitor":          {"name": "Rainy Day Company",   "desc": "Visited Yarnaby during rain.",                     "emoji": "🌧️", "cat": "Events"},
+    "storm_visitor":         {"name": "Storm Companion",     "desc": "Visited Yarnaby during a thunderstorm.",           "emoji": "⛈️", "cat": "Events"},
+    "snow_visitor":          {"name": "Snow Day Friend",     "desc": "Visited Yarnaby during snow.",                     "emoji": "❄️", "cat": "Events"},
+    "heatwave_visitor":      {"name": "Brave The Heat",      "desc": "Visited Yarnaby during a heatwave.",               "emoji": "☀️", "cat": "Events"},
+    "caught_stealing_3":     {"name": "Habitual Offender",   "desc": "Got caught stealing 3 times.",                     "emoji": "🚨", "cat": "Events"},
+    "got_hissed_at":         {"name": "Deserved It",         "desc": "Got hissed at by Yarnaby.",                        "emoji": "😾", "cat": "Events"},
+    "used_10_commands":      {"name": "Power User",          "desc": "Used 10 different commands.",                      "emoji": "⌨️", "cat": "Trust"},
+    "used_20_commands":      {"name": "Deeply Invested",     "desc": "Used 20 different commands.",                      "emoji": "💻", "cat": "Trust"},
+    "first_compare":         {"name": "The Analyst",         "desc": "Used !compare for the first time.",                "emoji": "⚖️", "cat": "Trust"},
+    "first_check":           {"name": "Self-Aware",          "desc": "Checked your own trust score.",                    "emoji": "📊", "cat": "Trust"},
+    "night_owl":             {"name": "Night Owl",           "desc": "Interacted with Yarnaby after midnight.",          "emoji": "🦉", "cat": "Events"},
+    "early_bird":            {"name": "Early Bird",          "desc": "Interacted with Yarnaby before 6am.",              "emoji": "🐦", "cat": "Events"},
+    "weekend_visitor":       {"name": "Weekend Regular",     "desc": "Visited Yarnaby on a weekend.",                    "emoji": "📅", "cat": "Events"},
+}
+
+_ACH_CAT_ORDER = ["Fetch", "Hoard", "Trust", "Interactions", "Feeding", "Gifting", "Events"]
+
+
+def _grant_achievement(m, uid, ach_id):
+    """Grant an achievement. Returns True if newly granted."""
+    if ach_id not in ACHIEVEMENTS:
+        return False
+    uid = str(uid)
+    entry = m.setdefault("social_matrix", {}).setdefault(uid, {})
+    achs = entry.setdefault("achievements", {})
+    if ach_id in achs:
+        return False
+    achs[ach_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return True
+
+
+async def _announce_achievement(uid, ach_id, channel):
+    """Post a small achievement unlock embed."""
+    if not channel or ach_id not in ACHIEVEMENTS:
+        return
+    ach = ACHIEVEMENTS[ach_id]
+    uid = str(uid)
+    name = f"<@{uid}>"
+    try:
+        member = channel.guild.get_member(int(uid))
+        if member:
+            name = member.display_name
+    except Exception:
+        pass
+    embed = discord.Embed(
+        title=f"{ach['emoji']} Achievement Unlocked — **{ach['name']}**",
+        description=ach['desc'],
+        color=0xF0C070,
+    )
+    embed.set_footer(text=f"Earned by {name}  ·  {ach['cat']}")
+    try:
+        await channel.send(embed=embed)
+    except Exception:
+        pass
+
+
+async def _grant_and_announce(m, uid, ach_id, channel=None):
+    """Grant achievement and announce if newly unlocked."""
+    if _grant_achievement(m, uid, ach_id):
+        await _announce_achievement(uid, ach_id, channel)
+        # Meta: check achievement milestones
+        _META_ACH_IDS = {"ach_10", "ach_20", "ach_30", "ach_40", "ach_50", "ach_60"}
+        if ach_id not in _META_ACH_IDS:
+            ach_total = len(m.get("social_matrix", {}).get(str(uid), {}).get("achievements", {}))
+            if ach_total >= 10: await _grant_and_announce(m, uid, "ach_10", channel)
+            if ach_total >= 20: await _grant_and_announce(m, uid, "ach_20", channel)
+            if ach_total >= 30: await _grant_and_announce(m, uid, "ach_30", channel)
+            if ach_total >= 40: await _grant_and_announce(m, uid, "ach_40", channel)
+            if ach_total >= 50: await _grant_and_announce(m, uid, "ach_50", channel)
+            if ach_total >= 60: await _grant_and_announce(m, uid, "ach_60", channel)
+        return True
+    return False
+
+
+def _ach_count(m, uid, key):
+    return m.get("social_matrix", {}).get(str(uid), {}).get("ach_counts", {}).get(key, 0)
+
+
+def _ach_inc(m, uid, key, amount=1):
+    uid = str(uid)
+    entry = m.setdefault("social_matrix", {}).setdefault(uid, {})
+    counts = entry.setdefault("ach_counts", {})
+    counts[key] = counts.get(key, 0) + amount
+    return counts[key]
+
+
+async def _check_score_achievements(m, uid, channel=None):
+    score = m.get("social_matrix", {}).get(str(uid), {}).get("score", 0)
+    for threshold, ach_id in [(5, "score_5"), (10, "score_10"), (25, "score_25"), (50, "score_50"), (75, "score_75"), (100, "score_100")]:
+        if score >= threshold:
+            await _grant_and_announce(m, uid, ach_id, channel)
+    if score < 0:
+        await _grant_and_announce(m, uid, "score_negative", channel)
+    if score <= -10:
+        await _grant_and_announce(m, uid, "score_minus_10", channel)
+    if score <= -50:
+        await _grant_and_announce(m, uid, "score_minus_50", channel)
+
+
+async def _check_hoard_achievements(m, uid, channel=None):
+    hoard_size = len(m.get("inventory", {}))
+    for threshold, ach_id in [(10, "hoard_10"), (25, "hoard_25"), (50, "hoard_50"), (75, "hoard_75"), (100, "hoard_100"), (150, "hoard_150")]:
+        if hoard_size >= threshold:
+            await _grant_and_announce(m, uid, ach_id, channel)
+
+
 @bot.command(name="rub", aliases=["rubcheeks", "rubears", "rubcheek", "rubeears", "rubface"])
 async def rub_cmd(ctx, *, place: Optional[str] = None):
     m = bot.db
@@ -8760,6 +9024,17 @@ async def play(ctx, duration: Optional[str] = None):
                 )
             )
 
+    # ── ACHIEVEMENTS: play ──
+    try:
+        _pc = _ach_inc(m, u_id, "play_count")
+        if _pc == 1:  await _grant_and_announce(m, u_id, "first_play", ctx.channel)
+        if _pc >= 10:  await _grant_and_announce(m, u_id, "play_10", ctx.channel)
+        if _pc >= 25:  await _grant_and_announce(m, u_id, "play_25", ctx.channel)
+        if _pc >= 50:  await _grant_and_announce(m, u_id, "play_50", ctx.channel)
+        if _pc >= 100: await _grant_and_announce(m, u_id, "play_100", ctx.channel)
+        await _check_score_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/play] {_ach_err}")
     save_db(m)
 
 
@@ -9018,6 +9293,14 @@ async def doctor_wake(ctx):
             )
         )
 
+    # ── ACHIEVEMENTS: wake ──
+    try:
+        _wc = _ach_inc(m, u_id, "wake_count")
+        await _grant_and_announce(m, u_id, "woke_him_up", ctx.channel)
+        if _wc >= 3:  await _grant_and_announce(m, u_id, "wake_3", ctx.channel)
+        if _wc >= 10: await _grant_and_announce(m, u_id, "wake_10", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/wake] {_ach_err}")
     save_db(m)
 
 
@@ -9406,6 +9689,32 @@ async def fetch(ctx):
     if m["stats"]["tiredness"] >= TIREDNESS_NAP_THRESHOLD:
         await asyncio.sleep(2)
         await trigger_nap(ctx, m)
+    # ── ACHIEVEMENTS: fetch ──
+    try:
+        _fc = _ach_inc(m, u_id, "fetch_count")
+        if _fc == 1:   await _grant_and_announce(m, u_id, "first_fetch", ctx.channel)
+        if _fc >= 10:  await _grant_and_announce(m, u_id, "fetch_10", ctx.channel)
+        if _fc >= 50:  await _grant_and_announce(m, u_id, "fetch_50", ctx.channel)
+        if _fc >= 100: await _grant_and_announce(m, u_id, "fetch_100", ctx.channel)
+        if _fc >= 25:   await _grant_and_announce(m, u_id, "fetch_25", ctx.channel)
+        if _fc >= 75:   await _grant_and_announce(m, u_id, "fetch_75", ctx.channel)
+        if _fc >= 150:  await _grant_and_announce(m, u_id, "fetch_150", ctx.channel)
+        if _fc >= 200:  await _grant_and_announce(m, u_id, "fetch_200", ctx.channel)
+        if _fc >= 300:  await _grant_and_announce(m, u_id, "fetch_300", ctx.channel)
+        if _fc >= 500:  await _grant_and_announce(m, u_id, "fetch_500", ctx.channel)
+        if _fc >= 1000: await _grant_and_announce(m, u_id, "fetch_1000", ctx.channel)
+        _rarity_ach_map = {
+            "Rare": "fetch_rare", "Super Rare": "fetch_rare",
+            "Epic": "fetch_epic", "Mythic": "fetch_mythic",
+            "Legendary": "fetch_legendary", "Ultra Legendary": "fetch_ultra_legendary",
+            "Chromatic": "fetch_chromatic", "Cursed": "fetch_cursed",
+        }
+        if rarity in _rarity_ach_map:
+            await _grant_and_announce(m, u_id, _rarity_ach_map[rarity], ctx.channel)
+        await _check_hoard_achievements(m, u_id, ctx.channel)
+        await _check_score_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/fetch] {_ach_err}")
     save_db(m)
 
 
@@ -9520,6 +9829,15 @@ async def poke(ctx):
                     ]
                 )
             )
+    # ── ACHIEVEMENTS: poke ──
+    try:
+        _pokc = _ach_inc(m, u_id, "poke_count")
+        if _pokc == 1:  await _grant_and_announce(m, u_id, "first_poke", ctx.channel)
+        if _pokc >= 10: await _grant_and_announce(m, u_id, "poke_10", ctx.channel)
+        if _pokc >= 25: await _grant_and_announce(m, u_id, "poke_25", ctx.channel)
+        if _pokc >= 50: await _grant_and_announce(m, u_id, "poke_50", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/poke] {_ach_err}")
     save_db(m)
 
 
@@ -9583,6 +9901,15 @@ async def boop(ctx):
                     ]
                 )
             )
+    # ── ACHIEVEMENTS: boop ──
+    try:
+        _bopc = _ach_inc(m, u_id, "boop_count")
+        if _bopc == 1:  await _grant_and_announce(m, u_id, "first_boop", ctx.channel)
+        if _bopc >= 10: await _grant_and_announce(m, u_id, "boop_10", ctx.channel)
+        if _bopc >= 25: await _grant_and_announce(m, u_id, "boop_25", ctx.channel)
+        if _bopc >= 50: await _grant_and_announce(m, u_id, "boop_50", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/boop] {_ach_err}")
     save_db(m)
 
 
@@ -9669,6 +9996,17 @@ async def hug(ctx):
                     ]
                 )
             )
+    # ── ACHIEVEMENTS: hug ──
+    try:
+        _hc = _ach_inc(m, u_id, "hug_count")
+        if _hc == 1:  await _grant_and_announce(m, u_id, "first_hug", ctx.channel)
+        if _hc >= 10: await _grant_and_announce(m, u_id, "hug_10", ctx.channel)
+        if _hc >= 25:  await _grant_and_announce(m, u_id, "hug_25", ctx.channel)
+        if _hc >= 50:  await _grant_and_announce(m, u_id, "hug_50", ctx.channel)
+        if _hc >= 100: await _grant_and_announce(m, u_id, "hug_100", ctx.channel)
+        await _check_score_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/hug] {_ach_err}")
     save_db(m)
 
 
@@ -11111,6 +11449,29 @@ async def feed(ctx, *, item: Optional[str] = None):
     _fh_end[u_id] = (_hist_end + [{"item": item_lower, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])[-10:]
     if not is_doctor:
         _set_cooldown(m, f"feed:{u_id}")
+    # ── ACHIEVEMENTS: feed ──
+    try:
+        _fedc = _ach_inc(m, u_id, "feed_count")
+        if _fedc == 1:  await _grant_and_announce(m, u_id, "first_feed", ctx.channel)
+        if _fedc >= 10: await _grant_and_announce(m, u_id, "feed_10", ctx.channel)
+        if _fedc >= 50: await _grant_and_announce(m, u_id, "feed_50", ctx.channel)
+        if _fedc >= 25:  await _grant_and_announce(m, u_id, "feed_25", ctx.channel)
+        if _fedc >= 75:  await _grant_and_announce(m, u_id, "feed_75", ctx.channel)
+        if _fedc >= 100: await _grant_and_announce(m, u_id, "feed_100", ctx.channel)
+        if _fedc >= 200: await _grant_and_announce(m, u_id, "feed_200", ctx.channel)
+        if _fedc >= 500: await _grant_and_announce(m, u_id, "feed_500", ctx.channel)
+        try:
+            _fcat = _categorize_offering(item_lower, "feed")
+            if _fcat == "feed_toxic":
+                await _grant_and_announce(m, u_id, "feed_toxic", ctx.channel)
+                await _grant_and_announce(m, u_id, "survived_toxic_feed", ctx.channel)
+            elif _fcat == "feed_loves":
+                await _grant_and_announce(m, u_id, "feed_loved", ctx.channel)
+        except Exception:
+            pass
+        await _check_score_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/feed] {_ach_err}")
     save_db(m)
 
 
@@ -12243,6 +12604,29 @@ async def gift(ctx, *, item: Optional[str] = None):
     if u_id in m["social_matrix"]:
         m["social_matrix"][u_id]["last_gift"] = item
         m["social_matrix"][u_id]["last_gift_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # ── ACHIEVEMENTS: gift ──
+    try:
+        _gc = _ach_inc(m, u_id, "gift_count")
+        if _gc == 1:  await _grant_and_announce(m, u_id, "first_gift", ctx.channel)
+        if _gc >= 10: await _grant_and_announce(m, u_id, "gift_10", ctx.channel)
+        if _gc >= 50: await _grant_and_announce(m, u_id, "gift_50", ctx.channel)
+        if _gc >= 25:  await _grant_and_announce(m, u_id, "gift_25", ctx.channel)
+        if _gc >= 75:  await _grant_and_announce(m, u_id, "gift_75", ctx.channel)
+        if _gc >= 100: await _grant_and_announce(m, u_id, "gift_100", ctx.channel)
+        if _gc >= 150: await _grant_and_announce(m, u_id, "gift_150", ctx.channel)
+        if _gc >= 200: await _grant_and_announce(m, u_id, "gift_200", ctx.channel)
+        try:
+            _gcat = _categorize_offering(item_lower, "gift")
+            if _gcat == "gift_adidas":
+                await _grant_and_announce(m, u_id, "gift_adidas", ctx.channel)
+            elif _gcat == "gift_loves":
+                await _grant_and_announce(m, u_id, "gift_loves", ctx.channel)
+        except Exception:
+            pass
+        await _check_score_achievements(m, u_id, ctx.channel)
+        await _check_hoard_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/gift] {_ach_err}")
     save_db(m)
 
 
@@ -15031,6 +15415,15 @@ async def steal(ctx, *, item: Optional[str] = None):
         })
         if len(log) > 200:
             del log[: len(log) - 200]
+        # ── ACHIEVEMENTS: caught stealing ──
+        try:
+            await _grant_and_announce(m, u_id, "caught_stealing", ctx.channel)
+            _steal_c = _ach_inc(m, u_id, "steal_count")
+            if _steal_c >= 5:  await _grant_and_announce(m, u_id, "steal_5", ctx.channel)
+            if _steal_c >= 10: await _grant_and_announce(m, u_id, "steal_10", ctx.channel)
+            if _steal_c >= 20: await _grant_and_announce(m, u_id, "steal_20", ctx.channel)
+        except Exception as _ach_err:
+            print(f"[achievements/steal-caught] {_ach_err}")
         save_db(m)
         return
 
@@ -15092,6 +15485,18 @@ async def steal(ctx, *, item: Optional[str] = None):
     })
     if len(log) > 200:
         del log[: len(log) - 200]
+    # ── ACHIEVEMENTS: steal success ──
+    try:
+        await _grant_and_announce(m, u_id, "stole_successfully", ctx.channel)
+        _sc = _ach_inc(m, u_id, "steal_success_count")
+        if _sc >= 3: await _grant_and_announce(m, u_id, "steal_success_3", ctx.channel)
+        if _sc >= 5: await _grant_and_announce(m, u_id, "steal_success_5", ctx.channel)
+        _steal_c = _ach_inc(m, u_id, "steal_count")
+        if _steal_c >= 5:  await _grant_and_announce(m, u_id, "steal_5", ctx.channel)
+        if _steal_c >= 10: await _grant_and_announce(m, u_id, "steal_10", ctx.channel)
+        if _steal_c >= 20: await _grant_and_announce(m, u_id, "steal_20", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/steal-success] {_ach_err}")
     save_db(m)
 
     # Delayed sad follow-up - Yarnaby goes to find the Creator about it
@@ -16768,6 +17173,17 @@ async def pet_cmd(ctx):
         await ctx.send(
             "*Yarnaby twists away from your hand. He stares at you like you've lost your mind. He does not want to be petted by you.*"
         )
+    # ── ACHIEVEMENTS: pet ──
+    try:
+        _ptc = _ach_inc(m, u_id, "pet_count")
+        if _ptc == 1:  await _grant_and_announce(m, u_id, "first_pet", ctx.channel)
+        if _ptc >= 10:  await _grant_and_announce(m, u_id, "pet_10", ctx.channel)
+        if _ptc >= 25:  await _grant_and_announce(m, u_id, "pet_25", ctx.channel)
+        if _ptc >= 50:  await _grant_and_announce(m, u_id, "pet_50", ctx.channel)
+        if _ptc >= 100: await _grant_and_announce(m, u_id, "pet_100", ctx.channel)
+        await _check_score_achievements(m, u_id, ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/pet] {_ach_err}")
     save_db(m)
 
 
@@ -18162,6 +18578,15 @@ async def bath_cmd(ctx):
             ]
         )
     )
+    # ── ACHIEVEMENTS: bath ──
+    try:
+        _bc = _ach_inc(m, u_id, "bath_count")
+        if _bc == 1:  await _grant_and_announce(m, u_id, "first_bath", ctx.channel)
+        if _bc >= 10: await _grant_and_announce(m, u_id, "bath_10", ctx.channel)
+        if _bc >= 25: await _grant_and_announce(m, u_id, "bath_25", ctx.channel)
+        if _bc >= 50: await _grant_and_announce(m, u_id, "bath_50", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/bath] {_ach_err}")
     save_db(m)
 
 
@@ -20935,6 +21360,15 @@ async def sing_cmd(ctx, *, song: Optional[str] = None):
                 f"*You sing{what}. He covers one ear with his paw, very deliberately. The review is in.*",
             ])
         )
+    # ── ACHIEVEMENTS: sing ──
+    try:
+        _sgc = _ach_inc(m, u_id, "sing_count")
+        if _sgc == 1:  await _grant_and_announce(m, u_id, "first_sing", ctx.channel)
+        if _sgc >= 5:  await _grant_and_announce(m, u_id, "sing_5", ctx.channel)
+        if _sgc >= 10: await _grant_and_announce(m, u_id, "sing_10", ctx.channel)
+        if _sgc >= 25: await _grant_and_announce(m, u_id, "sing_25", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/sing] {_ach_err}")
     save_db(m)
 
 
@@ -22397,6 +22831,974 @@ async def milestones_cmd(ctx, *, target: str = ""):
 # ==========================================
 # !compare @user1 @user2 - side-by-side trust comparison
 # ==========================================
+
+
+@bot.command(name="achievements")
+async def achievements_cmd(ctx, *, target: str = ""):
+    """View your achievements (or another user's)."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    uid = str(ctx.author.id)
+    display_name = ctx.author.display_name
+
+    if target.strip():
+        t = target.strip().lstrip("@")
+        target_member = None
+        for mem in ctx.guild.members:
+            if (t.lower() in mem.display_name.lower()
+                    or t.lower() in mem.name.lower()
+                    or t == str(mem.id)):
+                target_member = mem
+                break
+        if not target_member:
+            await ctx.send("*He tilts his head. Couldn't find that member.*")
+            return
+        uid = str(target_member.id)
+        display_name = target_member.display_name
+
+    entry = m.get("social_matrix", {}).get(uid, {})
+    earned = entry.get("achievements", {})
+    total = len(ACHIEVEMENTS)
+    earned_count = len(earned)
+
+    cats: dict = {}
+    for ach_id, ach in ACHIEVEMENTS.items():
+        cats.setdefault(ach["cat"], []).append(ach_id)
+
+    pct = int((earned_count / total) * 100) if total else 0
+    bar_filled = pct // 5
+    prog_bar = "█" * bar_filled + "░" * (20 - bar_filled)
+
+    embed = discord.Embed(
+        title=f"🏅  Achievements — {display_name}",
+        description=(
+            f"**{earned_count} / {total}** unlocked  ·  **{pct}%** complete\n"
+            f"`{prog_bar}`"
+        ),
+        color=0xF0C070 if earned_count > 0 else 0x888888,
+    )
+
+    for cat_name in _ACH_CAT_ORDER:
+        if cat_name not in cats:
+            continue
+        lines = []
+        for ach_id in cats[cat_name]:
+            ach = ACHIEVEMENTS[ach_id]
+            if ach_id in earned:
+                ts = earned[ach_id][:10]
+                lines.append(f"{ach['emoji']} **{ach['name']}** — {ach['desc']}  *(earned {ts})*")
+            else:
+                lines.append(f"🔒 ~~{ach['name']}~~ — {ach['desc']}")
+        field_val = "\n".join(lines)
+        if len(field_val) <= 1024:
+            embed.add_field(name=f"**{cat_name}**", value=field_val, inline=False)
+        else:
+            half = len(lines) // 2
+            embed.add_field(name=f"**{cat_name}** (1/2)", value="\n".join(lines[:half]), inline=False)
+            embed.add_field(name=f"**{cat_name}** (2/2)", value="\n".join(lines[half:]), inline=False)
+
+    if earned_count == total:
+        embed.set_footer(text="All achievements unlocked. He would be impressed. He won't say so.")
+    elif earned_count == 0:
+        embed.set_footer(text="No achievements yet. Start by using !fetch.")
+    else:
+        embed.set_footer(text="🔒 = not yet unlocked  ·  Use !achievements @user to check someone else.")
+
+    await ctx.send(embed=embed)
+
+
+
+
+# ==========================================
+# QUEST SYSTEM
+# ==========================================
+
+QUESTS = {
+    # ── DAILY ──
+    "daily_fetch_3": {
+        "name": "Daily Delivery",
+        "desc": "Use !fetch 3 times today.",
+        "type": "daily",
+        "counter": "fetch_count",
+        "target": 3,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*Yarnaby acknowledges your work today with a brief headbutt. He noticed.*",
+    },
+    "daily_feed_2": {
+        "name": "Today's Meals",
+        "desc": "Feed Yarnaby twice today.",
+        "type": "daily",
+        "counter": "feed_count",
+        "target": 2,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He has been fed today. He notes this. He is slightly warmer toward you.*",
+    },
+    "daily_affection": {
+        "name": "Daily Affection",
+        "desc": "Pet OR hug Yarnaby once today.",
+        "type": "daily",
+        "counter": "pet_count",
+        "alt_counter": "hug_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He remembers being attended to today. +1 trust.*",
+    },
+    "daily_play_1": {
+        "name": "Daily Play",
+        "desc": "Play with Yarnaby once today.",
+        "type": "daily",
+        "counter": "play_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He played. He is tired. He is pleased. +1 trust.*",
+    },
+    "daily_gift_1": {
+        "name": "Today's Gift",
+        "desc": "Give Yarnaby a gift today.",
+        "type": "daily",
+        "counter": "gift_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*Something was brought today. He added it to the hoard. He appreciates it.*",
+    },
+    # ── WEEKLY ──
+    "weekly_fetch_5": {
+        "name": "Dedicated Retriever",
+        "desc": "Use !fetch 5 times this week.",
+        "type": "weekly",
+        "counter": "fetch_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five fetches in one week. He has noticed. +2 trust.*",
+    },
+    "weekly_gift_5": {
+        "name": "Weekly Gifts",
+        "desc": "Give Yarnaby 5 gifts this week.",
+        "type": "weekly",
+        "counter": "gift_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five gifts this week. The hoard is richer. +2 trust.*",
+    },
+    "weekly_feed_10": {
+        "name": "Full Week of Feeding",
+        "desc": "Feed Yarnaby 10 times this week.",
+        "type": "weekly",
+        "counter": "feed_count",
+        "target": 10,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*He has not gone hungry this week. He knows it was you. +2 trust.*",
+    },
+    "weekly_hug_5": {
+        "name": "Weekly Comfort",
+        "desc": "Hug Yarnaby 5 times this week.",
+        "type": "weekly",
+        "counter": "hug_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five hugs in one week. He has been held. He doesn't hate it. +2 trust.*",
+    },
+    "weekly_play_3": {
+        "name": "Active Week",
+        "desc": "Play with Yarnaby 3 times this week.",
+        "type": "weekly",
+        "counter": "play_count",
+        "target": 3,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Three play sessions this week. He is tired. He is content. +2 trust.*",
+    },
+    "weekly_bath_1": {
+        "name": "Clean Week",
+        "desc": "Bathe Yarnaby once this week.",
+        "type": "weekly",
+        "counter": "bath_count",
+        "target": 1,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*He endured the bath. You made him endure it. He is clean. +2 trust.*",
+    },
+    # ── SPECIAL / ONE-TIME ──
+    "one_first_mythic_fetch": {
+        "name": "Mythic Finder",
+        "desc": "Fetch your first Mythic (or rarer) item.",
+        "type": "one_time",
+        "check_achievements": ["fetch_mythic", "fetch_legendary", "fetch_ultra_legendary", "fetch_chromatic"],
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Something rare came back with him. He watches you hold it. He inclines his head, once. +3 trust.*",
+    },
+    "one_chromatic": {
+        "name": "The Rarest Find",
+        "desc": "Fetch a Chromatic item.",
+        "type": "one_time",
+        "check_achievements": ["fetch_chromatic"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*He brought back something chromatic. You both stand still for a moment. He knows what it means. +5 trust.*",
+    },
+    "one_century_fetches": {
+        "name": "Century of Fetches",
+        "desc": "Fetch 100 times total.",
+        "type": "one_time",
+        "check_achievements": ["fetch_100"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*One hundred fetches. He sits with you for an unusually long time. +5 trust.*",
+    },
+    "one_max_trust": {
+        "name": "Maximum Trust",
+        "desc": "Reach a trust score of 100.",
+        "type": "one_time",
+        "check_achievements": ["score_100"],
+        "reward_score": 0,
+        "reward_desc": "He already knows.",
+        "reward_text": "*He already knows. He noticed the moment it happened. He has nothing to add. He simply stays close.*",
+    },
+    "one_all_events": {
+        "name": "Eventful Life",
+        "desc": "Unlock all 7 Events achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Events",
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Things have happened. He was there for all of it. He trusts you more for the chaos. +5 trust.*",
+    },
+    # ── DAILY (extended) ──
+    "daily_boop_2": {
+        "name": "Nose Touch Duty",
+        "desc": "Boop Yarnaby's nose twice today.",
+        "type": "daily",
+        "counter": "boop_count",
+        "target": 2,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He tolerates the booping. Barely. +1 trust.*",
+    },
+    "daily_pet_3": {
+        "name": "Head Patrol",
+        "desc": "Pet Yarnaby 3 times today.",
+        "type": "daily",
+        "counter": "pet_count",
+        "target": 3,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*Three pets. His fur has been addressed. +1 trust.*",
+    },
+    "daily_hug_2": {
+        "name": "Daily Embrace",
+        "desc": "Hug Yarnaby twice today.",
+        "type": "daily",
+        "counter": "hug_count",
+        "target": 2,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He was held twice. He didn't hate it. +1 trust.*",
+    },
+    "daily_cuddle": {
+        "name": "Nap Partner",
+        "desc": "Cuddle with Yarnaby once today.",
+        "type": "daily",
+        "counter": "cuddle_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He let you stay. This is significant. +1 trust.*",
+    },
+    "daily_sing": {
+        "name": "Daily Serenade",
+        "desc": "Sing to Yarnaby once today.",
+        "type": "daily",
+        "counter": "sing_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He sat through the whole song. He pretended not to listen. He listened. +1 trust.*",
+    },
+    "daily_drink": {
+        "name": "Hydration Check",
+        "desc": "Offer Yarnaby a drink today.",
+        "type": "daily",
+        "counter": "drink_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He drank something. His hydration has been looked after. +1 trust.*",
+    },
+    "daily_poke": {
+        "name": "Poke Quota",
+        "desc": "Poke Yarnaby once today. (He doesn't like it.)",
+        "type": "daily",
+        "counter": "poke_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*You poked him. He noted it. He chose to move past it. +1 trust.*",
+    },
+    "daily_bath": {
+        "name": "Daily Scrub",
+        "desc": "Bathe Yarnaby once today.",
+        "type": "daily",
+        "counter": "bath_count",
+        "target": 1,
+        "reward_score": 1,
+        "reward_desc": "+1 trust score",
+        "reward_text": "*He is clean. He resents you slightly. He trusts you slightly more. +1 trust.*",
+    },
+    "daily_fetch_5": {
+        "name": "High Output Day",
+        "desc": "Fetch 5 times today.",
+        "type": "daily",
+        "counter": "fetch_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five fetches in one day. He watched all of them. +2 trust.*",
+    },
+    "daily_feed_3": {
+        "name": "Three Square Meals",
+        "desc": "Feed Yarnaby 3 times today.",
+        "type": "daily",
+        "counter": "feed_count",
+        "target": 3,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Three meals. He is full and round. +2 trust.*",
+    },
+    "daily_gift_2": {
+        "name": "Two-Gift Day",
+        "desc": "Give Yarnaby 2 gifts today.",
+        "type": "daily",
+        "counter": "gift_count",
+        "target": 2,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Two gifts. The hoard grows. He approves. +2 trust.*",
+    },
+    "daily_play_3": {
+        "name": "Triple Session",
+        "desc": "Play with Yarnaby 3 times today.",
+        "type": "daily",
+        "counter": "play_count",
+        "target": 3,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Three play sessions. He is exhausted. He is satisfied. +2 trust.*",
+    },
+    # ── WEEKLY (extended) ──
+    "weekly_pet_10": {
+        "name": "Steady Hands",
+        "desc": "Pet Yarnaby 10 times this week.",
+        "type": "weekly",
+        "counter": "pet_count",
+        "target": 10,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Ten pets this week. He has been thoroughly attended to. +2 trust.*",
+    },
+    "weekly_cuddle_5": {
+        "name": "Regular Napper",
+        "desc": "Cuddle with Yarnaby 5 times this week.",
+        "type": "weekly",
+        "counter": "cuddle_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five cuddles this week. He has claimed you as a regular nap spot. +2 trust.*",
+    },
+    "weekly_sing_3": {
+        "name": "Weekly Concert",
+        "desc": "Sing to Yarnaby 3 times this week.",
+        "type": "weekly",
+        "counter": "sing_count",
+        "target": 3,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Three songs this week. He knows the melodies now. +2 trust.*",
+    },
+    "weekly_drink_5": {
+        "name": "Hydration Week",
+        "desc": "Offer Yarnaby 5 drinks this week.",
+        "type": "weekly",
+        "counter": "drink_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five drinks this week. He has stayed hydrated. He thanks you, in his way. +2 trust.*",
+    },
+    "weekly_boop_7": {
+        "name": "Boop Week",
+        "desc": "Boop Yarnaby 7 times this week.",
+        "type": "weekly",
+        "counter": "boop_count",
+        "target": 7,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Seven boops. He has accepted this as a thing you do. +2 trust.*",
+    },
+    "weekly_poke_5": {
+        "name": "Weekly Poking",
+        "desc": "Poke Yarnaby 5 times this week.",
+        "type": "weekly",
+        "counter": "poke_count",
+        "target": 5,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Five pokes. He endured them all. That says something. +3 trust.*",
+    },
+    "weekly_bath_2": {
+        "name": "Double Scrub",
+        "desc": "Bathe Yarnaby twice this week.",
+        "type": "weekly",
+        "counter": "bath_count",
+        "target": 2,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Twice. He is extremely clean. He will not forgive you. He trusts you more. +3 trust.*",
+    },
+    "weekly_vet": {
+        "name": "Medical Week",
+        "desc": "Take Yarnaby to the vet once this week.",
+        "type": "weekly",
+        "counter": "vet_count",
+        "target": 1,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*He was seen by a professional. He is healthier for it. He notes your concern. +3 trust.*",
+    },
+    "weekly_treat": {
+        "name": "Patch Week",
+        "desc": "Treat one of Yarnaby's injuries this week.",
+        "type": "weekly",
+        "counter": "treat_count",
+        "target": 1,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*You tended to him. He let you. This means something. +3 trust.*",
+    },
+    "weekly_fetch_12": {
+        "name": "Fetch Grind",
+        "desc": "Fetch 12 times this week.",
+        "type": "weekly",
+        "counter": "fetch_count",
+        "target": 12,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Twelve fetches. The rhythm of it pleases him. +3 trust.*",
+    },
+    "weekly_feed_15": {
+        "name": "Full Table",
+        "desc": "Feed Yarnaby 15 times this week.",
+        "type": "weekly",
+        "counter": "feed_count",
+        "target": 15,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Fifteen meals this week. He ate well. He knows it was you. +3 trust.*",
+    },
+    "weekly_hug_10": {
+        "name": "Ten Hugs",
+        "desc": "Hug Yarnaby 10 times this week.",
+        "type": "weekly",
+        "counter": "hug_count",
+        "target": 10,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Ten hugs this week. He has grown used to being held. +3 trust.*",
+    },
+    "weekly_gift_10": {
+        "name": "Gift Week",
+        "desc": "Give Yarnaby 10 gifts this week.",
+        "type": "weekly",
+        "counter": "gift_count",
+        "target": 10,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Ten gifts. The hoard is considerably heavier. +3 trust.*",
+    },
+    "weekly_steal_1": {
+        "name": "Weekly Mischief",
+        "desc": "Attempt to steal from Yarnaby once this week.",
+        "type": "weekly",
+        "counter": "steal_count",
+        "target": 1,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*You tried. He respects the audacity, in a way. +2 trust.*",
+    },
+    "weekly_play_5": {
+        "name": "Five Play Sessions",
+        "desc": "Play with Yarnaby 5 times this week.",
+        "type": "weekly",
+        "counter": "play_count",
+        "target": 5,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Five play sessions. He has had a good week. +2 trust.*",
+    },
+    # ── SPECIAL / ONE-TIME (extended) ──
+    "one_fetch_300": {
+        "name": "Three Hundred",
+        "desc": "Fetch 300 times total.",
+        "type": "one_time",
+        "check_achievements": ["fetch_300"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Three hundred fetches. He watches you go out, come back. Every time. +5 trust.*",
+    },
+    "one_fetch_500": {
+        "name": "Five Hundred",
+        "desc": "Fetch 500 times total.",
+        "type": "one_time",
+        "check_achievements": ["fetch_500"],
+        "reward_score": 8,
+        "reward_desc": "+8 trust score",
+        "reward_text": "*Five hundred. He has stopped being surprised. He has started being moved. +8 trust.*",
+    },
+    "one_fetch_1000": {
+        "name": "The Eternal Fetch",
+        "desc": "Fetch 1000 times total. This is absurd.",
+        "type": "one_time",
+        "check_achievements": ["fetch_1000"],
+        "reward_score": 15,
+        "reward_desc": "+15 trust score",
+        "reward_text": "*One thousand fetches. He sits next to you for a very long time. He doesn't say anything. He doesn't need to. +15 trust.*",
+    },
+    "one_hoard_50": {
+        "name": "Half A Hundred",
+        "desc": "Fill the hoard with 50 unique items.",
+        "type": "one_time",
+        "check_achievements": ["hoard_50"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Fifty items. The hoard has become a proper hoard. He is proud. +5 trust.*",
+    },
+    "one_hoard_100": {
+        "name": "A Hundred Treasures",
+        "desc": "Fill the hoard with 100 unique items.",
+        "type": "one_time",
+        "check_achievements": ["hoard_100"],
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*One hundred items. He stands in the middle of his hoard and looks very small and very satisfied. +10 trust.*",
+    },
+    "one_master_feeder": {
+        "name": "Fed A Hundred Times",
+        "desc": "Feed Yarnaby 100 times total.",
+        "type": "one_time",
+        "check_achievements": ["feed_100"],
+        "reward_score": 7,
+        "reward_desc": "+7 trust score",
+        "reward_text": "*One hundred meals. He has never gone hungry while you're around. +7 trust.*",
+    },
+    "one_master_feeder_200": {
+        "name": "Two Hundred Meals",
+        "desc": "Feed Yarnaby 200 times total.",
+        "type": "one_time",
+        "check_achievements": ["feed_200"],
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*Two hundred meals. This is a commitment. He acknowledges it. +10 trust.*",
+    },
+    "one_master_gifter": {
+        "name": "A Hundred Gifts",
+        "desc": "Give Yarnaby 100 gifts total.",
+        "type": "one_time",
+        "check_achievements": ["gift_100"],
+        "reward_score": 7,
+        "reward_desc": "+7 trust score",
+        "reward_text": "*One hundred gifts. The hoard is rich. You made it that way. +7 trust.*",
+    },
+    "one_master_gifter_200": {
+        "name": "Two Hundred Gifts",
+        "desc": "Give Yarnaby 200 gifts total.",
+        "type": "one_time",
+        "check_achievements": ["gift_200"],
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*Two hundred gifts. He sits next to the hoard and looks at you. He inclines his head, slowly. +10 trust.*",
+    },
+    "one_beloved": {
+        "name": "Beloved",
+        "desc": "Reach a trust score of 50.",
+        "type": "one_time",
+        "check_achievements": ["score_50"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Trust of 50. He has begun to seek you out, rather than wait. +5 trust.*",
+    },
+    "one_cherished": {
+        "name": "Cherished",
+        "desc": "Reach a trust score of 75.",
+        "type": "one_time",
+        "check_achievements": ["score_75"],
+        "reward_score": 8,
+        "reward_desc": "+8 trust score",
+        "reward_text": "*Trust of 75. He leaves small things near you. A piece of wool. A button. He doesn't say why. +8 trust.*",
+    },
+    "one_ach_10": {
+        "name": "Getting Started",
+        "desc": "Unlock 10 achievements.",
+        "type": "one_time",
+        "check_achievements": ["ach_10"],
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*Ten down. He blinks at you slowly. +2 trust.*",
+    },
+    "one_ach_30": {
+        "name": "Accomplished",
+        "desc": "Unlock 30 achievements.",
+        "type": "one_time",
+        "check_achievements": ["ach_30"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Thirty achievements. He finds you very hard to ignore at this point. +5 trust.*",
+    },
+    "one_ach_50": {
+        "name": "Half A Hundred Achievements",
+        "desc": "Unlock 50 achievements.",
+        "type": "one_time",
+        "check_achievements": ["ach_50"],
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*Fifty achievements. He sits with you for a long time without moving. This is, for him, a declaration. +10 trust.*",
+    },
+    "one_ach_60": {
+        "name": "True Completionist",
+        "desc": "Unlock 60 achievements.",
+        "type": "one_time",
+        "check_achievements": ["ach_60"],
+        "reward_score": 15,
+        "reward_desc": "+15 trust score",
+        "reward_text": "*Sixty achievements. He has decided you are permanent. He has made room. +15 trust.*",
+    },
+    "one_bath_veteran": {
+        "name": "Bath Veteran",
+        "desc": "Bathe Yarnaby 25 times.",
+        "type": "one_time",
+        "check_achievements": ["bath_25"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Twenty-five baths. He no longer runs. He sighs. He gets in. +5 trust.*",
+    },
+    "one_cuddle_veteran": {
+        "name": "Cuddle Veteran",
+        "desc": "Cuddle with Yarnaby 25 times.",
+        "type": "one_time",
+        "check_achievements": ["cuddle_25"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Twenty-five cuddles. He has begun choosing your side of the couch first. +5 trust.*",
+    },
+    "one_hug_veteran": {
+        "name": "The Hugger",
+        "desc": "Hug Yarnaby 50 times.",
+        "type": "one_time",
+        "check_achievements": ["hug_50"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Fifty hugs. He has stopped making the surprised noise. +5 trust.*",
+    },
+    "one_pet_veteran": {
+        "name": "The Petter",
+        "desc": "Pet Yarnaby 50 times.",
+        "type": "one_time",
+        "check_achievements": ["pet_50"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Fifty pets. His fur knows your hand. +5 trust.*",
+    },
+    "one_sing_veteran": {
+        "name": "The Bard",
+        "desc": "Sing to Yarnaby 10 times.",
+        "type": "one_time",
+        "check_achievements": ["sing_10"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Ten songs. He has started waiting for them. +5 trust.*",
+    },
+    "one_poke_addict": {
+        "name": "The Poker",
+        "desc": "Poke Yarnaby 25 times.",
+        "type": "one_time",
+        "check_achievements": ["poke_25"],
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Twenty-five pokes. He has decided this is simply a thing that happens. +3 trust.*",
+    },
+    "one_steal_career": {
+        "name": "Career Criminal",
+        "desc": "Attempt to steal 10 times total.",
+        "type": "one_time",
+        "check_achievements": ["steal_10"],
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Ten theft attempts. He has started hiding things specifically from you. He respects the effort. +3 trust.*",
+    },
+    "one_steal_master": {
+        "name": "Master Thief",
+        "desc": "Successfully steal from Yarnaby 5 times.",
+        "type": "one_time",
+        "check_achievements": ["steal_success_5"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*Five successful thefts. He is furious. He is also, grudgingly, impressed. +5 trust.*",
+    },
+    "one_all_hoard": {
+        "name": "Hoard Master",
+        "desc": "Unlock all 3 Hoard achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Hoard",
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*The hoard is vast. He can no longer see the floor. He is pleased. +5 trust.*",
+    },
+    "one_all_gifting": {
+        "name": "The Great Giver",
+        "desc": "Unlock all Gifting achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Gifting",
+        "reward_score": 8,
+        "reward_desc": "+8 trust score",
+        "reward_text": "*Every gifting milestone, cleared. The hoard is a monument to your generosity. +8 trust.*",
+    },
+    "one_all_feeding": {
+        "name": "Head Chef",
+        "desc": "Unlock all Feeding achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Feeding",
+        "reward_score": 8,
+        "reward_desc": "+8 trust score",
+        "reward_text": "*Every feeding milestone. He has eaten everything you've brought. Some of it twice. +8 trust.*",
+    },
+    "one_all_fetch": {
+        "name": "Master Retriever",
+        "desc": "Unlock all Fetch achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Fetch",
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*Every fetch milestone cleared. He watches you return, every time. +10 trust.*",
+    },
+    "one_all_interactions": {
+        "name": "Deeply Attentive",
+        "desc": "Unlock all Interaction achievements.",
+        "type": "one_time",
+        "check_cat_complete": "Interactions",
+        "reward_score": 10,
+        "reward_desc": "+10 trust score",
+        "reward_text": "*Every interaction milestone. You have done everything. He has allowed all of it. +10 trust.*",
+    },
+    "one_overachiever": {
+        "name": "Dedicated",
+        "desc": "Unlock 20 achievements.",
+        "type": "one_time",
+        "check_achievements": ["ach_20"],
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Twenty. He looks at you differently now. +3 trust.*",
+    },
+}
+
+
+def _quest_period_key(quest_type: str) -> str:
+    now = datetime.now()
+    if quest_type == "daily":
+        return now.strftime("%Y-%m-%d")
+    elif quest_type == "weekly":
+        return now.strftime("%Y-W%W")
+    return "one_time"
+
+
+def _get_quest_state(m, uid, quest_id):
+    uid = str(uid)
+    entry = m.setdefault("social_matrix", {}).setdefault(uid, {})
+    quest_states = entry.setdefault("quest_states", {})
+    quest = QUESTS.get(quest_id, {})
+    state = quest_states.setdefault(quest_id, {})
+    qtype = quest.get("type", "one_time")
+    if qtype == "one_time":
+        state.setdefault("claimed", False)
+        return state
+    current_period = _quest_period_key(qtype)
+    if state.get("period_key") != current_period:
+        state["period_key"] = current_period
+        state["claimed"] = False
+        counter = quest.get("counter", "")
+        if counter:
+            state["baseline"] = _ach_count(m, uid, counter)
+        alt = quest.get("alt_counter")
+        if alt:
+            state["alt_baseline"] = _ach_count(m, uid, alt)
+    return state
+
+
+def _quest_progress(m, uid, quest_id):
+    """Return (current, target, claimed)."""
+    uid = str(uid)
+    quest = QUESTS.get(quest_id, {})
+    state = _get_quest_state(m, uid, quest_id)
+    qtype = quest.get("type", "one_time")
+    claimed = state.get("claimed", False)
+
+    if qtype == "one_time":
+        if "check_achievements" in quest:
+            earned = m.get("social_matrix", {}).get(uid, {}).get("achievements", {})
+            done = any(a in earned for a in quest["check_achievements"])
+            return (1 if done else 0, 1, claimed)
+        if "check_cat_complete" in quest:
+            cat = quest["check_cat_complete"]
+            cat_achs = [k for k, v in ACHIEVEMENTS.items() if v.get("cat") == cat]
+            earned = m.get("social_matrix", {}).get(uid, {}).get("achievements", {})
+            count = sum(1 for a in cat_achs if a in earned)
+            total = len(cat_achs)
+            return (count, total, claimed)
+        return (0, 1, claimed)
+
+    counter = quest.get("counter", "")
+    baseline = state.get("baseline", _ach_count(m, uid, counter))
+    progress = max(0, _ach_count(m, uid, counter) - baseline)
+    alt = quest.get("alt_counter")
+    if alt:
+        alt_base = state.get("alt_baseline", _ach_count(m, uid, alt))
+        progress = max(progress, max(0, _ach_count(m, uid, alt) - alt_base))
+    target = quest.get("target", 1)
+    return (min(progress, target), target, claimed)
+
+
+@bot.command(name="quests")
+async def quests_cmd(ctx, *, target: str = ""):
+    """View your active quests and progress."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    uid = str(ctx.author.id)
+    display_name = ctx.author.display_name
+
+    if target.strip():
+        t = target.strip().lstrip("@")
+        for mem in ctx.guild.members:
+            if t.lower() in mem.display_name.lower() or t.lower() in mem.name.lower() or t == str(mem.id):
+                uid = str(mem.id)
+                display_name = mem.display_name
+                break
+
+    # Compute daily reset time
+    now = datetime.now()
+    tomorrow = (now + __import__("datetime").timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    secs_to_reset = int((tomorrow - now).total_seconds())
+    hrs, rem = divmod(secs_to_reset, 3600)
+    mins = rem // 60
+
+    embed = discord.Embed(
+        title=f"📋  Quests — {display_name}",
+        description=(
+            f"Complete quests to earn bonus trust score.\nDaily resets in **{hrs}h {mins}m**  ·  Claim with `!claim_quest <id>`"
+        ),
+        color=0x7B8FBF,
+    )
+
+    for cat_label, qtype in [("📅  Daily", "daily"), ("📆  Weekly", "weekly"), ("⭐  Special", "one_time")]:
+        cat_quests = [(qid, q) for qid, q in QUESTS.items() if q["type"] == qtype]
+        if not cat_quests:
+            continue
+        lines = []
+        for qid, q in cat_quests:
+            prog, tgt, claimed = _quest_progress(m, uid, qid)
+            pct = prog / tgt if tgt else 1
+            bar = "█" * int(pct * 8) + "░" * (8 - int(pct * 8))
+            if claimed:
+                status = "✅ Claimed"
+            elif prog >= tgt:
+                status = f"🎁 **Ready!** — `!claim_quest {qid}`"
+            else:
+                status = f"`{bar}` {prog}/{tgt}"
+            lines.append(
+                f"**{q['name']}** `{qid}`\n"
+                f"{q['desc']}  ·  *{q['reward_desc']}*\n"
+                f"{status}"
+            )
+        field_val = "\n\n".join(lines)
+        if len(field_val) > 1024:
+            # split
+            half = len(lines) // 2
+            embed.add_field(name=f"{cat_label} (1/2)", value="\n\n".join(lines[:half]), inline=False)
+            embed.add_field(name=f"{cat_label} (2/2)", value="\n\n".join(lines[half:]), inline=False)
+        else:
+            embed.add_field(name=cat_label, value=field_val, inline=False)
+
+    embed.set_footer(text="💡 Daily quests reset at midnight  ·  Weekly quests reset on Monday")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="claim_quest")
+async def claim_quest_cmd(ctx, *, quest_id: str = ""):
+    """Claim a completed quest reward."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    uid = str(ctx.author.id)
+
+    if not quest_id.strip():
+        claimable = []
+        for qid in QUESTS:
+            prog, tgt, claimed = _quest_progress(m, uid, qid)
+            if prog >= tgt and not claimed:
+                claimable.append(qid)
+        if not claimable:
+            await ctx.send("*No completed quests to claim right now. Check `!quests` for progress.*")
+            return
+        lines = [f"🎁 **Ready to claim:**"] + [f"• `!claim_quest {qid}` — **{QUESTS[qid]['name']}**" for qid in claimable]
+        await ctx.send("\n".join(lines))
+        return
+        return
+
+    qid = quest_id.strip().lower()
+    if qid not in QUESTS:
+        await ctx.send(f"*Unknown quest `{qid}`. Use `!quests` to see available quests.*")
+        return
+
+    q = QUESTS[qid]
+    prog, tgt, claimed = _quest_progress(m, uid, qid)
+
+    if claimed:
+        await ctx.send(f"*Already claimed **{q['name']}** this period. Try again next reset.*")
+        return
+    if prog < tgt:
+        await ctx.send(f"*Quest **{q['name']}** not yet complete — {prog}/{tgt}. Keep going.*")
+        return
+
+    state = _get_quest_state(m, uid, qid)
+    state["claimed"] = True
+
+    reward_score = q.get("reward_score", 0)
+    if reward_score > 0:
+        entry = m["social_matrix"].setdefault(uid, {"score": 0})
+        entry["score"] = min(100, entry.get("score", 0) + reward_score)
+
+    save_db(m)
+
+    embed = discord.Embed(
+        title=f"🎁  Quest Claimed — {q['name']}",
+        description=q.get("reward_text", "*Quest reward granted.*"),
+        color=0x77BB44,
+    )
+    if reward_score > 0:
+        embed.set_footer(text=f"+{reward_score} trust score added")
+    await ctx.send(embed=embed)
+    try:
+        await _check_score_achievements(m, uid, ctx.channel)
+    except Exception:
+        pass
+
+
 @bot.command(name="compare", aliases=["versus", "vs", "sidebyside", "comparetrust", "whodoeshelikemore"])
 async def compare_cmd(ctx, *, message: str = ""):
     """Compare two people's standing with Yarnaby side by side."""
@@ -22521,55 +23923,96 @@ async def compare_cmd(ctx, *, message: str = ""):
 
 @bot.command(name="ranking", aliases=["leaderboard", "scores", "scoreboard"])
 async def ranking_cmd(ctx):
-    """Top 5 favoured + bottom 3 grudges side by side."""
+    """Yarnaby's full trust leaderboard — top 8 favoured + bottom 3 grudges."""
     m = bot.db
     await _add_reactions(ctx, m)
     sm = m.get("social_matrix", {})
+
     rows = []
-    for uid, entry in sm.items():
+    for uid_str, entry in sm.items():
         if not isinstance(entry, dict):
             continue
         try:
-            uid_int = int(uid)
+            uid_int = int(uid_str)
         except (ValueError, TypeError):
             continue
         if uid_int == DOCTOR_ID:
             continue
-        rows.append((uid_int, entry.get("score", 0)))
-    if not rows:
-        await ctx.send(
-            random.choice([
-                "*Yarnaby blinks at you. Nobody is on his list yet - for or against. **mrr.***",
-                "*A small, flat **chrrp**. The list is empty. He has not yet sorted anyone.*",
-                "*He tilts his head. The leaderboard is, currently, blank. **prrt.***",
-            ])
-        )
-        return
-    rows.sort(key=lambda x: x[1], reverse=True)
-    favoured = [r for r in rows if r[1] > 0][:5]
-    grudges = sorted([r for r in rows if r[1] < 0], key=lambda x: x[1])[:3]
+        rows.append((uid_int, uid_str, entry))
 
+    if not rows:
+        await ctx.send(random.choice([
+            "*Yarnaby blinks at you. Nobody is on his list yet — for or against. **mrr.***",
+            "*A small, flat **chrrp**. The list is empty. He has not yet sorted anyone.*",
+            "*He tilts his head. The leaderboard is, currently, blank. **prrt.***",
+        ]))
+        return
+
+    rows.sort(key=lambda x: x[2].get("score", 0), reverse=True)
+    favoured = [(uid, uid_str, e) for uid, uid_str, e in rows if e.get("score", 0) > 0][:8]
+    grudges  = sorted([(uid, uid_str, e) for uid, uid_str, e in rows if e.get("score", 0) < 0],
+                      key=lambda x: x[2].get("score", 0))[:3]
+
+    MILESTONE_LIST = [3, 5, 8, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+    MEDAL = ["🥇", "🥈", "🥉"] + ["✨"] * 5
+
+    def _build_row(i, uid_int, uid_str, entry):
+        score = entry.get("score", 0)
+        name = _resolve_user_name_from_ctx(ctx, uid_int)
+        if not name:
+            name = entry.get("name", f"User {uid_str[-4:]}")
+        achs = len(entry.get("achievements", {}))
+        milestones = entry.get("milestones_reached", [])
+        mile_pct = int((len(milestones) / len(MILESTONE_LIST)) * 100)
+        last_seen = entry.get("last_seen", "")[:10] or "unknown"
+        medal = MEDAL[i] if i < len(MEDAL) else "  "
+        bar_len = min(score, 100) // 10
+        trust_bar = "█" * bar_len + "░" * (10 - bar_len)
+        return (
+            f"{medal} **{name}**\n"
+            f"  Score: **{score}/100** `{trust_bar}`\n"
+            f"  Milestones: **{len(milestones)}/{len(MILESTONE_LIST)}** ({mile_pct}%)  ·  "
+            f"Achievements: **{achs}**\n"
+            f"  Last seen: {last_seen}"
+        )
     intro = random.choice([
         "*Yarnaby tucks his tail around himself and produces, very seriously, the list. **chrrp.***",
         "*He tilts his head as if consulting an internal ledger. He produces it. **prrt.***",
         "*A long blink. The list, in his head, is suddenly out loud. **mrr.***",
     ])
-    lines = [intro, "", "**The favoured (top 5):**"]
+
+    embed = discord.Embed(
+        title="📊  Yarnaby's Trust Leaderboard",
+        description=intro,
+        color=0xF0C070,
+    )
+
     if favoured:
-        for i, (uid, score) in enumerate(favoured, 1):
-            name = _resolve_user_name_from_ctx(ctx, uid) or "someone"
-            lines.append(f"{i}. **{name}** - {score}")
+        fav_lines = [_build_row(i, uid, uid_str, e) for i, (uid, uid_str, e) in enumerate(favoured)]
+        # Split if too long
+        all_fav = "\n\n".join(fav_lines)
+        if len(all_fav) <= 1024:
+            embed.add_field(name="🌟  The Favoured", value=all_fav, inline=False)
+        else:
+            half = len(fav_lines) // 2
+            embed.add_field(name="🌟  The Favoured (1/2)", value="\n\n".join(fav_lines[:half]), inline=False)
+            embed.add_field(name="🌟  The Favoured (2/2)", value="\n\n".join(fav_lines[half:]), inline=False)
     else:
-        lines.append("*- nobody, yet. **mrp.***")
-    lines.append("")
-    lines.append("**The grudges (bottom 3):**")
+        embed.add_field(name="🌟  The Favoured", value="*Nobody yet. **mrp.***", inline=False)
+
     if grudges:
-        for i, (uid, score) in enumerate(grudges, 1):
-            name = _resolve_user_name_from_ctx(ctx, uid) or "someone"
-            lines.append(f"{i}. **{name}** - {score}")
+        grudge_lines = [_build_row(i, uid, uid_str, e) for i, (uid, uid_str, e) in enumerate(grudges)]
+        embed.add_field(name="😠  The Grudges", value="\n\n".join(grudge_lines), inline=False)
     else:
-        lines.append("*- nobody is in trouble right now. He is, currently, at peace with the room. **prrt.***")
-    await ctx.send("\n".join(lines))
+        embed.add_field(
+            name="😠  The Grudges",
+            value="*Nobody is in trouble right now. He is, currently, at peace with the room. **prrt.***",
+            inline=False
+        )
+
+    total_users = len([r for r in rows if r[2].get("score", 0) != 0])
+    embed.set_footer(text=f"{total_users} users tracked  ·  Use !milestones to see your own progress")
+    await ctx.send(embed=embed)
 
 
 WEATHER_REACTIONS = {
@@ -23633,6 +25076,16 @@ async def cuddle_cmd(ctx):
         entry = m["social_matrix"].setdefault(u_id, {"score": 0})
         entry["score"] = min(10, entry.get("score", 0) + 1)
         _set_cooldown(m, f"cuddle_score:{u_id}")
+    # ── ACHIEVEMENTS: cuddle ──
+    try:
+        _cdc = _ach_inc(m, u_id, "cuddle_count")
+        if _cdc == 1:  await _grant_and_announce(m, u_id, "first_cuddle", ctx.channel)
+        if _cdc >= 10: await _grant_and_announce(m, u_id, "cuddle_10", ctx.channel)
+        if _cdc >= 25: await _grant_and_announce(m, u_id, "cuddle_25", ctx.channel)
+        if _cdc >= 50: await _grant_and_announce(m, u_id, "cuddle_50", ctx.channel)
+        if _cdc >= 10: await _grant_and_announce(m, u_id, "cuddle_10", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/cuddle] {_ach_err}")
     save_db(m)
 
 
@@ -29863,6 +31316,16 @@ async def drink_cmd(ctx, *, liquid: str = ""):
         else:
             await ctx.send(f"*He sniffs the {liquid_clean} carefully. He laps at it twice, then decides it's acceptable. He drinks the rest.* **mrr.**")
         m["stats"]["hunger"] = max(0, m["stats"].get("hunger", 0) - 1)
+    # ── ACHIEVEMENTS: drink ──
+    try:
+        _drc = _ach_inc(m, u_id, "drink_count")
+        if _drc == 1:  await _grant_and_announce(m, u_id, "first_drink", ctx.channel)
+        if _drc >= 10: await _grant_and_announce(m, u_id, "drink_10", ctx.channel)
+        if _drc >= 25: await _grant_and_announce(m, u_id, "drink_25", ctx.channel)
+        if _drc >= 50: await _grant_and_announce(m, u_id, "drink_50", ctx.channel)
+        if _drc >= 10: await _grant_and_announce(m, u_id, "drink_10", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/drink] {_ach_err}")
 
     save_db(m)
 
@@ -31567,6 +33030,14 @@ async def treat_cmd(ctx):
     if count > 1:
         await ctx.send(f"*({count_str} treated. He is in better shape now.)*")
 
+    # ── ACHIEVEMENTS: treat ──
+    try:
+        _trc = _ach_inc(m, u_id, "treat_count")
+        if _trc == 1:  await _grant_and_announce(m, u_id, "first_treat", ctx.channel)
+        if _trc >= 5:  await _grant_and_announce(m, u_id, "treat_5", ctx.channel)
+        if _trc >= 10: await _grant_and_announce(m, u_id, "treat_10", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/treat] {_ach_err}")
     save_db(m)
 
 
@@ -40458,6 +41929,14 @@ async def vet_cmd(ctx):
     _vet_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     _set_dead_state(m, _vet_guild_id, dead=False)
     m["stats"]["health"] = min(100, m["stats"].get("health", 100) + 30)
+    # ── ACHIEVEMENTS: vet ──
+    try:
+        _vc = _ach_inc(m, u_id, "vet_count")
+        if _vc == 1:  await _grant_and_announce(m, u_id, "first_vet", ctx.channel)
+        if _vc >= 3:  await _grant_and_announce(m, u_id, "vet_3", ctx.channel)
+        if _vc >= 10: await _grant_and_announce(m, u_id, "vet_10", ctx.channel)
+    except Exception as _ach_err:
+        print(f"[achievements/vet] {_ach_err}")
     save_db(m)
 
 
@@ -58255,11 +59734,19 @@ _LIQUID_CATEGORIES = {
 }
 
 def _classify_liquid(item: str):
+    import re as _re
     s = item.strip().lower()
     for cat in ["toxic", "blood", "glitter", "icy", "paint", "sticky", "dirty", "warm", "weird", "clean"]:
         for term in _LIQUID_CATEGORIES[cat]:
-            if term in s or s in term:
-                return cat
+            if " " in term:
+                # Multi-word phrase: plain substring match is precise enough
+                if term in s:
+                    return cat
+            else:
+                # Single word: require whole-word match so "honey" != "honeydew",
+                # "acid" != "antacid", "tea" != "teapot", "slush" != "slushier", etc.
+                if _re.search(r"\b" + _re.escape(term) + r"\b", s):
+                    return cat
     return "clean"
 
 
@@ -58626,6 +60113,11 @@ async def throwliquid_cmd(ctx, *, liquid: str = None):
             )
         _bump_wetness(m, 3)
         _bump_cleanliness(m, random.randint(6, 8))
+        # ── ACHIEVEMENTS: threw glitter ──
+        try:
+            await _grant_and_announce(m, u_id, "threw_glitter", ctx.channel)
+        except Exception as _ach_err:
+            print(f"[achievements/glitter] {_ach_err}")
 
     # ── BLOOD ─────────────────────────────────────────────────────────
     elif cat == "blood":
@@ -58683,6 +60175,11 @@ async def throwliquid_cmd(ctx, *, liquid: str = None):
         m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 5)
         m["stats"]["mood"] = "Distressed"
         m["internal"]["traumatized"] = True
+        # ── ACHIEVEMENTS: threw blood ──
+        try:
+            await _grant_and_announce(m, u_id, "threw_blood", ctx.channel)
+        except Exception as _ach_err:
+            print(f"[achievements/blood] {_ach_err}")
         now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         m["internal"].setdefault("trauma_notes", []).append({
             "event": "covered in blood (bucket thrown by user)",
@@ -58706,6 +60203,11 @@ async def throwliquid_cmd(ctx, *, liquid: str = None):
     # If he was on fire, any liquid extinguishes it
     if _extinguish_burn_if_on_fire(m):
         part = m["internal"].get("burn_part", "paw")  # already popped, use fallback
+        # ── ACHIEVEMENTS: put out fire ──
+        try:
+            await _grant_and_announce(m, u_id, "put_out_fire", ctx.channel)
+        except Exception as _ach_err:
+            print(f"[achievements/fire] {_ach_err}")
         await ctx.send(
             f"*The **{liq}** hits the burn directly. He flinches at the contact — then goes still. "
             f"The heat stops spreading. He looks at the wet, singed patch and then at you.* **...mrr...**\n"
