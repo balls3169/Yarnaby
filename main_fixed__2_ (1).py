@@ -8392,7 +8392,7 @@ async def on_member_remove(member):
         async for entry in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
             if entry.target.id == member.id:
                 # Only count it as a kick if it happened in the last 5 seconds
-                age = (datetime.utcnow() - entry.created_at.replace(tzinfo=None)).total_seconds()
+                age = (datetime.now(timezone.utc).replace(tzinfo=None) - entry.created_at.replace(tzinfo=None)).total_seconds()
                 if age < 5:
                     action = "kicked"
                     kicked_by = entry.user
@@ -32359,6 +32359,8 @@ async def while_you_were_gone_v2_cmd(ctx):
 async def _maybe_mischief_ambient(bot_instance):
     """Called from the ambient tick - random chance to pester someone."""
     m = bot_instance.db
+    if m["internal"].get("is_sleeping"):
+        return
     mood = m["stats"].get("mood", "Content")
     if mood not in ("Playful", "Mischievous", "Energetic"):
         return
@@ -42081,6 +42083,8 @@ async def firework_cmd(ctx):
 # ---- AMBIENT EVENTS ----
 
 async def _maybe_tail_chasing(ch, m):
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.08:
         return
     last = m["internal"].get("last_tail_chase_at")
@@ -42098,6 +42102,8 @@ async def _maybe_tail_chasing(ch, m):
 
 
 async def _maybe_window_birds(ch, m):
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.10:
         return
     last = m["internal"].get("last_window_birds_at")
@@ -42114,6 +42120,8 @@ async def _maybe_window_birds(ch, m):
 
 
 async def _maybe_spontaneous_sunbeam(ch, m):
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.07:
         return
     last = m["internal"].get("last_sunbeam_at")
@@ -42131,6 +42139,8 @@ async def _maybe_spontaneous_sunbeam(ch, m):
 
 
 async def _maybe_deliberate_knock_off(ch, m):
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.09:
         return
     last = m["internal"].get("last_knock_off_at")
@@ -45403,7 +45413,7 @@ async def _send_log(guild_id: int, embed):
 
 def _log_embed(title: str, description: str = "", color: int = 0x7289da, fields: list = None):
     """Build a clean log embed with timestamp."""
-    e = discord.Embed(title=title, description=description, color=color, timestamp=datetime.utcnow())
+    e = discord.Embed(title=title, description=description, color=color, timestamp=datetime.now(timezone.utc).replace(tzinfo=None))
     e.set_footer(text="Yarnaby Logs")
     if fields:
         for name, value, inline in fields:
@@ -45419,7 +45429,7 @@ async def _audit(guild, action, *, limit=3):
     """Quick audit log fetch — returns first matching entry or None."""
     try:
         async for entry in guild.audit_logs(limit=limit, action=action):
-            age = (datetime.utcnow() - entry.created_at.replace(tzinfo=None)).total_seconds()
+            age = (datetime.now(timezone.utc).replace(tzinfo=None) - entry.created_at.replace(tzinfo=None)).total_seconds()
             if age < 8:
                 return entry
     except Exception:
@@ -45485,7 +45495,7 @@ async def on_bulk_message_delete(messages):
 
 @bot.event
 async def on_member_join(member):
-    age = (datetime.utcnow() - member.created_at.replace(tzinfo=None)).days
+    age = (datetime.now(timezone.utc).replace(tzinfo=None) - member.created_at.replace(tzinfo=None)).days
     new_flag = " ⚠️ *New account*" if age < 7 else ""
     e = _log_embed("📥 Member Joined", color=0x57f287, fields=[
         ("User", f"{member.mention} {_uid(member)}", True),
@@ -46241,7 +46251,7 @@ async def mute_cmd(ctx, member: discord.Member = None, duration: str = "10m", *,
     val, unit = int(match.group(1)), match.group(2) or "m"
     seconds = val * dur_map.get(unit, 60)
     seconds = min(seconds, 604800)  # Discord max: 28 days, we cap 1 week
-    until = datetime.utcnow() + __import__("datetime").timedelta(seconds=seconds)
+    until = datetime.now(timezone.utc).replace(tzinfo=None) + __import__("datetime").timedelta(seconds=seconds)
 
     # Also apply mute role if set
     mute_role_id = m["internal"].get("mute_role", {}).get(str(ctx.guild.id) if ctx.guild else "")
@@ -46902,7 +46912,7 @@ async def serverscan_cmd(ctx):
         flags = []
 
         # New account
-        age_days = (datetime.utcnow() - member.created_at.replace(tzinfo=None)).days
+        age_days = (datetime.now(timezone.utc).replace(tzinfo=None) - member.created_at.replace(tzinfo=None)).days
         if age_days < 7:
             flags.append(f"⚠️ new account ({age_days}d old)")
 
@@ -47278,7 +47288,7 @@ async def _antispam_listener(message):
     if len(history) >= 5:
         _spam_tracker[uid] = []
         import datetime as _dt
-        until = datetime.utcnow() + _dt.timedelta(minutes=2)
+        until = datetime.now(timezone.utc).replace(tzinfo=None) + _dt.timedelta(minutes=2)
         try:
             await message.author.timeout(until, reason="Anti-spam: flooding detected")
             await message.channel.send(
@@ -49619,6 +49629,8 @@ async def removechild_cmd(ctx, *, name: str = ""):
 
 async def _maybe_mention_child(m, ch):
     """3% chance per ambient tick to mention a child."""
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.03:
         return
     guild_id = str(ch.guild.id) if ch.guild else "dm"
@@ -49653,6 +49665,8 @@ async def _maybe_child_wants_play(m, ch):
     The chase plays out in stages: initiation → pursuit → back-and-forth → outcome.
     Yarnaby's reaction and the outcome depend on feeling, child_score, pursuing flag.
     """
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.05:
         return
     guild_id = str(ch.guild.id) if ch.guild else "dm"
@@ -49852,6 +49866,8 @@ async def _maybe_child_hiding(m, ch):
     Yarnaby's reaction depends on feeling and child_score.
     Always two messages — the hide, then the reveal.
     """
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.04:
         return
     guild_id = str(ch.guild.id) if ch.guild else "dm"
@@ -58797,6 +58813,8 @@ async def _maybe_find_dead_child_body(m, ch):
     Distinct from _maybe_dead_child_ambient (the intentional quiet grief visits).
     Time-aware: within 48h = rawest. Within 7d = still fresh. After = quieter.
     """
+    if m["internal"].get("is_sleeping"):
+        return
     if random.random() > 0.03:
         return
     guild_id = str(ch.guild.id) if hasattr(ch, "guild") and ch.guild else None
