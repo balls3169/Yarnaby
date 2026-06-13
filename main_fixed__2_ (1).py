@@ -12698,6 +12698,9 @@ async def help_cmd(ctx, *, section: str = None):
             "  milestones reached, first message, toxic attempts, last gift / last food\n"
             "- `!broadcast [message]` / `!announce` - send a narrator-style italicised message\n"
             "  directly to the home channel, not attributed to any user\n"
+            "- `!raid [server name] [topic]` - post a single serious warning (as an embed) in another server\n"
+            "  (from `!servers`) that it's a bad server (e.g. scam, phishing). Pings @everyone if he has\n"
+            "  permission to in that channel. Posts once, doesn't spam every channel. Use sparingly.\n"
             "- `!narrator` - toggle narrator mode per server\n"
             "  When OFF: all responses become pure cat sounds — no italic narration, no prose\n"
             "  Toggle again to bring the narrator back (comes with a return flavour message)\n"
@@ -28246,6 +28249,86 @@ async def broadcast_cmd(ctx, *, message: str = ""):
     await ch.send(formatted)
     if ch.id != ctx.channel.id:
         await ctx.send(f"*Broadcast sent to <#{ch_id}>.* **mrr.**")
+
+
+# ==========================================
+# !raid [server name] [topic] - Creator only: warn that a server is a bad server
+# ==========================================
+@bot.command(name="raid")
+async def raid_cmd(ctx, server_name: str = "", *, topic: str = ""):
+    """[Creator only] Post a warning in the named server (see `!servers`) that it's a bad server (scam, etc.)."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*He looks at you with mild confusion. That is a Creator command.* **mrr.**")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if not server_name.strip() or not topic.strip():
+        await ctx.send(
+            "*`!raid [server name] [topic]` - pick a server from `!servers` and a topic (e.g. `scam`, `phishing`).*\n"
+            "*Posts one warning message in that server. Does not spam every channel.*"
+        )
+        return
+
+    target_guild = None
+    for g in bot.guilds:
+        if server_name.lower() in g.name.lower() or server_name == str(g.id):
+            target_guild = g
+            break
+
+    if not target_guild:
+        await ctx.send(f"*He can't find a server called **{server_name}**. Use `!servers` for the full list.* **mrr.**")
+        return
+
+    # Pick a channel to post in: prefer system channel, else first text channel he can speak in
+    target_channel = None
+    if target_guild.system_channel and target_guild.system_channel.permissions_for(target_guild.me).send_messages:
+        target_channel = target_guild.system_channel
+    else:
+        for ch in target_guild.text_channels:
+            if ch.permissions_for(target_guild.me).send_messages:
+                target_channel = ch
+                break
+
+    if not target_channel:
+        await ctx.send(f"*He's in **{target_guild.name}**, but there's nowhere he's allowed to speak. He can't post a warning there.* **mrr.**")
+        return
+
+    topic_clean = topic.strip()
+    warning_text = (
+        f"*Yarnaby stops. He's not playing anymore - not even a little. He looks straight out, like he's looking at whoever's reading this.*\n\n"
+        f"**\"This server is a {topic_clean} server. Don't click anything. Don't share anything. Don't stick around. "
+        f"If you got linked here, that's the scam working as intended - leave, and warn whoever sent it to you.\"**\n\n"
+        f"*He holds the look a moment longer. Then he turns away, ears low.* **...mrr.**"
+    )
+
+    perms = target_channel.permissions_for(target_guild.me)
+    can_ping_everyone = perms.mention_everyone
+    ping_prefix = "@everyone\n" if can_ping_everyone else ""
+
+    embed = discord.Embed(
+        title=f"⚠️ This server is a {topic_clean} server",
+        description=warning_text,
+        color=discord.Color.red(),
+    )
+
+    try:
+        await target_channel.send(
+            content=ping_prefix or None,
+            embed=embed,
+            allowed_mentions=discord.AllowedMentions(everyone=can_ping_everyone),
+        )
+    except Exception as e:
+        await ctx.send(f"*He tried to post in **{target_guild.name}** but something stopped him. ({e})* **mrr.**")
+        return
+
+    ping_note = "" if can_ping_everyone else "\n*(He doesn't have permission to ping @everyone there, so this didn't notify the whole server.)*"
+    await ctx.send(
+        f"*Warning posted in **#{target_channel.name}** on **{target_guild.name}**.* **mrr.**{ping_note}\n\n"
+        f"*This only posts one message - it doesn't spam the server. "
+        f"If this is a genuine scam/raid server, report it to Discord directly via the in-app "
+        f"Report feature or <https://dis.gd/request>, since that's the only way action actually gets taken on it.*"
+    )
 
 
 # ==========================================
