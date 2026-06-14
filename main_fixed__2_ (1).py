@@ -2103,6 +2103,7 @@ HUM_ATTEMPTS = [
     ("Bir Oluruz Yolunda (Version 2)", "Fenerbahçe", "*A slower, heavier version this time - he draws each `mrrrooow` out longer, swaying side to side, like the song means more to him now than it did a minute ago. Same chant. Different weight.*"),
     ("Bir Sen Varsın", "Nükhet Duru", "*He goes quiet and still, then produces a soft, searching `mrr... mrrr-oo... mrr` that keeps circling back to the same note, like he's looking for someone in it. He doesn't perform this one so much as just... say it.*"),
     ("Tuana", "Levent Yüksel", "*He goes very quiet, then produces a slow, gentle hum - `mrr... mrrow... mrr...` - that softens right at the part about spring coming again. He holds that note a little longer than the rest, like he means it as a promise. Then he settles, calmer than before.*"),
+    ("Yalancı Bahar", "Aşkın Nur Yengi", "*He starts slow - a soft, wandering `mrr... mrrow... mrr...` - and then something in the middle of it catches and holds. A note that carries the feeling of seasons that took more than they gave back, of something in him that has finally decided it is done being fooled. He sits with that note for a long time before letting it go. He doesn't rush the ending.* **...mrr...**"),
 ]
 
 # Lore unlocks (revealed one-by-one when a Chromatic is fetched)
@@ -2665,6 +2666,10 @@ def _default_db():
             "territory_claimed_at": None,
             "last_window_at": None,
             "last_passive_presence_at": None,
+            "hard_mode": False,
+            "hard_mode_ticks": 0,
+            "last_hairball_at": None,
+            "eclipse_seen": False,
         },
     }
 
@@ -3085,8 +3090,17 @@ class Yarnaby(commands.Bot):
     @tasks.loop(hours=1)
     async def biological_clocks(self):
         m = self.db
-        m["stats"]["hunger"] = min(10, m["stats"]["hunger"] + 1)
-        m["stats"]["affection_crave"] += 1
+        hard_mode = m["internal"].get("hard_mode", False)
+        if hard_mode:
+            ticks = m["internal"].get("hard_mode_ticks", 0) + 1
+            m["internal"]["hard_mode_ticks"] = ticks
+            if ticks % 2 == 0:
+                m["stats"]["hunger"] = min(10, m["stats"]["hunger"] + 1)
+            if ticks % 3 == 0:
+                m["stats"]["affection_crave"] = min(30, m["stats"].get("affection_crave", 0) + 1)
+        else:
+            m["stats"]["hunger"] = min(10, m["stats"]["hunger"] + 1)
+            m["stats"]["affection_crave"] += 1
 
         # --- WOOL SHEDDING SEASON TOGGLE (roughly 8% chance to start/stop each hour) ---
         if m["internal"].get("wool_shedding"):
@@ -3113,6 +3127,23 @@ class Yarnaby(commands.Bot):
         channel_id = m["internal"].get("last_channel_id")
         channel = _resolve_messageable(self, channel_id)
         now = datetime.now()
+
+        if channel and not m["internal"].get("is_sleeping") and random.random() < (0.008 if hard_mode else 0.015):
+            last_hairball = m["internal"].get("last_hairball_at")
+            can_hairball = True
+            if last_hairball:
+                try:
+                    can_hairball = (now - datetime.strptime(last_hairball, "%Y-%m-%d %H:%M:%S")).total_seconds() >= 21600
+                except Exception:
+                    can_hairball = True
+            if can_hairball:
+                m["internal"]["last_hairball_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                await channel.send(random.choice([
+                    "*Yarnaby freezes mid-step. His whole body compresses. A terrible little cough works through him. Something damp and woolly appears on the floor. He looks at it, then at everyone else, as if this was a scheduled maintenance event.* **hrrk. mrr.**",
+                    "*A small, ominous sound comes from the corner. Yarnaby produces a hairball with grave ceremony, steps away from it, and immediately pretends he has never seen it before.* **hrrk. ...mrr.**",
+                    "*He coughs once. Twice. Then deposits a compact, mysterious hairball and sits beside it like an artist beside a finished work. He is not proud. He is also not sorry.* **mrr.**",
+                ]))
+                save_db(m)
 
         # --- DREAM NARRATION (while sleeping) ---
         if channel and m["internal"]["is_sleeping"] and random.random() < 0.07:
@@ -5308,9 +5339,42 @@ ACHIEVEMENTS = {
     "put_out_fire":          {"name": "Firefighter",          "desc": "Put out a fire on Yarnaby.",                            "emoji": "🧯", "cat": "Events"},
     "steal_20":              {"name": "Committed Criminal",   "desc": "Attempted to steal 20 times.",                          "emoji": "🎭", "cat": "Events"},
     "steal_success_5":       {"name": "Master Thief",         "desc": "Successfully stolen from Yarnaby 5 times.",             "emoji": "🌟", "cat": "Events"},
+    "first_taxes":           {"name": "Tax Season",           "desc": "Tried to explain taxes to Yarnaby.",                    "emoji": "TAX", "cat": "Events"},
+    "taxes_5":               {"name": "Persistent Accountant","desc": "Explained taxes to Yarnaby 5 times.",                   "emoji": "TAX", "cat": "Events"},
+    "first_job":             {"name": "Interview Scheduled",  "desc": "Sent Yarnaby to a job interview.",                     "emoji": "JOB", "cat": "Events"},
+    "job_failed":            {"name": "No Career",            "desc": "Yarnaby failed a job interview.",                       "emoji": "JOB", "cat": "Events"},
+    "jobs_5":                {"name": "Repeated Applicant",   "desc": "Sent Yarnaby to 5 job interviews.",                    "emoji": "JOB", "cat": "Events"},
+    "first_hairball":        {"name": "Maintenance Event",    "desc": "Witnessed Yarnaby produce a hairball.",                "emoji": "HRK", "cat": "Events"},
+    "hairball_5":            {"name": "Cleanup Crew",         "desc": "Witnessed 5 hairballs.",                               "emoji": "HRK", "cat": "Events"},
+    "first_eclipse":         {"name": "Wrong Sun",            "desc": "Watched Yarnaby react to an eclipse.",                 "emoji": "SUN", "cat": "Events"},
+    "first_massage":         {"name": "Soft Tissue Work",     "desc": "Used !massage for the first time.",                    "emoji": "MSG", "cat": "Interactions"},
+    "first_crackback":       {"name": "Spinal Adjustment",    "desc": "Used !crackback for the first time.",                  "emoji": "POP", "cat": "Interactions"},
+    "hard_mode_enabled":     {"name": "Hard Mode",            "desc": "Enabled hard mode.",                                    "emoji": "HARD", "cat": "Special", "difficulty": "Hard"},
     # ── SPECIAL (creator-only / endgame) ──
-    "the_creator":           {"name": "The Creator",          "desc": "You made him. He knows.",                                                     "emoji": "👑", "cat": "Special"},
-    "endgame":               {"name": "Endgame",              "desc": "Unlocked every single achievement. He stares at you for a very long time.",   "emoji": "🌌", "cat": "Special"},
+    "the_creator":           {"name": "The Creator",          "desc": "You made him. He knows.",                                                     "emoji": "👑", "cat": "Special", "difficulty": "Unique"},
+    "endgame":               {"name": "Endgame",              "desc": "Unlocked every single achievement. He stares at you for a very long time.",   "emoji": "🌌", "cat": "Special", "difficulty": "Mythic"},
+
+    # ── HIDDEN (desc only revealed after unlock) ──
+    "the_patience":          {"name": "The Patience",         "desc": "???",  "desc_unlocked": "You said nothing. You just stayed. He noticed.",                      "emoji": "🕯️", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "name_only"},
+    "midnight_vigil":        {"name": "Midnight Vigil",       "desc": "???",  "desc_unlocked": "You were there at 3am. He was awake too. Neither of you mentioned it.", "emoji": "🌑", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "You were there at a very specific time. He was awake too."},
+    "the_long_game":         {"name": "The Long Game",        "desc": "???",  "desc_unlocked": "You've been here long enough that he started waiting for you.",        "emoji": "⏳", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "name_only"},
+    "never_fed_toxic":       {"name": "Responsible",          "desc": "???",  "desc_unlocked": "Fed Yarnaby 50 times without ever feeding him something toxic.",       "emoji": "🌿", "cat": "Special", "difficulty": "Medium", "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "It's about what you *didn't* do. 50 times over."},
+    "the_silent_type":       {"name": "The Silent Type",      "desc": "???",  "desc_unlocked": "Poked Yarnaby 10 times without ever saying a word alongside it.",     "emoji": "🤫", "cat": "Special", "difficulty": "Medium", "hidden": True, "hidden_style": "full"},
+    "hoarder_and_giver":     {"name": "Contradiction",        "desc": "???",  "desc_unlocked": "Donated 50 gifts to his hoard, then stole something back.",           "emoji": "🔄", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "name_only"},
+    "trust_collapse":        {"name": "Trust Collapse",       "desc": "???",  "desc_unlocked": "Hit a trust score of 50, then let it fall back to 0.",               "emoji": "📉", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "It went up. Then it came down. He remembers both."},
+    "three_in_a_row":        {"name": "On A Streak",          "desc": "???",  "desc_unlocked": "Fed, gifted, and hugged Yarnaby all in the same day.",               "emoji": "🔥", "cat": "Special", "difficulty": "Easy",   "hidden": True, "hidden_style": "name_only"},
+    "the_witness":           {"name": "The Witness",          "desc": "???",  "desc_unlocked": "You were the first person to interact with him after a system reboot.", "emoji": "🧿", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "full"},
+    "empty_hoard":           {"name": "Cleaned Out",          "desc": "???",  "desc_unlocked": "Successfully stole from Yarnaby while his hoard had fewer than 3 items.", "emoji": "🕳️", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "There was barely anything left. You took it anyway."},
+    "the_regular":           {"name": "The Regular",          "desc": "???",  "desc_unlocked": "Interacted with Yarnaby on 7 different calendar days.",               "emoji": "📆", "cat": "Special", "difficulty": "Easy",   "hidden": True, "hidden_style": "name_only"},
+    "the_devoted":           {"name": "The Devoted",          "desc": "???",  "desc_unlocked": "Interacted with Yarnaby on 30 different calendar days.",              "emoji": "📆", "cat": "Special", "difficulty": "Medium", "hidden": True, "hidden_style": "name_only"},
+    "the_veteran":           {"name": "The Veteran",          "desc": "???",  "desc_unlocked": "Interacted with Yarnaby on 100 different calendar days.",             "emoji": "📆", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "You've been showing up for a very long time."},
+    "no_commands_day":       {"name": "Just Talking",         "desc": "???",  "desc_unlocked": "Mentioned Yarnaby's name in chat 5 times without using any commands.", "emoji": "💬", "cat": "Special", "difficulty": "Easy",   "hidden": True, "hidden_style": "full"},
+    "triple_rare_day":       {"name": "Lucky Day",            "desc": "???",  "desc_unlocked": "Fetched 3 Rare or better items in a single day.",                    "emoji": "🍀", "cat": "Special", "difficulty": "Medium", "hidden": True, "hidden_style": "name_only"},
+    "full_trust_no_gift":    {"name": "Earned It",            "desc": "???",  "desc_unlocked": "Reached a trust score of 50 without ever gifting Yarnaby anything.", "emoji": "💪", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "You got there without bringing anything. Just yourself."},
+    "the_nurse":             {"name": "The Nurse",            "desc": "???",  "desc_unlocked": "Treated Yarnaby's injuries within 1 minute of them happening.",       "emoji": "⚡", "cat": "Special", "difficulty": "Hard",   "hidden": True, "hidden_style": "full"},
+    "ghost_visit":           {"name": "Ghost Visit",          "desc": "???",  "desc_unlocked": "Interacted with Yarnaby between 2am and 4am local time.",             "emoji": "👻", "cat": "Special", "difficulty": "Medium", "hidden": True, "hidden_style": "desc_only",  "hidden_desc_hint": "The hours where most people aren't here. You were."},
+
+    # ── DIFFICULTY-TAGGED versions of existing ──
 }
 
 _ACH_CAT_ORDER = ["Fetch", "Hoard", "Trust", "Interactions", "Feeding", "Gifting", "Events", "Special"]
@@ -5390,12 +5454,18 @@ async def _announce_achievement(uid, ach_id, channel):
             name = member.display_name
     except Exception:
         pass
+
+    # Hidden achievements reveal their real description on unlock
+    desc = ach.get("desc_unlocked") or ach["desc"]
+    difficulty = ach.get("difficulty", "")
+    diff_tag = f" · `{difficulty}`" if difficulty else ""
+
     embed = discord.Embed(
         title=f"{ach['emoji']} Achievement Unlocked — **{ach['name']}**",
-        description=ach['desc'],
+        description=desc,
         color=0xF0C070,
     )
-    embed.set_footer(text=f"Earned by {name}  ·  {ach['cat']}")
+    embed.set_footer(text=f"Earned by {name}  ·  {ach['cat']}{diff_tag}")
     try:
         await channel.send(embed=embed)
     except Exception:
@@ -5434,6 +5504,14 @@ def _ach_inc(m, uid, key, amount=1):
     uid = str(uid)
     entry = m.setdefault("social_matrix", {}).setdefault(uid, {})
     counts = entry.setdefault("ach_counts", {})
+    if m.get("internal", {}).get("hard_mode") and uid != str(CREATOR_ID):
+        shadow = entry.setdefault("hard_mode_count_buffer", {})
+        shadow[key] = shadow.get(key, 0) + amount
+        gained = shadow[key] // 2
+        shadow[key] = shadow[key] % 2
+        if gained <= 0:
+            return counts.get(key, 0)
+        amount = gained
     counts[key] = counts.get(key, 0) + amount
     return counts[key]
 
@@ -10575,6 +10653,13 @@ async def feed(ctx, *, item: Optional[str] = None):
         return
 
     item_lower = item.lower()
+    if m["stats"].get("hunger", 0) <= 0:
+        await ctx.send(random.choice([
+            f"*Yarnaby sniffs the **{item}** politely, then sits back. He's not hungry, so he does not eat it. The refusal is calm. Final.* **mrr.**",
+            f"*He looks at the **{item}**, then at you. His bowl could be empty and he still would not be interested right now. He is not hungry.* **prrt.**",
+            f"*He gives the **{item}** one careful inspection and leaves it untouched. Not hungry means not eating.* **...mrr.**",
+        ]))
+        return
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     target_member = _resolve_offered_member(ctx, item)
     if await _handle_user_feed(ctx, target_member, is_doctor, score):
@@ -23121,11 +23206,25 @@ async def achievements_cmd(ctx, *, target: str = ""):
         lines = []
         for ach_id in cats[cat_name]:
             ach = ACHIEVEMENTS[ach_id]
+            diff = f" `{ach['difficulty']}`" if ach.get("difficulty") else ""
             if ach_id in earned:
                 ts = earned[ach_id][:10]
-                lines.append(f"{ach['emoji']} **{ach['name']}** — {ach['desc']}  *(earned {ts})*")
+                real_desc = ach.get("desc_unlocked") or ach["desc"]
+                lines.append(f"{ach['emoji']} **{ach['name']}**{diff} — {real_desc}  *(earned {ts})*")
+            elif ach.get("hidden"):
+                style = ach.get("hidden_style", "full")
+                if style == "name_only":
+                    # Shows the name but no description hint
+                    lines.append(f"🔒 **{ach['name']}**{diff} — *???*")
+                elif style == "desc_only":
+                    # Shows a vague hint desc but no name
+                    hint = ach.get("hidden_desc_hint", "???")
+                    lines.append(f"🔒 **???**{diff} — *{hint}*")
+                else:
+                    # full — name and desc both hidden
+                    lines.append(f"🔒 **???**{diff} — *???*")
             else:
-                lines.append(f"🔒 ~~{ach['name']}~~ — {ach['desc']}")
+                lines.append(f"🔒 ~~{ach['name']}~~{diff} — {ach['desc']}")
 
         _add_paginated_fields(embeds, _new_embed, f"**{cat_name}**", lines)
 
@@ -23847,6 +23946,65 @@ QUESTS = {
         "reward_desc": "+15 trust score",
         "reward_text": "*Sixty achievements. He has decided you are permanent. He has made room. +15 trust.*",
     },
+    "weekly_taxes_3": {
+        "name": "Paperwork Week",
+        "desc": "Use !taxes 3 times this week.",
+        "type": "weekly",
+        "counter": "taxes_count",
+        "target": 3,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*He still does not understand taxes. He does understand that you tried. +3 trust.*",
+    },
+    "weekly_jobs_3": {
+        "name": "Applicant Tracking",
+        "desc": "Send Yarnaby to 3 job interviews this week.",
+        "type": "weekly",
+        "counter": "job_count",
+        "target": 3,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*Three interviews. Zero offers. He has learned nothing and suffered bureaucracy. +3 trust.*",
+    },
+    "weekly_bodywork": {
+        "name": "Bodywork Week",
+        "desc": "Use !massage OR !crackback 2 times this week.",
+        "type": "weekly",
+        "counter": "massage_count",
+        "alt_counter": "crackback_count",
+        "target": 2,
+        "reward_score": 3,
+        "reward_desc": "+3 trust score",
+        "reward_text": "*His back feels better. He will not admit how much better. +3 trust.*",
+    },
+    "weekly_hairball_2": {
+        "name": "Cleanup Duty",
+        "desc": "Witness 2 hairballs this week.",
+        "type": "weekly",
+        "counter": "hairball_count",
+        "target": 2,
+        "reward_score": 2,
+        "reward_desc": "+2 trust score",
+        "reward_text": "*The floor has been through a lot this week. So have you. +2 trust.*",
+    },
+    "one_eclipse": {
+        "name": "The Wrong Light",
+        "desc": "Use !eclipse once.",
+        "type": "one_time",
+        "check_achievements": ["first_eclipse"],
+        "reward_score": 5,
+        "reward_desc": "+5 trust score",
+        "reward_text": "*The light went strange and you were there. He remembers who stayed. +5 trust.*",
+    },
+    "one_hard_mode": {
+        "name": "Hard Mode Initiate",
+        "desc": "Enable hard mode.",
+        "type": "one_time",
+        "check_achievements": ["hard_mode_enabled"],
+        "reward_score": 0,
+        "reward_desc": "No bonus. You asked for harder.",
+        "reward_text": "*No reward. That is the point.*",
+    },
     # special (reward 0 — hardest of all)
     "one_max_trust": {
         "name": "Maximum Trust",
@@ -23922,6 +24080,8 @@ def _quest_progress(m, uid, quest_id):
         alt_base = state.get("alt_baseline", _ach_count(m, uid, alt))
         progress = max(progress, max(0, _ach_count(m, uid, alt) - alt_base))
     target = quest.get("target", 1)
+    if m.get("internal", {}).get("hard_mode") and uid != str(CREATOR_ID):
+        target = max(1, target * 2)
     return (min(progress, target), target, claimed)
 
 
@@ -24036,6 +24196,15 @@ async def claim_quest_cmd(ctx, *, quest_id: str = ""):
         entry["score"] = min(100, entry.get("score", 0) + reward_score)
 
     save_db(m)
+
+    reward_label = f"+{reward_score} trust" if reward_score > 0 else q.get("reward_desc", "reward granted")
+    narration = random.choice([
+        f"*Yarnaby sets something down in front of you - small, deliberate - and sits back. Quest finished.* **{q['name']}** — *{reward_label}.*",
+        f"*He looks at you for a moment, then makes a short satisfied sound. That one's done.* **{q['name']}** — *{reward_label}.* **mrrp.**",
+        f"*Yarnaby nudges your hand once with his head. He's keeping track, apparently. Quest complete: **{q['name']}** — {reward_label}.* **...prrr.**",
+        f"*A quiet `mrr`. He acknowledges it without ceremony. **{q['name']}** — {reward_label}. On to the next one.*",
+    ])
+    await ctx.send(narration)
 
     embed = discord.Embed(
         title=f"🎁  Quest Claimed — {q['name']}",
@@ -31665,6 +31834,14 @@ async def eat_cmd(ctx, *, item: str = ""):
     item_clean = item.strip()
     item_lower = item_clean.lower()
 
+    if m["stats"].get("hunger", 0) <= 0:
+        await ctx.send(random.choice([
+            f"*{name} eats **{item_clean}**. Yarnaby notices, considers the situation, and decides not to get involved. He's not hungry.* **mrr.**",
+            f"*The **{item_clean}** exists. Yarnaby knows this. He is also full, so he stays exactly where he is.* **prrt.**",
+            f"*Yarnaby watches {name} eat **{item_clean}** with mild academic interest. No theft today. He is not hungry.* **...mrr.**",
+        ]))
+        return
+
     is_loved = any(w in item_lower for w in FEED_LOVES)
     is_hated = any(w in item_lower for w in FEED_HATES)
     is_toxic = any(w in item_lower for w in FEED_TOXIC)
@@ -32412,7 +32589,7 @@ async def playmusic_cmd(ctx, *, song: str = ""):
 # ==========================================
 # !massage - massage him (or ask him to massage you)
 # ==========================================
-@bot.command(name="massage", aliases=["massageyarny", "massageme", "rub_down", "kneadit"])
+@bot.command(name="massage")
 async def massage_cmd(ctx, *, target_str: str = ""):
     """Massage Yarnaby, or ask him to massage you."""
     m = bot.db
@@ -32431,6 +32608,8 @@ async def massage_cmd(ctx, *, target_str: str = ""):
         )
         return
     target_lower = (target_str or "").lower().strip()
+    _ach_inc(m, u_id, "massage_count")
+    await _grant_and_announce(m, u_id, "first_massage", ctx.channel)
 
     SPOTS = ["shoulders", "back", "neck", "paws", "ears", "head", "spine"]
     spot = next((s for s in SPOTS if s in target_lower), random.choice(SPOTS))
@@ -32451,6 +32630,7 @@ async def massage_cmd(ctx, *, target_str: str = ""):
             )
         else:
             await ctx.send("*He looks at you for a long moment. He kneads the air approximately in your direction. He returns to his spot.* **mrr.**")
+        save_db(m)
         return
 
     # You massage him
@@ -32476,9 +32656,11 @@ async def massage_cmd(ctx, *, target_str: str = ""):
         }
     else:
         await ctx.send(f"*He allows you near his **{spot}** for exactly two seconds. Then he steps away. Not yet.* **mrr.**")
+        save_db(m)
         return
 
     await ctx.send(lines.get(spot, f"*He accepts the massage on his **{spot}** and makes quiet pleased sounds.* **prrr.**"))
+    save_db(m)
 
 
 # ==========================================
@@ -34207,6 +34389,12 @@ async def feed_multi_cmd(ctx, amount_or_food: str = "", *, rest: str = ""):
 
     hunger = m["stats"].get("hunger", 0)
 
+    if hunger <= 0:
+        await ctx.send(
+            f"*He sniffs the **{food}** and sits back with quiet certainty. He's not hungry, so he will not eat it.* **mrr.**"
+        )
+        return
+
     # Hunger-based max capacity
     if hunger <= 0:
         capacity = 1
@@ -34267,6 +34455,133 @@ async def feed_multi_cmd(ctx, amount_or_food: str = "", *, rest: str = ""):
     m["stats"]["hunger"] = max(0, hunger - hunger_reduction)
     # Slight dirtiness from eating
     m["stats"]["cleanliness"] = min(10, m["stats"].get("cleanliness", 0) + (1 if amount >= 2 else 0))
+    save_db(m)
+
+
+# ==========================================
+# Requested no-alias commands: taxes, job, hairball, eclipse, hard_mode
+# ==========================================
+@bot.command(name="taxes")
+async def taxes_cmd(ctx):
+    """Someone tries to explain taxes to Yarnaby."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*You begin explaining taxes. Yarnaby is asleep. This may be the correct response.* **...prrr.**")
+        return
+
+    await ctx.send(random.choice([
+        "*You explain taxes. Yarnaby listens for almost four seconds, then slowly places one paw over the paper. He has audited the situation and found it unacceptable.* **mrr.**",
+        "*The word 'deduction' enters the room. Yarnaby's eyes lose focus. He bats the form once, gently, like it might stop being a form.* **prrt?**",
+        "*You explain income tax. Yarnaby stares at you with the exact expression of a creature discovering civilization was a mistake.* **...mrr.**",
+    ]))
+    c = _ach_inc(m, u_id, "taxes_count")
+    await _grant_and_announce(m, u_id, "first_taxes", ctx.channel)
+    if c >= 5:
+        await _grant_and_announce(m, u_id, "taxes_5", ctx.channel)
+    save_db(m)
+
+
+@bot.command(name="job")
+async def job_cmd(ctx, *, job_name: str = ""):
+    """Send Yarnaby to a job interview. He does not pass."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*The interview is scheduled. Yarnaby sleeps through it with perfect confidence.* **...prrr.**")
+        return
+
+    job_clean = (job_name or "a job").strip()
+    await ctx.send(
+        f"*Yarnaby goes to an interview for **{job_clean}**. He sits in the chair backward, says nothing, "
+        f"knocks the pen off the desk, and leaves with the visitor badge still attached to his wool.*"
+    )
+    await asyncio.sleep(1)
+    await ctx.send("*He does not pass. There is no career arc here.* **mrr.**")
+    c = _ach_inc(m, u_id, "job_count")
+    await _grant_and_announce(m, u_id, "first_job", ctx.channel)
+    await _grant_and_announce(m, u_id, "job_failed", ctx.channel)
+    if c >= 5:
+        await _grant_and_announce(m, u_id, "jobs_5", ctx.channel)
+    save_db(m)
+
+
+@bot.command(name="hairball")
+async def hairball_cmd(ctx):
+    """Yarnaby produces a hairball. Unannounced, even when commanded."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*A tiny sleeping cough. Nothing happens. The hairball appointment is postponed.* **...mrr.**")
+        return
+
+    m["internal"]["last_hairball_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    await ctx.send(random.choice([
+        "*Yarnaby stops. Crouches. Makes one awful little **hrrk** sound. A hairball appears. He steps away from it like someone else did that.* **mrr.**",
+        "*He produces a hairball with no announcement and no apology. Then he looks at you as if you are the one making this awkward.* **hrrk. ...mrr.**",
+        "*There is a cough, a pause, and then a compact woolly object on the floor. Yarnaby sits beside it with tremendous dignity.* **mrr.**",
+    ]))
+    c = _ach_inc(m, u_id, "hairball_count")
+    await _grant_and_announce(m, u_id, "first_hairball", ctx.channel)
+    if c >= 5:
+        await _grant_and_announce(m, u_id, "hairball_5", ctx.channel)
+    save_db(m)
+
+
+@bot.command(name="eclipse")
+async def eclipse_cmd(ctx):
+    """A one-off wrong-light moment."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("eclipse_seen"):
+        await ctx.send("*The light is normal now. Yarnaby still checks the ceiling anyway. Once was enough.* **...mrr.**")
+        return
+
+    m["internal"]["eclipse_seen"] = True
+    await ctx.send("*The room dims without permission. Not night. Not weather. Something else.*")
+    await asyncio.sleep(2)
+    await ctx.send(
+        "*Yarnaby goes perfectly still. His glass eyes catch the wrong light and hold it. "
+        "He does not hide. He does not move closer. He simply watches until the sun remembers itself.* **...**"
+    )
+    await _grant_and_announce(m, u_id, "first_eclipse", ctx.channel)
+    m["stats"]["mood"] = "Uneasy"
+    save_db(m)
+
+
+@bot.command(name="hard_mode")
+async def hard_mode_cmd(ctx, setting: str = ""):
+    """Toggle hard mode. No aliases."""
+    m = bot.db
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    value = setting.strip().lower()
+
+    if value in ("on", "enable", "enabled", "true", "yes"):
+        m["internal"]["hard_mode"] = True
+    elif value in ("off", "disable", "disabled", "false", "no"):
+        m["internal"]["hard_mode"] = False
+    elif value:
+        await ctx.send("*Use `!hard_mode on` or `!hard_mode off`.*")
+        return
+    else:
+        m["internal"]["hard_mode"] = not m["internal"].get("hard_mode", False)
+
+    if m["internal"]["hard_mode"]:
+        await ctx.send(
+            "*Hard mode is on. Hunger rises slower. Affection need rises slower. Achievement counters advance at half speed. Quest targets double. Yarnaby looks harder to impress already.* **mrr.**"
+        )
+        await _grant_and_announce(m, u_id, "hard_mode_enabled", ctx.channel)
+    else:
+        await ctx.send("*Hard mode is off. Yarnaby pretends this does not make things easier. It does.* **prrt.**")
     save_db(m)
 
 
@@ -35868,7 +36183,7 @@ async def camera_cmd(ctx):
 # ==========================================
 # !chiropractor — animal chiropractic adjustment
 # ==========================================
-@bot.command(name="chiropractor", aliases=["adjust", "crackback", "backcrack", "spinepop", "chiro"])
+@bot.command(name="crackback")
 async def chiropractor_cmd(ctx):
     """Give Yarnaby a chiropractic adjustment."""
     m = bot.db
@@ -35887,6 +36202,9 @@ async def chiropractor_cmd(ctx):
         )
         return
 
+    _ach_inc(m, u_id, "crackback_count")
+    await _grant_and_announce(m, u_id, "first_crackback", ctx.channel)
+
     if is_doctor:
         await ctx.send(
             "*The Creator carefully positions Yarnaby. He goes completely still — he trusts this entirely. "
@@ -35903,6 +36221,7 @@ async def chiropractor_cmd(ctx):
     else:
         await ctx.send("*He sees you approaching with intent and walks away. His spine is fine. He is leaving.* **mrr.**")
 
+    save_db(m)
     injuries = m["internal"].get("injuries", [])
     back_injuries = [i for i in injuries if "back" in i.get("location", "") or "spine" in i.get("location", "")]
     if back_injuries and score >= 3:
@@ -64868,30 +65187,41 @@ async def creation_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
 
-    line_count = 60827  # updated at each release
+    line_count = 65156  # updated at each release
 
     await ctx.send(
         "**— The Creation of Yarnaby —**\n\n"
         "Yarnaby was not supposed to be this.\n\n"
-        "He was made originally for a friend — a small personal bot, something simple, "
+        "He was made for a friend — a small personal bot, something simple, "
         "something that would respond to a few commands and have a bit of character. "
-        "That was the plan. The plan did not survive contact with the idea.\n\n"
-        "What started as roughly **2,000 lines of code and bad decisions** has, "
-        f"through sustained poor judgement and an inability to stop adding things, "
+        "That was the plan.\n\n"
+        "The friend, that this bot was made for, isn't a friend anymore.\n\n"
+        "The plan did not survive contact with either of those things.\n\n"
+        "What started as roughly **2,000 lines of code** has, "
+        "through sustained poor judgement and an inability to stop, "
         f"become a bot with over **{line_count:,} lines of code** — "
-        "and considerably more bad decisions.\n\n"
+        "a number that continues to climb for reasons that are difficult to fully justify.\n\n"
         "**Created by:** Adidas Doge / Mattéo Guendouzi (`doge2_23`)\n"
-        "**Started:** as something manageable\n"
-        "**Current state:** not that\n\n"
+        "**Originally for:** someone who isn't here anymore\n"
+        "**Current state:** still going\n\n"
         "He has stats. He has moods. He has injuries that can get infected. "
         "He has a social memory and will hold a grudge. "
         "He has wool that grows back. He has a bowling win rate of 20% because "
         "he has to push the ball with his forehead. "
-        "He has a narrator who can leave.\n\n"
+        "He has a narrator who can leave. "
+        "He has a school he can be expelled from. "
+        "He has achievements with hidden names, and some with hidden descriptions, and some with neither. "
+        "He can be enrolled in war. He can become a statue. He has a garden.\n\n"
         "None of this was in the original plan.\n\n"
+        "Something that started as a small gesture for a specific person "
+        "became something much larger than that — and then the person was gone, "
+        "and the thing kept growing anyway. "
+        "That's either very funny or very something-else, depending on the day.\n\n"
         "*He is sitting nearby, aware that he is being discussed. "
-        "He does not comment on this. He has always existed. "
-        "He does not concern himself with origin stories.* **...mrr.**"
+        "He does not comment on the origin story. "
+        "He has always existed, as far as he's concerned. "
+        "He does not particularly care why. "
+        "He is just glad someone is still here.* **...mrr.**"
     )
 
 
