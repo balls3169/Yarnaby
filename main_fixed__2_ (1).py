@@ -65219,13 +65219,17 @@ async def creation_cmd(ctx):
         "He started as a gesture. Someone `doge2_23` knew — a friend at the time — "
         "was into the idea of having a personal bot. Something small. Something with a bit of personality. "
         "So a bot was made. It had a name, a handful of commands, and roughly **2,000 lines of code**. "
-        "It had bad decisions baked in from the start, but it worked, more or less, "
-        "and that felt like enough.\n\n"
+        "It had bad decisions baked in from the start, but it worked, more or less, and that felt like enough.\n\n"
         "That friendship ended. Not dramatically — no one died, nothing catastrophic. "
         "Just the quiet kind of ending where someone is still out there in the world, "
         "just no longer part of yours. Things happen. People change. Friendships don't always survive that. "
         "This one didn't.\n\n"
-        "The bot, however, did.\n\n"
+        "The bot, however, did."
+    )
+
+    await asyncio.sleep(0.5)
+
+    await ctx.send(
         "Instead of shelving it, `doge2_23` kept going. "
         "The 2,000 lines became 10,000. Then 30,000. Then more. "
         "Features got added not because anyone asked for them, "
@@ -65236,7 +65240,12 @@ async def creation_cmd(ctx):
         "**Created by:** Adidas Doge / Mattéo Guendouzi (`doge2_23`)\n"
         "**Originally for:** someone who's no longer in the picture\n"
         "**Started:** ~2,000 lines and one specific person in mind\n"
-        "**Now:** on Top.gg, approved, still growing\n\n"
+        "**Now:** on Top.gg, approved, still growing"
+    )
+
+    await asyncio.sleep(0.5)
+
+    await ctx.send(
         "What he became along the way:\n"
         "He has a mood system, a trust system, and a trauma log. "
         "He has injuries that can get infected if untreated. "
@@ -65251,7 +65260,12 @@ async def creation_cmd(ctx):
         "None of this was in the original plan. "
         "The original plan was 2,000 lines and a gesture for one person.\n\n"
         "That person is gone. The bot is still here, bigger than it ever should have been, "
-        "and apparently approved on Top.gg, which was also not in the plan.\n\n"
+        "and apparently approved on Top.gg, which was also not in the plan."
+    )
+
+    await asyncio.sleep(0.5)
+
+    await ctx.send(
         "*He is sitting nearby, aware that he is being discussed. "
         "He doesn't have opinions about origin stories. "
         "He has always existed, as far as he's concerned, "
