@@ -11234,16 +11234,118 @@ async def feed(ctx, *, item: Optional[str] = None):
 
     # Pineapple pizza - absolute revulsion, score penalty
     if any(p in item_lower for p in ["pineapple pizza", "hawaiian pizza", "pizza with pineapple", "pineapple on pizza", "fruit pizza"]):
+        is_helpless = bool(m["internal"].get("helpless", False))
+        is_sleeping = bool(m["internal"].get("is_sleeping", False))
+
+        if is_sleeping:
+            # He's asleep. Someone just put pineapple pizza near him while he slept.
+            await ctx.send(random.choice([
+                f"*He is asleep. The **{item}** is placed near him. His nose twitches once in his sleep. "
+                f"Then again. His brow furrows. A small sound escapes him — not a purr, not quite a hiss — "
+                f"something distressed and confused. He shifts away from it without waking. "
+                f"His sleeping self has registered this and wants no part of it.* **...mrrfh.**",
+                f"*He doesn't wake up. But something reaches him anyway — the smell, carried on the air. "
+                f"His ears flatten in his sleep. His tail curls tighter. He makes a small, deeply unhappy sound "
+                f"and buries his face further into whatever he's lying on. "
+                f"He will not know who did this. He will sense it when he wakes.* **...hff. zz.**",
+            ]))
+            m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 5)
+            save_db(m)
+            return
+
+        if is_helpless:
+            # He cannot move. Someone is feeding him pineapple pizza while he is helpless. This is a war crime.
+            await ctx.send(random.choice([
+                f"*He cannot move. He knows this. The **{item}** is brought close. He can smell it. "
+                f"His eyes go wide. He tries to turn his head. He cannot turn far enough. "
+                f"A piece is placed in his mouth. He chews it with the expression of someone being asked to sign "
+                f"a document they fundamentally disagree with. He swallows. He stares at the ceiling. "
+                f"He will remember this. He will remember exactly this.* **...HFF. mrrf. HFF.**",
+                f"*He is helpless and he knows what is happening and he cannot stop it. "
+                f"The **{item}** arrives. He makes a sound that is almost a word. It is not a word. "
+                f"But the intent is clear. He is fed a piece. He eats it the way you eat something "
+                f"at a social function you cannot leave — slowly, with immense suffering, "
+                f"maintaining eye contact with whoever is responsible the entire time. "
+                f"He will not forget this. Not ever.* **mrrf. hff. ...HFF.**",
+            ]))
+            # Bigger mood hit, bigger score penalty — this is a violation
+            m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 15)
+            if u_id in m["social_matrix"] and not is_doctor:
+                m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 10)
+            if not is_doctor:
+                _set_cooldown(m, f"feed:{u_id}")
+            _fh_check[u_id] = (_hist_check + [{"item": item_lower, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])[-10:]
+            save_db(m)
+            return
+
+        if is_doctor:
+            # Creator brings pineapple pizza. Betrayal of the highest order. He still won't eat it.
+            await ctx.send(random.choice([
+                f"*He looks at the **{item}**. He looks at you. He looks at the **{item}** again. "
+                f"Something shifts in his expression — not just revulsion, but something deeper. "
+                f"Something that looks almost like disappointment. "
+                f"You, of all people. You brought this here. "
+                f"He turns around slowly and sits with his back to both you and the pizza. "
+                f"He does not move. He is reconsidering things.* **...mrrf.**",
+                f"*He trusted you. He has always trusted you. "
+                f"And you have walked in here with **{item}** and placed it in front of him "
+                f"as if this were something he would accept from anyone, let alone you. "
+                f"He stares at it. He stares at you. His ears go flat. "
+                f"He gets up, walks to the furthest corner of the room, and lies down facing the wall. "
+                f"He needs a moment.* **...hff.**",
+            ]))
+            m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 12)
+            save_db(m)
+            return
+
+        # Standard revulsion
         await ctx.send(
             random.choice([
-                f"*Yarnaby sniffs the **{item}** and immediately goes still. Something is deeply, architecturally wrong. He backs away one step, then another. His tail is a straight line of offended wool. He sits down very far from it and stares at you for a long, long time. **hff.***",
-                f"*He approaches. He smells it. He understands what has been done here - the combination that should not exist - and he steps back with his ears flat and his opinion very clear. He pads away. He will not forget this. **brrt.***",
-                f"*Yarnaby tilts his head. He sniffs. Something in his face collapses in slow motion. He turns and puts his entire back to the **{item}** and sits very upright in protest. He is not going to touch it. He will never touch it. He does not acknowledge it exists anymore. **mrrp.***",
-                f"*He gives the **{item}** one full, thorough sniff. He pulls his head back. He blinks. He looks at you. He looks at the **{item}**. He makes a small, quiet sound of pure offence and walks in the opposite direction. He does not look back. **hff.***",
+                f"*Yarnaby sniffs the **{item}**. He goes completely still. "
+                f"Not the hunting still. The other kind. The kind that means something has gone very wrong at a fundamental level. "
+                f"He backs away slowly. One step. Two steps. Three. He sits. He stares at it. "
+                f"He stares at you. He stares at it again. He makes a sound that is not in his usual vocabulary — "
+                f"something between a hiss and a personal insult — and then turns his entire body away "
+                f"and refuses to acknowledge that the **{item}** or the person who brought it exist anymore.* **HFF.**",
+
+                f"*He approaches with confidence. He sniffs. His face does something catastrophic. "
+                f"His ears go flat. His tail goes rigid. He takes three steps backwards without breaking eye contact, "
+                f"like he needs to keep the **{item}** in his sightline in case it tries something. "
+                f"He reaches the far wall. He sits. He does not blink. "
+                f"He will be watching. He will always be watching. "
+                f"This will not be forgiven.* **...hff. hff. HFF.**",
+
+                f"*The moment the **{item}** enters the room he knows. He doesn't know how he knows. "
+                f"He just knows. His nose wrinkles. His ears rotate back so far they're nearly flat. "
+                f"He stands up, stares at the pineapple pizza with the intensity of someone reading a deeply offensive document, "
+                f"and then — with great dignity — walks out of the room entirely. "
+                f"He will return when it is gone. He does not make deals.* **mrrp. HFF.**",
+
+                f"*He sniffs the **{item}**. He recoils. Not subtly — fully, visibly, with his whole body. "
+                f"He looks at you the way you look at someone who has just said something unforgivable at a dinner table. "
+                f"He paws at the floor near it as if trying to bury it. It does not get buried. "
+                f"He paws more urgently. It is still not buried. He gives up and sits with his back to it, "
+                f"spine rigid, tail curled tight, radiating a specific kind of disgust "
+                f"that only pineapple on pizza can produce.* **hff. hff. ...HFF.**",
+
+                f"*Yarnaby tilts his head at the **{item}**. He sniffs carefully. "
+                f"Something behind his eyes simply — leaves. He looks at you with an expression of profound betrayal. "
+                f"Not anger. Not confusion. Betrayal. The kind that comes from being genuinely surprised "
+                f"that someone he knew would do this. "
+                f"He stands up, walks to the other end of the room, lies down with his back fully to you, "
+                f"and begins grooming as if he needs to clean the very concept of this off himself.* **...mrrf. hff.**",
+
+                f"*He sniffs it once. Looks at it. Looks at you. Sniffs it again, in case he was wrong. "
+                f"He was not wrong. There is pineapple on this pizza. Someone put fruit on a pizza and brought it here, "
+                f"to him, as if this were acceptable. His tail lashes once — sharp, final. "
+                f"He picks up the **{item}** very carefully in his mouth, carries it to the door, "
+                f"sets it down pointedly just outside, and comes back in. "
+                f"He sits. He looks at you. He has made his position clear.* **HFF. mrr. HFF.**",
             ])
         )
+        m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 8)
         if u_id in m["social_matrix"] and not is_doctor:
-            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 3)
+            m["social_matrix"][u_id]["score"] = max(-100, m["social_matrix"][u_id].get("score", 0) - 5)
         if not is_doctor:
             _set_cooldown(m, f"feed:{u_id}")
         _fh_check[u_id] = (_hist_check + [{"item": item_lower, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])[-10:]
