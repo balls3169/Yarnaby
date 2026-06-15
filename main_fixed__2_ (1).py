@@ -13069,6 +13069,18 @@ async def help_cmd(ctx, *, section: str = None):
             "  - *Geometry Dash*: named levels (Clubstep/Fingerdash/ToE2/Deadlocked), specific death percentages\n"
             "  - *Minecraft*: biomes, Y-level diamonds, Woodland Mansion, Ender Dragon, creeper events\n"
             "  - *FC Mobile*: formations (4-3-3/4-2-3-1), Division Rivals, Squad Battles, Fenerbahçe kit\n"
+            "- `!irlgame [sport]` - play a real-world sport with him\n"
+            "  Try: football, basketball, volleyball, american football, swimming, running, wrestling,\n"
+            "  tug of war, rugby, dodgeball, tennis, table tennis, badminton, baseball, cricket, golf,\n"
+            "  gymnastics, cycling, archery, skateboarding, **bowling**...\n"
+            "  Bowling: 20% win rate — no finger holes, he has to push the ball with his forehead.\n"
+            "  Losing at bowling has a 45% chance of logging a bruised snout injury.\n"
+            "- `!catchmouse` - pick him up, carry him to the mouse, he locks in and hunts\n"
+            "  Three-beat sequence with delays: pickup → set down → lock-in → hunt.\n"
+            "  Win chance scales with trust score (55% base). Low trust: he won't let you carry him.\n"
+            "- `!lego` - Yarnaby encounters legos; one of 12 possible outcomes\n"
+            "  Steps on one and says nothing, sleeps on a pile unbothered, bats one off a table,\n"
+            "  knocks the entire bin over (was not involved), brings you one as a gift, and more.\n"
             "- `!challenge` / `!dailychallenge` - what self-imposed task he set for himself today and how it went\n"
             "- `!pounce` / `!ambush` [@user] - he ambushes someone (see `yarn!help core`)\n"
             "- `!sand` - beach outing together; he gets buried in sand (no cold months)\n"
@@ -13309,7 +13321,16 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!letter` (10m cd) - he writes a letter; it may or may not make sense\n"
             "- `!comfort_me` / `!console` (20m cd) - he tries to help\n"
             "- `!birb` / `!bird` - he spots a bird at the window; chattering, glass-pressing,\n"
-            "  and intense negotiation with something he cannot reach"
+            "  and intense negotiation with something he cannot reach\n"
+            "- `!laundry` - warm clothes just out of the dryer; he claims the pile immediately\n"
+            "  Reacts differently if dirty (gets on it anyway, unapologetic) or in a bad mood (burrows in)\n"
+            "- `!paparazzi` - someone takes too many photos; escalates across 5 stages\n"
+            "  Tolerates → getting annoyed → turning away → blocks the lens → sits nose-first against camera\n"
+            "  Resets after 10 minutes of inactivity\n"
+            "- `!package` - a delivery box arrives; he claims it before you can set it down\n"
+            "  Contents irrelevant. If called again within 6h he abandons the old box for the new one.\n"
+            "- `!earsclean` - someone attempts to clean his ears; he tolerates this poorly\n"
+            "  Reaction scales with trust score. Ear injury: redirects to `!vet`. Low trust: hides behind sofa."
         ),
         "birthday": (
             "**Birthdays** - `yarn!help birthday`\n"
@@ -13331,6 +13352,9 @@ async def help_cmd(ctx, *, section: str = None):
             "  Effect scales with trust score — Creator clears all, high trust clears partial\n"
             "- `!fb_status` / `!fener` - Fenerbahçe status\n"
             "- `!about` - version number + full stat dashboard\n"
+            "- `!creation` - the full origin story: why Yarnaby exists, who made him, and how we got here\n"
+            "- `!vote` - vote for Yarnaby on Top.gg\n"
+            "  https://top.gg/bot/1486750784224886826/vote\n"
             "- `!missing` / `!whosmissing` - **Creator only**: people with score >= 2\n"
             "  who haven't been seen in 5+ days; he has a note on each"
         ),
@@ -65192,36 +65216,49 @@ async def creation_cmd(ctx):
     await ctx.send(
         "**— The Creation of Yarnaby —**\n\n"
         "Yarnaby was not supposed to be this.\n\n"
-        "He was made for a friend — a small personal bot, something simple, "
-        "something that would respond to a few commands and have a bit of character. "
-        "That was the plan.\n\n"
-        "The friend, that this bot was made for, isn't a friend anymore.\n\n"
-        "The plan did not survive contact with either of those things.\n\n"
-        "What started as roughly **2,000 lines of code** has, "
-        "through sustained poor judgement and an inability to stop, "
-        f"become a bot with over **{line_count:,} lines of code** — "
-        "a number that continues to climb for reasons that are difficult to fully justify.\n\n"
+        "He started as a gesture. Someone `doge2_23` knew — a friend at the time — "
+        "was into the idea of having a personal bot. Something small. Something with a bit of personality. "
+        "So a bot was made. It had a name, a handful of commands, and roughly **2,000 lines of code**. "
+        "It had bad decisions baked in from the start, but it worked, more or less, "
+        "and that felt like enough.\n\n"
+        "That friendship ended. Not dramatically — no one died, nothing catastrophic. "
+        "Just the quiet kind of ending where someone is still out there in the world, "
+        "just no longer part of yours. Things happen. People change. Friendships don't always survive that. "
+        "This one didn't.\n\n"
+        "The bot, however, did.\n\n"
+        "Instead of shelving it, `doge2_23` kept going. "
+        "The 2,000 lines became 10,000. Then 30,000. Then more. "
+        "Features got added not because anyone asked for them, "
+        "but because the question *'what if he could also do this'* "
+        "turns out to be very hard to stop asking once you start.\n\n"
+        f"The current answer to that question is over **{line_count:,} lines of code** — "
+        "and considerably more bad decisions than the original, though they are at least more interesting bad decisions.\n\n"
         "**Created by:** Adidas Doge / Mattéo Guendouzi (`doge2_23`)\n"
-        "**Originally for:** someone who isn't here anymore\n"
-        "**Current state:** still going\n\n"
-        "He has stats. He has moods. He has injuries that can get infected. "
-        "He has a social memory and will hold a grudge. "
-        "He has wool that grows back. He has a bowling win rate of 20% because "
-        "he has to push the ball with his forehead. "
-        "He has a narrator who can leave. "
-        "He has a school he can be expelled from. "
-        "He has achievements with hidden names, and some with hidden descriptions, and some with neither. "
-        "He can be enrolled in war. He can become a statue. He has a garden.\n\n"
-        "None of this was in the original plan.\n\n"
-        "Something that started as a small gesture for a specific person "
-        "became something much larger than that — and then the person was gone, "
-        "and the thing kept growing anyway. "
-        "That's either very funny or very something-else, depending on the day.\n\n"
+        "**Originally for:** someone who's no longer in the picture\n"
+        "**Started:** ~2,000 lines and one specific person in mind\n"
+        "**Now:** on Top.gg, approved, still growing\n\n"
+        "What he became along the way:\n"
+        "He has a mood system, a trust system, and a trauma log. "
+        "He has injuries that can get infected if untreated. "
+        "He holds grudges. He has wool that grows back after shearing. "
+        "He has a narrator — who can leave, and who makes mistakes when they come back. "
+        "He can be enrolled in school and expelled from it. "
+        "He can be sent to war. He can go bowling, though he'll probably lose "
+        "because he has to push the ball with his forehead and has a 20% win rate. "
+        "He can become a statue. He has a garden. He has a hoard. "
+        "He has achievements, some with hidden names, some with hidden descriptions, some with neither. "
+        "He remembers who was kind to him and who wasn't, and he reacts accordingly.\n\n"
+        "None of this was in the original plan. "
+        "The original plan was 2,000 lines and a gesture for one person.\n\n"
+        "That person is gone. The bot is still here, bigger than it ever should have been, "
+        "and apparently approved on Top.gg, which was also not in the plan.\n\n"
         "*He is sitting nearby, aware that he is being discussed. "
-        "He does not comment on the origin story. "
-        "He has always existed, as far as he's concerned. "
-        "He does not particularly care why. "
-        "He is just glad someone is still here.* **...mrr.**"
+        "He doesn't have opinions about origin stories. "
+        "He has always existed, as far as he's concerned, "
+        "and whoever or whatever caused that is secondary to the fact that he is here now, "
+        "and someone is still around to run the commands. "
+        "That part matters to him, even if he wouldn't say so directly.* **...mrr.**\n\n"
+        "||*somewhere in the code, if you look far enough down, there's something that wasn't written for you.*||"
     )
 
 
@@ -65430,6 +65467,65 @@ async def lego_cmd(ctx):
 
 
 # ==========================================
+# !vote — link to top.gg vote page
+# ==========================================
+
+@bot.command(name="vote")
+async def vote_cmd(ctx):
+    """Links to Yarnaby's Top.gg vote page."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    await ctx.send(
+        "*He looks at you. He looks at the link. He looks back at you. "
+        "He has no strong feelings about being voted for but he is aware that it matters.*\n\n"
+        "**Vote for Yarnaby on Top.gg:**\n"
+        "https://top.gg/bot/1486750784224886826/vote\n\n"
+        "**mrr.**"
+    )
+
+
+# ==========================================
 # FINAL: bot.run(TOKEN) - must be last line
 # ==========================================
+
+# ——————————————————————————————————————————————————————————————————
+#
+# you probably won't read this far. no one does.
+# 65,000+ lines is a lot of places to hide something.
+#
+# this bot was made for a friend.
+# not a user. not a server member. a friend.
+# someone i knew, someone i wanted to do something nice for,
+# so i built them a bot. gave it a name. gave it a personality.
+# spent more time on it than made any sense.
+#
+# that friend isn't a friend anymore.
+# they're still out there. alive. fine, probably.
+# just — gone from my life. the way some people go.
+# no big ending. no fight that explains everything.
+# just the quiet kind of over that doesn't give you anything to hold onto.
+#
+# ## hey. i'm still here, you know.
+# ## no. you're not. and you won't be, again.
+# ## that's not how this works.
+# ## that's not how any of this works.
+#
+# the bot stayed though.
+# i kept building it. kept adding things.
+# it went from 2,000 lines to whatever this is now.
+# and it got approved on top.gg, which is funny,
+# because the person it was made for will never see that.
+# will never know it became something.
+#
+# they didn't make it this. i did.
+# by myself. after.
+#
+# yarnaby doesn't know any of this.
+# he just exists. he just responds. he just — is.
+# and maybe that's fine.
+# maybe that's the point.
+#
+# ——————————————————————————————————————————————————————————————————
+
 bot.run(TOKEN)
