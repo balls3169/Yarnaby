@@ -33093,41 +33093,159 @@ async def cleanwool_cmd(ctx):
 # ==========================================
 @bot.command(name="forgetuser", aliases=["erasememory", "wipeuser", "forgetperson"])
 async def forgetuser_cmd(ctx, target: discord.Member = None, *, name: str = ""):
-    """Creator only: forget a specific user."""
+    """Creator only: forget a specific user. With no args, lists known users first."""
     if ctx.author.id != DOCTOR_ID:
         await ctx.send("*He tilts his head. Only The Creator can make him forget.* **mrr.**")
         return
     m = bot.db
     await _add_reactions(ctx, m)
+
+    # No target given — show the list and prompt
+    if not target and not name.strip():
+        matrix = m.get("social_matrix", {})
+        entries = []
+        for uid, data in matrix.items():
+            if not isinstance(data, dict):
+                continue
+            if int(uid) == DOCTOR_ID:
+                continue
+            uname = data.get("username") or data.get("display_name") or f"user_{uid}"
+            score = data.get("score", 0)
+            entries.append((uname, score))
+
+        if not entries:
+            await ctx.send("*He thinks. There's no one to forget. He doesn't know anyone yet.* **...mrr.**")
+            return
+
+        entries.sort(key=lambda x: x[1], reverse=True)
+
+        lines = ["*He looks through his memory carefully. Here's everyone he knows:*\n"]
+        for i, (uname, score) in enumerate(entries, 1):
+            lines.append(f"**{i}.** `{uname}` — score: {score}")
+        lines.append("\n*Who should he forget? Use `!forgetuser [discord username]`*")
+
+        # Chunk if needed
+        out = "\n".join(lines)
+        if len(out) <= 1900:
+            await ctx.send(out)
+        else:
+            chunk = ""
+            for line in lines:
+                if len(chunk) + len(line) + 1 > 1900:
+                    await ctx.send(chunk)
+                    chunk = line
+                else:
+                    chunk = (chunk + "\n" + line).strip()
+            if chunk:
+                await ctx.send(chunk)
+        return
+
+    # Target given — find and forget
     target_id = None
     target_name = "them"
+    target_uname = ""
+
     if target:
         target_id = str(target.id)
         target_name = target.display_name
-    elif name:
-        # Search by name
+        target_uname = str(target.name)
+    elif name.strip():
+        name_lower = name.strip().lower()
         for uid, data in m["social_matrix"].items():
-            if isinstance(data, dict) and name.lower() in data.get("display_name", "").lower():
+            if not isinstance(data, dict):
+                continue
+            stored_uname = (data.get("username") or data.get("display_name") or "").lower()
+            if name_lower in stored_uname or stored_uname in name_lower:
                 target_id = uid
-                target_name = data.get("display_name", name)
+                target_name = data.get("display_name") or data.get("username") or name
+                target_uname = data.get("username") or ""
                 break
 
     if not target_id or target_id not in m["social_matrix"]:
-        await ctx.send(f"*He sniffs the air where that person might have been. He doesn't find them in his memory. Maybe they were already forgotten.* **mrr.**")
+        await ctx.send(
+            f"*He searches. He sniffs the air where `{name}` might have been. "
+            f"He doesn't find them. Maybe already forgotten, or maybe he never knew them by that name.* **mrr.**"
+        )
         return
 
     del m["social_matrix"][target_id]
     save_db(m)
     await ctx.send(
         f"*Yarnaby sits very still for a moment. He looks at the spot where **{target_name}** would stand. "
-        f"Something shifts behind his glass eyes. Then he blinks - once, slow - and it's gone. "
+        f"Something shifts behind his eyes. Then he blinks — once, slow — and it's gone. "
         f"He's forgotten them. He doesn't look sad. He doesn't look anything.* **...mrr...**"
     )
 
 
 # ==========================================
-# DM Notification system (added in on_message)
+# !known_users — creator only, ranked list of everyone he knows
 # ==========================================
+
+@bot.command(name="known_users")
+async def known_users_cmd(ctx):
+    """Creator only: list everyone Yarnaby knows, ranked by score."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*He tilts his head. That's not for everyone.* **mrr.**")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    matrix = m.get("social_matrix", {})
+    if not matrix:
+        await ctx.send("*He thinks. He searches. He comes up empty. He doesn't seem to know anyone yet.* **...mrr.**")
+        return
+
+    # Build sorted list, excluding creator
+    entries = []
+    for uid, data in matrix.items():
+        if not isinstance(data, dict):
+            continue
+        if int(uid) == DOCTOR_ID:
+            continue
+        name = data.get("display_name") or data.get("name") or f"User {uid}"
+        score = data.get("score", 0)
+        entries.append((name, score))
+
+    if not entries:
+        await ctx.send("*He knows no one yet. Just you.* **...mrr.**")
+        return
+
+    # Sort by score descending
+    entries.sort(key=lambda x: x[1], reverse=True)
+
+    lines = ["*He sits. He thinks. He goes through everyone he remembers.*\n"]
+    for i, (name, score) in enumerate(entries, 1):
+        if score >= 8:
+            label = "Trusted"
+        elif score >= 4:
+            label = "Liked"
+        elif score >= 1:
+            label = "Neutral-positive"
+        elif score == 0:
+            label = "Neutral"
+        elif score >= -3:
+            label = "Wary"
+        else:
+            label = "Hostile"
+        lines.append(f"**{i}.** {name} — {score} *({label})*")
+
+    # Split into chunks under 2000 chars
+    header = lines[0]
+    body_lines = lines[1:]
+    chunks = [header]
+    current = ""
+    for line in body_lines:
+        if len(current) + len(line) + 1 > 1800:
+            chunks.append(current)
+            current = line
+        else:
+            current = (current + "\n" + line).strip()
+    if current:
+        chunks.append(current)
+
+    for chunk in chunks:
+        if chunk.strip():
+            await ctx.send(chunk)
 # (Handled in on_message below via monkey-patch addition)
 
 # ==========================================
@@ -66437,6 +66555,128 @@ async def car_cmd(ctx):
             f"slightly differently. But it didn't. It was a mrow. "
             f"He looks at {user}. Close enough, he decides. He sits back down.* **mrow.**",
         ]))
+
+
+# ==========================================
+# !dm — creator sends a DM through Yarnaby
+# ==========================================
+
+_dm_pending = {}  # ctx.author.id -> {"target_id": ..., "target_name": ...}
+
+@bot.command(name="dm")
+async def dm_cmd(ctx, *, args: str = ""):
+    """Creator only: DM someone through Yarnaby. Two-step flow."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*He tilts his head. That's not for everyone.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+    author_id = ctx.author.id
+    args = args.strip()
+
+    # --- Step 1: no args — ask who ---
+    if not args:
+        # Clear any pending state
+        _dm_pending.pop(author_id, None)
+        await ctx.send(
+            "*He looks at you attentively, pen metaphorically raised.* "
+            "**To who are you gonna DM?**\n"
+            "*(`!dm [discord username]` — use their username, not nickname)*"
+        )
+        return
+
+    # Check if this is step 2: "!dm username message..."
+    # Try to split: first word is username, rest is message
+    parts = args.split(None, 1)
+    target_username = parts[0].lower().lstrip("@")
+    message_text = parts[1].strip() if len(parts) > 1 else ""
+
+    # Find the target in social matrix or guild members
+    target_member = None
+    target_display = target_username
+
+    # Search guild members first
+    if ctx.guild:
+        for member in ctx.guild.members:
+            if member.name.lower() == target_username or member.display_name.lower() == target_username:
+                target_member = member
+                target_display = member.display_name
+                break
+
+    # Fallback: search social matrix by stored username
+    if not target_member:
+        for uid, data in m.get("social_matrix", {}).items():
+            if not isinstance(data, dict):
+                continue
+            stored = (data.get("username") or data.get("display_name") or "").lower()
+            if target_username in stored or stored in target_username:
+                try:
+                    target_member = await bot.fetch_user(int(uid))
+                    target_display = data.get("display_name") or target_member.display_name
+                except Exception:
+                    pass
+                break
+
+    if not target_member:
+        await ctx.send(
+            f"*He searches his memory for `{target_username}`. He can't place them. "
+            f"Are you sure that's the right username?* **...mrr.**"
+        )
+        return
+
+    # Step 2: have target but no message — ask what to say
+    if not message_text:
+        _dm_pending[author_id] = {
+            "target_id": target_member.id,
+            "target_name": target_display,
+            "target_username": target_username,
+        }
+        await ctx.send(
+            f"*He nods. He knows who {target_display} is.* "
+            f"**DM to {target_display}. What are you gonna say?**\n"
+            f"*(`!dm {target_username} [your message]`)*"
+        )
+        return
+
+    # Step 2 complete: target + message — send the DM
+    try:
+        dm_channel = await target_member.create_dm()
+
+        # Gather any attachments from the command message
+        files = []
+        for attachment in ctx.message.attachments:
+            try:
+                f = await attachment.to_file()
+                files.append(f)
+            except Exception:
+                pass
+
+        # Send message and/or files
+        if files and message_text:
+            await dm_channel.send(message_text, files=files)
+        elif files:
+            await dm_channel.send(files=files)
+        elif message_text:
+            await dm_channel.send(message_text)
+        else:
+            await ctx.send("*He looks at you. There's nothing to send — no message, no files.* **...mrr.**")
+            return
+
+        _dm_pending.pop(author_id, None)
+        file_note = f" (+ {len(files)} attachment{'s' if len(files) > 1 else ''})" if files else ""
+        await ctx.send(
+            f"*He delivers the message{file_note} to **{target_display}** quietly, "
+            f"without fuss, without reading it. He comes back and sits down. "
+            f"It's done.* **mrr.**"
+        )
+    except discord.Forbidden:
+        await ctx.send(
+            f"*He tries to reach **{target_display}**. Their DMs are closed. "
+            f"He comes back empty-pawed.* **...mrr.**"
+        )
+    except Exception as e:
+        await ctx.send(f"*Something went wrong.* **hff.**\n`{e}`")
 
 
 # ==========================================
