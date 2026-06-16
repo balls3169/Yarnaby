@@ -66676,6 +66676,13 @@ async def dm_cmd(ctx, *, args: str = ""):
             except Exception:
                 pass
 
+        # Send a header first
+        header = (
+            "📨 *You have a message from **Adidas Doge** (`doge2_23`), the creator of Yarnaby.*\n"
+            "─────────────────────────"
+        )
+        await dm_channel.send(header)
+
         # Send message and/or files
         if files and message_text:
             await dm_channel.send(message_text, files=files)
