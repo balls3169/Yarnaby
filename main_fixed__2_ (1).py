@@ -65313,14 +65313,14 @@ async def creation_cmd(ctx):
     m = bot.db
     await _add_reactions(ctx, m)
 
-    line_count = 65156  # updated at each release
+    line_count = 65647  # updated at each release
 
     await ctx.send(
         "**— The Creation of Yarnaby —**\n\n"
         "Yarnaby was not supposed to be this.\n\n"
         "He started as a gesture. Someone `doge2_23` knew — a friend at the time — "
         "was into the idea of having a personal bot. Something small. Something with a bit of personality. "
-        "So a bot was made. It had a name, a handful of commands, and roughly **2,000 lines of code**. "
+        "So a bot was made. It had a name, a handful of commands, and **2,234 lines of code**. "
         "It had bad decisions baked in from the start, but it worked, more or less, and that felt like enough.\n\n"
         "That friendship ended. Not dramatically — no one died, nothing catastrophic. "
         "Just the quiet kind of ending where someone is still out there in the world, "
@@ -65341,7 +65341,7 @@ async def creation_cmd(ctx):
         "and considerably more bad decisions than the original, though they are at least more interesting bad decisions.\n\n"
         "**Created by:** Adidas Doge / Mattéo Guendouzi (`doge2_23`)\n"
         "**Originally for:** someone who's no longer in the picture\n"
-        "**Started:** ~2,000 lines and one specific person in mind\n"
+        "**Started:** 2,234 lines and one specific person in mind\n"
         "**Now:** on Top.gg, approved, still growing"
     )
 
@@ -65360,7 +65360,7 @@ async def creation_cmd(ctx):
         "He has achievements, some with hidden names, some with hidden descriptions, some with neither. "
         "He remembers who was kind to him and who wasn't, and he reacts accordingly.\n\n"
         "None of this was in the original plan. "
-        "The original plan was 2,000 lines and a gesture for one person.\n\n"
+        "The original plan was 2,234 lines and a gesture for one person.\n\n"
         "That person is gone. The bot is still here, bigger than it ever should have been, "
         "and apparently approved on Top.gg, which was also not in the plan."
     )
@@ -65602,6 +65602,480 @@ async def vote_cmd(ctx):
 
 
 # ==========================================
+# !pc — yarnaby tries to use a pc
+# ==========================================
+
+@bot.command(name="pc")
+async def pc_cmd(ctx):
+    """Yarnaby attempts to use a PC. It goes as expected."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+
+    scenarios = [
+        # Sits on the keyboard
+        f"*He approaches the PC with great interest. He sniffs the monitor. He sniffs the keyboard. "
+        f"He steps onto the keyboard with both front paws to get a better look at the screen. "
+        f"He has typed: `ggggggggggggg ffffffffff 4444444444444 [[[[[[[` "
+        f"He does not know he has done this. He is reading the screen very seriously.* **mrr.**",
+
+        # Watches the cursor
+        f"*He sits in front of the monitor. Someone moves the mouse. "
+        f"His head tracks the cursor across the screen with complete focus. "
+        f"It goes left. His head goes left. It goes right. His head goes right. "
+        f"It goes in a circle. He follows it twice before something in him decides this is undignified "
+        f"and he stops and looks away, pretending he was never doing that.* **...mrr.**",
+
+        # Tries to catch something on screen
+        f"*There is something moving on the screen. A video. An animation. Something. "
+        f"He watches it for several seconds. He reaches out and taps the screen once with one paw. "
+        f"Nothing happens. He taps it again, harder. Nothing. He looks behind the monitor. "
+        f"He looks back at the screen. He taps it a third time with full commitment. "
+        f"The thing on the screen continues to exist beyond his reach. He sits back.* **...hff.**",
+
+        # Falls asleep on the keyboard
+        f"*He climbs onto the desk. He surveys the keyboard. He turns once. He turns again. "
+        f"He lies down directly on top of it, distributed evenly across all the keys, "
+        f"and goes to sleep. The PC has opened seventeen tabs, changed the system language, "
+        f"and sent an unfinished email. He is warm and comfortable and completely at peace.* **...prrr. zz.**",
+
+        # Headbutts the monitor on
+        f"*The monitor is off. He headbutts it. It turns on. "
+        f"He stares at it. He headbutts it again. It turns off. "
+        f"He stares at the black screen for a long time. "
+        f"He headbutts it once more. It turns back on. "
+        f"He walks away. He has learned something today but it is unclear what.* **mrr.**",
+
+        # Tries to type
+        f"*He sits in front of the keyboard with the posture of someone who has something to say. "
+        f"He raises one paw. He places it on the keys. He presses down. "
+        f"The result is: `bbbbbbbbbbbnnnnnnnnnn` "
+        f"He looks at the screen. He looks at his paw. He presses again. `vvvvvvvvv` "
+        f"He considers this output. He seems neither satisfied nor dissatisfied. "
+        f"He steps off the keyboard and sits beside it. He is done.* **...mrr.**",
+
+        # Gets startled by a notification sound
+        f"*He is investigating the PC very thoroughly when a notification sound plays from the speakers. "
+        f"He leaps approximately six inches straight up. He lands. He looks at the speakers. "
+        f"He looks at the PC. He looks at the speakers again. "
+        f"He approaches one speaker very slowly and sniffs it for a long time. "
+        f"He has decided the sound came from inside it and is not sure how he feels about that.* **mrrp!**",
+
+        # Walks across and closes everything
+        f"*He walks across the desk. His tail catches the mouse. "
+        f"His paw closes two windows. His other paw minimises everything. "
+        f"He knocks the headphones off the desk. He sits on the mousepad. "
+        f"He looks at {user}. He has not done anything wrong. "
+        f"He was simply walking.* **mrr.**",
+
+        # Stares at loading screen
+        f"*Something is loading. A spinning icon, a progress bar, something. "
+        f"He watches it with absolute stillness. He does not blink. "
+        f"He has been watching this for four minutes. "
+        f"The loading finishes. He watches the result for exactly two seconds, "
+        f"then loses interest entirely and jumps off the desk.* **...mrr.**",
+
+        # Discovers the webcam
+        f"*The webcam light turns on. He notices it immediately. He leans toward it. "
+        f"He is very close to it now. He sniffs the lens. His nose fills the entire frame. "
+        f"He pulls back slightly and stares directly into it with enormous pupils. "
+        f"He has no idea what this is. It is recording him anyway.* **...mrr.**",
+
+        # Unplugs something important with his tail
+        f"*He jumps up onto the desk and settles in. Everything is fine for approximately forty seconds. "
+        f"Then his tail, moving slowly, catches on a cable. "
+        f"He pulls. The cable pulls back. He pulls harder. "
+        f"Something disconnects. A light goes off somewhere. "
+        f"He looks at the cable now in his vicinity. He looks at the PC. "
+        f"He did not do this.* **...mrr. hff.**",
+
+        # Gets very into a nature documentary on screen
+        f"*Someone has left a nature documentary playing. Birds. He finds the birds. "
+        f"He is on the desk in one motion. He is six inches from the screen. "
+        f"A bird calls. His ears go fully forward. His tail begins to lash. "
+        f"He chatters at the monitor — that specific sound, teeth clicking, "
+        f"the one reserved for things he cannot reach. "
+        f"The documentary moves on to something else. He watches the bird segment four more times "
+        f"via the progress bar before accepting it's gone.* **...ek ek ek. mrr.**",
+    ]
+
+    await ctx.send(random.choice(scenarios))
+
+
+# ==========================================
+# !socks — put socks on yarnaby (bribed with churu)
+# ==========================================
+
+@bot.command(name="socks")
+async def socks_cmd(ctx):
+    """Put socks on Yarnaby. He has to be bribed with a churu tube to sit still."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    is_sleeping = bool(m["internal"].get("is_sleeping", False))
+    is_helpless = bool(m["internal"].get("helpless", False))
+
+    # --- SLEEPING ---
+    if is_sleeping:
+        await ctx.send(random.choice([
+            f"*He is asleep. {user} very quietly puts a sock on one paw. "
+            f"He does not wake. His paw twitches once. He pulls it slightly toward himself in his sleep. "
+            f"The sock is on. He has no idea. He will find out when he wakes up.* **...zz.**",
+            f"*He is asleep. All four socks go on without resistance — he sleeps through all of it. "
+            f"He looks, genuinely, like the most peaceful creature in existence. "
+            f"He is also wearing four tiny socks. He will not be peaceful when he opens his eyes.* **...zz.**",
+        ]))
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He wakes. He stretches. Something is wrong with his paws. "
+            "He looks down. He sees the socks. He sees all four socks. "
+            "His ears go flat. He looks at whoever is nearest with an expression of slow, "
+            "dawning, personal betrayal. He begins removing them immediately with his teeth — "
+            "front left, front right — and then tries to reach the back ones, "
+            "twisting, and tips slowly onto his side in the process. "
+            "He lies there for a moment. Then he rights himself and finishes the job in silence.* **...HFF.**"
+        )
+        return
+
+    # --- HELPLESS ---
+    if is_helpless:
+        await ctx.send(random.choice([
+            f"*He cannot move. He watches {user} approach with the churu and the socks and he knows — "
+            f"he absolutely knows — that he cannot do anything about either. "
+            f"The churu is placed near his nose as a courtesy. He licks it. "
+            f"The socks go on one by one. He watches each one happen. "
+            f"He looks at the ceiling when it's done. He is wearing socks. "
+            f"He could not stop this. He will remember that he could not stop this.* **...mrrf. hff.**",
+            f"*He is helpless and someone is putting socks on him and offering churu like that makes it fine. "
+            f"He accepts the churu. He does not accept the socks in any philosophical sense. "
+            f"They go on anyway. All four. He stares at whichever paw is visible to him "
+            f"with the quiet fury of someone who will settle this score later, "
+            f"when they can move again.* **...hff. mrr.**",
+        ]))
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*The socks are removed — a small mercy. "
+            "He watches each one go. He licks the paws he can reach. "
+            "He files this under: remembered.* **...mrr.**"
+        )
+        m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 6)
+        save_db(m)
+        return
+
+    # --- CREATOR ---
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*{user} produces a churu. He is immediately and completely cooperative. "
+            f"He sits. He licks. The socks go on all four paws without a single complaint — "
+            f"not a flinch, not a kicked leg, not a flattened ear. "
+            f"He trusts {user} and so whatever {user} is doing to his feet is probably fine. "
+            f"Probably.* **...prrr.**",
+            f"*The churu appears. He goes to {user} directly, already sitting, "
+            f"already offering his paws without being asked. "
+            f"He has no idea what's happening. He trusts that it's okay. "
+            f"The socks go on. He looks at them. He looks at {user}. "
+            f"He decides: fine. If it's you, fine.* **mrr. prrr.**",
+        ]))
+        await asyncio.sleep(2.5)
+        # Creator special finale — still does the walk, but with dignity
+        await ctx.send(
+            f"*All four socks on. He stands. He walks to {user} and sits directly in front of them, "
+            f"displaying all four socked paws. He looks up. He is showing {user} his socks. "
+            f"He is not sure why. He is doing it anyway.* **...mrr.**"
+        )
+        await asyncio.sleep(2.5)
+        await ctx.send(
+            f"*{user} removes them one by one. He watches, helpful, lifting each paw slightly as it's reached. "
+            f"When the last one is off he licks {user}'s hand once — brief, unbothered — "
+            f"and settles down. That was fine. He would do that again, probably.* **prrr.**"
+        )
+        return
+
+    # --- STANDARD ---
+    bribe_lines = [
+        f"*{user} produces a churu tube. Yarnaby's attention locks onto it immediately. "
+        f"He sits down. He is listening. He is very, very listening.* **...mrr.**",
+        f"*The churu appears. He was across the room a moment ago. "
+        f"He is now directly in front of {user}, pupils enormous, fully committed to whatever this requires.* **mrr.**",
+        f"*{user} holds up the churu. He tilts his head. He sits. "
+        f"He does not know what is about to happen but the churu has bought his cooperation in advance.* **...prrr.**",
+    ]
+    await ctx.send(random.choice(bribe_lines))
+    await asyncio.sleep(2)
+
+    sock1_lines = [
+        "*The first sock goes on the front left paw. He is mid-lick. He does not notice immediately. "
+        "Then he does. He lifts the paw. He looks at it. He looks at the churu. "
+        "He goes back to the churu. He has decided the churu takes priority.* **...mrr.**",
+        "*Front right paw. Sock. He feels it. His ear twitches. He glances down. "
+        "The churu reappears in his eyeline. He refocuses. The sock remains.* **mrr.**",
+    ]
+    await ctx.send(random.choice(sock1_lines))
+    await asyncio.sleep(2.5)
+
+    sock2_lines = [
+        "*Second sock. Back paw. He kicks slightly — not hard, reflexive. "
+        "His whole back leg has opinions about this. More churu. He settles.* **...mrr. prrr.**",
+        "*The back paw is harder. He pulls it back twice. More churu. He tolerates the third attempt. "
+        "Two socks on. He looks like he is wearing tiny mittens on his feet. "
+        "He does not know this. He would not appreciate being told.* **mrr.**",
+    ]
+    await ctx.send(random.choice(sock2_lines))
+    await asyncio.sleep(2.5)
+
+    special = random.random()
+    if score >= 15:
+        finale = (
+            f"*All four socks. He finishes the churu. He sits very still, processing. "
+            f"He lifts one front paw slowly and stares at it. He lifts the other. "
+            f"He looks at {user} with an expression that lives between betrayal and accusation. "
+            f"He stands and walks carefully, like he doesn't fully trust the floor. "
+            f"He decides, ultimately, to accept this with quiet dignity — "
+            f"because {user} gave him churu and that counts for something.* **...mrr.**"
+        )
+    elif special < 0.25:
+        finale = (
+            "*All four socks on. The churu is gone. The agreement is over. "
+            "He shakes his front right paw. Front left. Back right. "
+            "He tries to shake the back left without falling over. "
+            "He falls over. He lies on his side for a moment, one socked paw in the air. "
+            "He rights himself with great dignity. None of the socks came off. "
+            "They are still on. He stares at his feet.* **hff. HFF.**"
+        )
+    elif special < 0.5:
+        finale = (
+            "*Four socks. He stands and begins high-stepping — each paw lifted far higher than necessary, "
+            "placed down with great suspicion. He crosses the room like this. He comes back. "
+            "He sits down and refuses to move further until this is resolved.* **...mrr. mrr.**"
+        )
+    elif special < 0.75:
+        finale = (
+            "*Four socks. He stands. He does not move. He is processing. "
+            "His tail moves once. He looks at each paw in sequence. "
+            "He sits back down in the exact same spot. "
+            "He has decided that if he does not move, the socks cannot affect him.* **...**"
+        )
+    else:
+        finale = (
+            "*All four socks. He looks at his front left paw. He begins pulling at it with his teeth. "
+            "He pulls too hard, loses balance, and tips sideways onto the floor. "
+            "He lies there. The sock is still on. He stares at it from floor level. "
+            "He decides this is a fine place to be and stays there.* **...hff. mrr.**"
+        )
+
+    await ctx.send(finale)
+    await asyncio.sleep(3)
+
+    removal_lines = [
+        f"*{user} removes each sock one by one. He watches every single one come off. "
+        f"When the last is gone he licks all four paws in order, thoroughly, "
+        f"resetting them to factory settings.* **prrr.**",
+        f"*The socks come off. He is more patient about this part. "
+        f"When they're all gone he shakes himself once and walks away. "
+        f"It is over. It will not be spoken of.* **mrr.**",
+        f"*One by one, off they come. He sniffs each sock as it's removed. "
+        f"All four confirmed absent. He licks his front paws and settles down. "
+        f"He will remember this.* **...mrr.**",
+    ]
+    await ctx.send(random.choice(removal_lines))
+
+
+# ==========================================
+# !shoes — socks AND shoes. full commitment.
+# ==========================================
+
+@bot.command(name="shoes")
+async def shoes_cmd(ctx):
+    """Put socks and shoes on Yarnaby. Requires even more churu. Ends the same way."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    is_sleeping = bool(m["internal"].get("is_sleeping", False))
+    is_helpless = bool(m["internal"].get("helpless", False))
+
+    # --- SLEEPING ---
+    if is_sleeping:
+        await ctx.send(
+            f"*He is asleep. {user} puts socks on all four paws — he sleeps through it. "
+            f"Then the shoes. He stirs slightly at the third shoe — the weight — "
+            f"but settles back. Fourth shoe on. He is fully dressed on his feet and completely unconscious. "
+            f"He looks absurd and peaceful in equal measure.* **...zz.**"
+        )
+        await asyncio.sleep(3)
+        await ctx.send(
+            "*He wakes up. He stretches. He stands. He hears himself. "
+            "His feet made a sound. His feet have never made a sound. "
+            "He looks down. He sees shoes. He sees four shoes. "
+            "His ears go so flat they almost disappear. "
+            "He tries to remove the front right shoe with his teeth, twists too far, "
+            "and falls completely onto his side with a small thud. "
+            "He lies there. He is wearing shoes. He is on the floor. "
+            "He stares at the shoe from approximately two inches away.* **...HFF. mrrf.**"
+        )
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*They are removed for him. Every shoe, every sock. "
+            "He gets up, shakes himself enormously, and walks away without looking at anyone.* **hff.**"
+        )
+        return
+
+    # --- HELPLESS ---
+    if is_helpless:
+        await ctx.send(random.choice([
+            f"*He cannot move. Two churus appear near his nose — he licks them both, "
+            f"slowly, because there is nothing else he can do. "
+            f"The socks go on. Then the shoes. He watches each shoe go on with the stillness "
+            f"of someone mentally filing a detailed report. "
+            f"He is wearing shoes. He is helpless and wearing shoes. "
+            f"The shoes will be removed. He will still know this happened.* **...mrrf. hff. mrrf.**",
+            f"*He watches it all happen. Socks. Then shoes. He cannot stop any of it. "
+            f"The churu is offered. He eats it because he might as well. "
+            f"When all four shoes are on he just — looks at them. "
+            f"He looks at them for a long time. "
+            f"He is logging this. Every detail. For later.* **...HFF.**",
+        ]))
+        await asyncio.sleep(2)
+        await ctx.send(
+            "*Shoes off. Socks off. He exhales. "
+            "He licks every paw the moment it's freed. "
+            "He does not say anything. He doesn't need to.* **...mrr.**"
+        )
+        m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 10)
+        save_db(m)
+        return
+
+    # --- CREATOR ---
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*Two churus. He goes to {user} immediately. He sits. He offers his front paws. "
+            f"He does not know what's coming but it's {user} so it's probably fine. "
+            f"Socks on — he doesn't flinch. Shoes on — he looks down at the first one with curiosity, "
+            f"not alarm. He stands when it's done and walks to {user} and back. "
+            f"Click. Click. Click. Click. He looks at {user}. "
+            f"He looks at his feet. He looks at {user} again. He is reporting the sounds.* **...mrrp. mrr.**",
+            f"*{user} gets two churos' worth of compliance. Socks, shoes, all of it — "
+            f"he sits through the entire process leaning slightly against {user}'s hand "
+            f"while licking the tube. When it's done he stands and does exactly one lap of the room "
+            f"clicking on the floor, comes back, and sits directly on {user}'s feet. "
+            f"He has decided the shoes are acceptable if {user} is nearby.* **prrr.**",
+        ]))
+        await asyncio.sleep(3)
+        await ctx.send(
+            f"*{user} removes everything — shoes first, then socks. "
+            f"He lifts each paw cooperatively. When the last sock is off he licks {user}'s hand once, "
+            f"settles down with his chin on his own paws, and closes his eyes. "
+            f"That was fine. Unusual, but fine.* **...prrr.**"
+        )
+        return
+
+    # --- STANDARD ---
+    await ctx.send(random.choice([
+        f"*{user} produces not one but two churu tubes. "
+        f"Yarnaby looks at them. He looks at {user}. He looks back at the tubes. "
+        f"Something about this quantity suggests a proportional ask is coming. "
+        f"He sits down anyway. The churu has won. It always wins.* **...mrr.**",
+        f"*Two churus. He is suspicious. He is also immediately sitting in front of {user} "
+        f"with pupils the size of plates, because two churus outweigh suspicion every time.* **mrr. mrr.**",
+    ]))
+    await asyncio.sleep(2)
+
+    await ctx.send(
+        "*The socks go on first. Four of them. He is distracted by the churu "
+        "and tolerates this with the focused calm of someone being paid very well "
+        "to sit still. He does not look at his paws. He looks only at the tube.* **...prrr.**"
+    )
+    await asyncio.sleep(2.5)
+
+    shoe_lines = [
+        "*Now the shoes. The first one goes on and he feels the difference immediately — "
+        "heavier, rigid, nothing like the sock. His ear goes flat. He looks down. "
+        "He looks at {user}. The second churu appears. He looks back at that instead. "
+        "Three more shoes. He is wearing shoes. He is a creature wearing shoes. "
+        "The churu is finished. He processes this in silence.* **...mrr.**",
+        "*Shoe one: front left. He flinches — the weight is unexpected. "
+        "Shoe two: front right. His tail moves. Shoe three: back right, he pulls back once, "
+        "churu redirects him. Shoe four: back left. "
+        "Done. The expression on his face is one of someone who is beginning to question "
+        "the terms of this transaction.* **...mrr. hff.**",
+    ]
+    await ctx.send(random.choice(shoe_lines).format(user=user))
+    await asyncio.sleep(3)
+
+    special = random.random()
+    if score >= 15:
+        finale = (
+            f"*He stands. The shoes make a sound. He freezes. "
+            f"He made a sound with his feet. His feet have never made a sound before. "
+            f"He takes another step. Another sound. He looks at {user} with enormous eyes. "
+            f"He takes three more steps, listening to himself. "
+            f"He sits down. He is leaning toward bad but the churu memory is still warm.* **...mrrp.**"
+        )
+    elif special < 0.2:
+        finale = (
+            "*He stands. He walks the full perimeter of the room, shoes clicking, "
+            "head high, tail up — the energy of someone who has decided if they must wear shoes "
+            "they will wear them with complete commitment. "
+            "He comes back and sits down. He has lapped the room once.* **mrr. mrr.**"
+        )
+    elif special < 0.4:
+        finale = (
+            "*He stands. He does not move. Not one step. "
+            "He looks at his front paws. He sits back down. "
+            "He refuses to walk in these. He has infinite patience and nowhere to be.* **...**"
+        )
+    elif special < 0.6:
+        finale = (
+            "*He stands. Each step: paw raised far higher than necessary, "
+            "placed down with great ceremony. He is marching. "
+            "He does not know he looks ridiculous. He sits back down with complete self-possession.* **mrr. mrr. mrr.**"
+        )
+    elif special < 0.8:
+        finale = (
+            f"*He stands, looks at his front right shoe, and begins trying to remove it with his teeth. "
+            f"He gets it partway off. He leans further, loses his balance entirely, "
+            f"and falls sideways onto the floor with a small thud. "
+            f"He lies there. The shoe is still on. It is half-off and still on. "
+            f"He looks at {user} from floor level. He is not getting up until this is resolved.* **hff. mrrf.**"
+        )
+    else:
+        finale = (
+            "*He stands and freezes. Then, slowly, deliberately, he lies down flat. "
+            "He is not walking in these. He is not standing in these. "
+            "He is going to lie here and wait. He has made this choice consciously. "
+            "He is comfortable with it.* **...**"
+        )
+
+    await ctx.send(finale)
+    await asyncio.sleep(3.5)
+
+    await ctx.send(random.choice([
+        f"*{user} removes the shoes first — all four — then the socks. "
+        f"He watches the shoes go with visible relief. "
+        f"When everything is off he licks all four paws, shakes himself enormously, "
+        f"and walks to his usual spot. He does not look back at the pile of tiny shoes. "
+        f"That chapter is closed.* **prrr.**",
+
+        f"*Shoes off. He exhales audibly. "
+        f"Socks off. He licks the first paw before the last sock is even removed. "
+        f"He sits, feeling his own feet on the floor, normal and unencumbered, "
+        f"and makes a small sound of pure relief. "
+        f"He will not accept shoes again without significant negotiation.* **...prrr. mrr.**",
+
+        f"*One by one, shoes then socks, all eight items removed. "
+        f"He sniff-checks each freed paw. All confirmed normal. "
+        f"He stands, takes a few steps just to confirm they still work, "
+        f"and settles down with his tail around his feet. "
+        f"The shoes are behind him somewhere. He will not be looking at them.* **mrr. prrr.**",
+    ]))
+    m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 3)
+    save_db(m)
+
+
+# ==========================================
 # FINAL: bot.run(TOKEN) - must be last line
 # ==========================================
 
@@ -65615,6 +66089,7 @@ async def vote_cmd(ctx):
 # someone i knew, someone i wanted to do something nice for,
 # so i built them a bot. gave it a name. gave it a personality.
 # spent more time on it than made any sense.
+# it started at 2,234 lines. the screenshot exists. it's real.
 #
 # that friend isn't a friend anymore.
 # they're still out there. alive. fine, probably.
