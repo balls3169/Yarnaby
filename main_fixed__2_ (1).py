@@ -2858,6 +2858,7 @@ class Yarnaby(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True
         super().__init__(
             command_prefix=get_dynamic_prefix, intents=intents, help_command=None
         )
@@ -66596,29 +66597,33 @@ async def dm_cmd(ctx, *, args: str = ""):
     target_member = None
     target_display = target_username
 
-    # Search all guilds Yarnaby is in
+    # Search all guilds — try multiple query strategies
     for g in bot.guilds:
         if target_member:
             break
+        # query_members searches display name prefix, try both the raw input
+        # and variations. Also try cached members which uses username.
+        candidates = []
         try:
-            async for member in g.fetch_members(limit=None):
-                if member.id == ctx.author.id:
-                    continue
-                # Match on username (name) OR display name
-                if member.name.lower() == target_username or member.display_name.lower() == target_username:
-                    target_member = member
-                    target_display = member.display_name
-                    break
+            results = await g.query_members(query=target_username, limit=20)
+            candidates.extend(results)
         except Exception:
-            for member in g.members:
-                if member.id == ctx.author.id:
-                    continue
-                if member.name.lower() == target_username or member.display_name.lower() == target_username:
-                    target_member = member
-                    target_display = member.display_name
-                    break
+            pass
+        # Also check cached members (uses actual username field)
+        candidates.extend(g.members)
+        seen = set()
+        for member in candidates:
+            if member.id in seen or member.id == ctx.author.id:
+                continue
+            seen.add(member.id)
+            if (member.name.lower() == target_username or
+                    member.display_name.lower() == target_username or
+                    member.global_name and member.global_name.lower() == target_username):
+                target_member = member
+                target_display = member.display_name
+                break
 
-    # Fallback: social matrix — check username AND display_name fields
+    # Fallback: social matrix by stored username or display_name
     if not target_member:
         for uid, data in m.get("social_matrix", {}).items():
             if not isinstance(data, dict):
