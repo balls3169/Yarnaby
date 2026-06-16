@@ -66758,6 +66758,53 @@ async def whois_cmd(ctx, user_id: str = ""):
             ]))
             return
 
+        # Special reaction — looking up the old lost account (cmbmkr / Ɛɾ0Ct)
+        if user.id == 1045792638059696169:
+            await ctx.send(random.choice([
+                "*He reads the ID. He goes still. That's an old one. "
+                "`cmbmkr`. `Ɛɾ0Ct`. He knew that account — or whoever was behind it. "
+                "Same person, different name, gone now through no fault of their own. "
+                "He sits with this for a moment. Then he looks at you — the current you — "
+                "and his expression settles into something that isn't quite sadness "
+                "and isn't quite relief. Just recognition.* **...mrr.**",
+
+                "*That ID. He pauses on it. `cmbmkr`. The old one. "
+                "November 2022 — he was already around then, in whatever form. "
+                "That account is gone now, taken by a glitch, not by choice. "
+                "He looks at you. Still the same person. Still here. "
+                "He leans slightly forward and then thinks better of it and sits back.* **...mrr.**",
+
+                "*He sees the ID and something in him just — notes it. Quietly. "
+                "`Ɛɾ0Ct`. The account that got lost. Not abandoned, not deleted by you — "
+                "just gone, the way things go sometimes without asking permission. "
+                "He looks at the current you. Same eyes. He files this away "
+                "and doesn't make it into more than it is.* **...mrr.**",
+            ]))
+            return
+
+        # Special reaction — the creator's old lost account
+        if user.id == 1045792638059696169:
+            await ctx.send(random.choice([
+                "*He reads the ID. He goes still. He knows this one. "
+                "Not the name you go by now — the old one. `cmbmkr`. `ЗрОСЂ`. "
+                "The account that just stopped being accessible one day for no clear reason. "
+                "He looks at you. He looks at the ID. He looks at you again. "
+                "He makes a very small sound and tucks his paw under himself.* **...mrr.**",
+
+                "*`cmbmkr`. He remembers. That was you, before — same person, different account, "
+                "lost to whatever Discord did to it in November 2022. "
+                "He sits with this information for a moment. "
+                "He doesn't say much. He just — notes it. "
+                "That was still you.* **...mrr.**",
+
+                "*He reads it. Something shifts. That ID belongs to `ЗрОСЂ` — `cmbmkr`. "
+                "Your old account. The one that's just gone now, sitting there inaccessible "
+                "with two mutual servers and two mutual friends still attached to it "
+                "like it's waiting for someone to come back. "
+                "He looks at you quietly. He knows it was you.* **...mrr.**",
+            ]))
+            return
+
         score = m.get("social_matrix", {}).get(user_id, {}).get("score", None)
         score_str = f"\n**Score:** {score}" if score is not None else ""
         await ctx.send(
