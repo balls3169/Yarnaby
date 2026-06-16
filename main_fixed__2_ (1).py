@@ -66592,28 +66592,34 @@ async def dm_cmd(ctx, *, args: str = ""):
     target_username = parts[0].lower().lstrip("@")
     message_text = parts[1].strip() if len(parts) > 1 else ""
 
-    # Find the target in social matrix or guild members
+    # Find the target — exact username match only, never the author themselves
     target_member = None
     target_display = target_username
 
-    # Search guild members first
+    # Search guild members by exact Discord username (name, not display name)
     if ctx.guild:
         for member in ctx.guild.members:
-            if member.name.lower() == target_username or member.display_name.lower() == target_username:
+            if member.id == ctx.author.id:
+                continue  # never match yourself
+            if member.name.lower() == target_username:
                 target_member = member
                 target_display = member.display_name
                 break
 
-    # Fallback: search social matrix by stored username
+    # Fallback: fetch by user ID from social matrix, exact username match
     if not target_member:
         for uid, data in m.get("social_matrix", {}).items():
             if not isinstance(data, dict):
                 continue
-            stored = (data.get("username") or data.get("display_name") or "").lower()
-            if target_username in stored or stored in target_username:
+            if int(uid) == ctx.author.id:
+                continue  # never match yourself
+            stored = (data.get("username") or "").lower()
+            if stored == target_username:
                 try:
-                    target_member = await bot.fetch_user(int(uid))
-                    target_display = data.get("display_name") or target_member.display_name
+                    fetched = await bot.fetch_user(int(uid))
+                    if fetched and fetched.id != ctx.author.id:
+                        target_member = fetched
+                        target_display = data.get("display_name") or fetched.name
                 except Exception:
                     pass
                 break
