@@ -33571,7 +33571,7 @@ async def injuries_cmd(ctx):
             "*He submits to the inspection with studied dignity. It is minor. He is treating it as minor.* **mrr.**",
         ]))
 
-    await ctx.send("")  # spacer
+    await asyncio.sleep(0.3)  # small pause between opening reaction and injury list
 
     # Per-injury lines
     for inj in untreated_sorted[:5]:
