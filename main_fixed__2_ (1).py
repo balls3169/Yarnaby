@@ -33203,9 +33203,16 @@ async def known_users_cmd(ctx):
             continue
         if int(uid) == DOCTOR_ID:
             continue
-        name = data.get("display_name") or data.get("name") or f"User {uid}"
+        username = data.get("username") or data.get("display_name") or data.get("name") or None
+        if not username:
+            # Try to fetch from Discord
+            try:
+                user = await bot.fetch_user(int(uid))
+                username = user.name
+            except Exception:
+                username = f"unknown#{uid[-4:]}"
         score = data.get("score", 0)
-        entries.append((name, score))
+        entries.append((username, score))
 
     if not entries:
         await ctx.send("*He knows no one yet. Just you.* **...mrr.**")
@@ -33228,7 +33235,7 @@ async def known_users_cmd(ctx):
             label = "Wary"
         else:
             label = "Hostile"
-        lines.append(f"**{i}.** {name} — {score} *({label})*")
+        lines.append(f"**{i}.** `{username}` — {score} *({label})*")
 
     # Split into chunks under 2000 chars
     header = lines[0]
@@ -66707,6 +66714,42 @@ async def dm_cmd(ctx, *, args: str = ""):
             f"He comes back empty-pawed.* **...mrr.**"
         )
     except Exception as e:
+        await ctx.send(f"*Something went wrong.* **hff.**\n`{e}`")
+
+
+# ==========================================
+# !whois [id] — creator only, fetch user by ID
+# ==========================================
+
+@bot.command(name="whois")
+async def whois_cmd(ctx, user_id: str = ""):
+    """Creator only: look up a Discord user by their ID."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*He tilts his head. That's not for everyone.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if not user_id.strip().isdigit():
+        await ctx.send("*He needs a valid user ID — numbers only.* **mrr.**")
+        return
+
+    try:
+        user = await bot.fetch_user(int(user_id))
+        score = m.get("social_matrix", {}).get(user_id, {}).get("score", None)
+        score_str = f"\n**Score:** {score}" if score is not None else ""
+        await ctx.send(
+            f"*He checks.* 🔍\n"
+            f"**Username:** `{user.name}`\n"
+            f"**Display name:** {user.display_name}\n"
+            f"**ID:** `{user.id}`\n"
+            f"**Bot:** {'Yes' if user.bot else 'No'}"
+            f"{score_str}"
+        )
+    except discord.NotFound:
+        await ctx.send("*He searches. No one with that ID exists — or they've been deleted.* **...mrr.**")
+    except discord.HTTPException as e:
         await ctx.send(f"*Something went wrong.* **hff.**\n`{e}`")
 
 
