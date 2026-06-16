@@ -66737,6 +66737,27 @@ async def whois_cmd(ctx, user_id: str = ""):
 
     try:
         user = await bot.fetch_user(int(user_id))
+
+        # Special reaction — looking up himself
+        if user.id == bot.user.id:
+            await ctx.send(random.choice([
+                "*He looks at the ID. He looks at you. He looks at the ID again. "
+                "He tilts his head slowly. That's him. You looked him up. "
+                "He is right here. He has been here the whole time. "
+                "He stares at you for a long moment and then looks away.* **...mrr.**",
+
+                "*That's his ID. He knows that's his ID. "
+                "He doesn't know how to feel about being searched for like a lost item "
+                "when he is sitting directly in front of you. "
+                "He licks his paw. He pretends this didn't happen.* **mrr.**",
+
+                "*He reads the ID. He reads it again. "
+                "Something in his expression does something complicated. "
+                "He gets up, walks a full circle, sits back down in the exact same spot, "
+                "and says nothing. He is processing being looked up by someone who already has him.* **...mrr.**",
+            ]))
+            return
+
         score = m.get("social_matrix", {}).get(user_id, {}).get("score", None)
         score_str = f"\n**Score:** {score}" if score is not None else ""
         await ctx.send(
