@@ -66592,29 +66592,42 @@ async def dm_cmd(ctx, *, args: str = ""):
     target_username = parts[0].lower().lstrip("@")
     message_text = parts[1].strip() if len(parts) > 1 else ""
 
-    # Find the target — exact username match only, never the author themselves
+    # Find the target — never the author themselves
     target_member = None
     target_display = target_username
 
-    # Search guild members by exact Discord username (name, not display name)
-    if ctx.guild:
-        for member in ctx.guild.members:
-            if member.id == ctx.author.id:
-                continue  # never match yourself
-            if member.name.lower() == target_username:
-                target_member = member
-                target_display = member.display_name
-                break
+    # Search all guilds Yarnaby is in
+    for g in bot.guilds:
+        if target_member:
+            break
+        try:
+            async for member in g.fetch_members(limit=None):
+                if member.id == ctx.author.id:
+                    continue
+                # Match on username (name) OR display name
+                if member.name.lower() == target_username or member.display_name.lower() == target_username:
+                    target_member = member
+                    target_display = member.display_name
+                    break
+        except Exception:
+            for member in g.members:
+                if member.id == ctx.author.id:
+                    continue
+                if member.name.lower() == target_username or member.display_name.lower() == target_username:
+                    target_member = member
+                    target_display = member.display_name
+                    break
 
-    # Fallback: fetch by user ID from social matrix, exact username match
+    # Fallback: social matrix — check username AND display_name fields
     if not target_member:
         for uid, data in m.get("social_matrix", {}).items():
             if not isinstance(data, dict):
                 continue
             if int(uid) == ctx.author.id:
-                continue  # never match yourself
-            stored = (data.get("username") or "").lower()
-            if stored == target_username:
+                continue
+            stored_uname = (data.get("username") or "").lower()
+            stored_dname = (data.get("display_name") or "").lower()
+            if target_username in (stored_uname, stored_dname):
                 try:
                     fetched = await bot.fetch_user(int(uid))
                     if fetched and fetched.id != ctx.author.id:
