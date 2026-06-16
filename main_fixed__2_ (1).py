@@ -40104,11 +40104,308 @@ async def _ambient_behaviour_tick():
             await _maybe_squeeze_ambient(ch, m)
         await _maybe_random_sound(ch, bot)
         await _maybe_breathing_sfx(bot)
+        await _maybe_scratch_injury(ch, m)
+        await _maybe_slow_blink(ch, m)
+        await _maybe_invisible_enemy(ch, m)
+        await _maybe_loaf(ch, m)
+        await _maybe_chattering(ch, m)
+        await _maybe_headbutt_inanimate(ch, m)
+        await _maybe_sit_in_square(ch, m)
+        await _maybe_bring_gift(ch, m)
+        await _maybe_sudden_sprint(ch, m)
+        await _maybe_gravity_test(ch, m)
     except Exception as e:
         print(f"[ambient tick] {e}")
 
 # Started in on_ready so discord.py has a running event loop.
 
+async def _maybe_scratch_injury(channel, m):
+    """Occasionally he scratches too deep and hurts himself."""
+    if random.random() > 0.06:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    existing = [i for i in m["internal"].get("injuries", []) if "scratch" in i.get("type", "") and not i.get("treated")]
+    if existing:
+        return
+
+    locations = ["neck", "ear", "cheek", "shoulder", "side"]
+    loc = random.choice(locations)
+
+    lines = [
+        f"*He reaches back to scratch behind his {loc}. He finds the spot. He scratches. "
+        f"He scratches harder. He scratches too hard — his claw catches and drags. "
+        f"He stops. He lowers his paw slowly. He sits very still for a moment. "
+        f"He licks the paw and looks at it. He made himself bleed a little. "
+        f"He is processing this with great dignity and zero acknowledgement that it hurt.* **...mrr. hff.**\n"
+        f"*(Scratch wound on {loc} logged — use `!treat` or `!vet`)*",
+
+        f"*He is scratching his {loc} when something goes wrong. Too deep, too sharp, too enthusiastic. "
+        f"He flinches — just once, barely — and stops mid-scratch. "
+        f"He sits. He licks his paw. He examines it. "
+        f"There is a small wound there now. He did not mean to do this. "
+        f"He goes back to sitting normally as if nothing happened.* **...mrrf.**\n"
+        f"*(Scratch wound on {loc} — `!treat` recommended before it gets worse)*",
+
+        f"*Mid-scratch, he catches himself too deep on the {loc}. "
+        f"His whole body goes still. He brings the paw down and stares at it. "
+        f"He licks it once, carefully. He is fine. He is absolutely fine. "
+        f"He sits back down and tucks the paw under himself "
+        f"and stares at the wall with the expression of someone who is fine.* **...mrr.**\n"
+        f"*(Scratch wound on {loc} logged — needs `!treat`)*",
+    ]
+
+    try:
+        await channel.send(random.choice(lines))
+        m["internal"].setdefault("injuries", []).append({
+            "type": "scratch wound",
+            "location": loc,
+            "severity": "minor",
+            "caused_by": "scratched too deep",
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "treated": False,
+        })
+        m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 4)
+        save_db(m)
+    except Exception:
+        pass
+
+
+async def _maybe_slow_blink(channel, m):
+    """He slow-blinks at someone. Or at nothing."""
+    if random.random() > 0.05:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    lines = [
+        "*He looks at you. His eyes close slowly — all the way — then open again, just as slowly. "
+        "He holds your gaze for a moment after. That was intentional. He has said something without saying anything.* **...mrr.**",
+        "*He is sitting across the room and he looks at you and slow-blinks. "
+        "Unprompted. You didn't do anything. He just decided to. He looks away after, like it never happened.* **...**",
+        "*He slow-blinks at the wall. Whether there is someone there that only he can see, "
+        "or whether he is simply being polite to the wall, is unclear. "
+        "The wall does not respond. He seems satisfied anyway.* **...mrr.**",
+        "*He catches your eye from across the room and blinks at you — long, slow, deliberate. "
+        "He is telling you something. Whether it is 'I trust you' or 'I see you' or simply 'hello' "
+        "is between him and the blink.* **...**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_invisible_enemy(channel, m):
+    """He sees something. There is nothing there."""
+    if random.random() > 0.045:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    lines = [
+        "*He stops mid-walk. His head turns slowly to the left. He is looking at a specific point "
+        "on the wall, approximately two feet up. There is nothing there. "
+        "He watches it for thirty seconds. He walks away. He does not explain.* **...**",
+        "*His ears swivel. His pupils go wide. He stares at the corner of the ceiling "
+        "with the full-body attention of someone who has just seen something of great significance. "
+        "There is nothing in the corner. There has never been anything in the corner. "
+        "He watches it for a full minute before deciding it's handled.* **...mrr.**",
+        "*Something has caught his attention near the floor by the door. He approaches slowly, "
+        "crouching lower with each step. He stops. He waits. He pounces at nothing. "
+        "He sits up and licks his paw. Whatever it was, it's dealt with.* **mrrp.**",
+        "*He is sitting calmly and then he isn't. He is suddenly staring at something above the bookshelf. "
+        "His tail lashes once. He tracks it — whatever it is — across the ceiling. "
+        "It reaches the other wall and apparently stops there. He watches that wall for two more minutes "
+        "before deciding it's gone. It was probably gone the whole time. He is not apologising.* **...mrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_loaf(channel, m):
+    """He becomes a loaf."""
+    if random.random() > 0.05:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    lines = [
+        "*He tucks his front paws under his chest. Then his back paws. "
+        "He is now a perfect oval with a head. He has become a loaf. "
+        "He blinks once. He is content. He will be a loaf for a while.* **...prrr.**",
+        "*He folds. Paw by paw, he reduces himself to the smallest possible configuration "
+        "and sits there like a very fluffy brick. His tail wraps around the outside. "
+        "He has achieved maximum loaf. He is at peace.* **prrr.**",
+        "*He sits. He tucks. He is somehow even more compact than usual. "
+        "All four paws are invisible now. He is a head attached to a wool oval. "
+        "He has no legs. There are no legs. There have never been legs.* **...prrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+        m["stats"]["mood_score"] = min(100, m["stats"].get("mood_score", 50) + 2)
+        save_db(m)
+    except Exception:
+        pass
+
+
+async def _maybe_chattering(channel, m):
+    """He sees something outside and chatters at it."""
+    if random.random() > 0.04:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    targets = ["a bird", "a squirrel", "a fly", "something on the windowsill", "a leaf blowing past"]
+    target = random.choice(targets)
+    lines = [
+        f"*He spots {target} through the window. His jaw starts moving — that specific clicking, "
+        f"chittering sound, teeth clacking together rapidly. He is communicating something. "
+        f"It is unclear if {target} can hear him. It is very clear he needs {target} to know "
+        f"how he feels about this situation.* **ek ek ek ek ek. mrr.**",
+        f"*{target.capitalize()} appears. He sees it. His whole face changes. "
+        f"The chattering starts before he's even fully turned toward the window — "
+        f"that fast, involuntary clicking that he cannot stop and doesn't try to. "
+        f"He presses his nose against the glass. Ek ek ek. {target.capitalize()} does not care. "
+        f"He continues anyway.* **ek ek ek ek. mrrp.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_headbutt_inanimate(channel, m):
+    """He headbutts something for no clear reason."""
+    if random.random() > 0.04:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    objects = ["the wall", "a chair leg", "the corner of a table", "a door", "the fridge", "a bookshelf"]
+    obj = random.choice(objects)
+    lines = [
+        f"*He walks up to {obj} and headbutts it. Firmly. Once. "
+        f"He stands there for a moment, forehead still against it. "
+        f"He pulls back. He walks away. He has marked {obj}. It belongs to him now.* **mrr.**",
+        f"*He approaches {obj} at a deliberate pace, makes direct contact with his forehead, "
+        f"and pushes slightly. He holds this for several seconds. "
+        f"He pulls back, looks at {obj}, and walks away satisfied. "
+        f"This was necessary. The reasons are his own.* **...mrr.**",
+        f"*He headbutts {obj} twice — once firmly, once softer, like a confirmation. "
+        f"He rubs his cheek along it after. He owns this now. He owned it before too, but now it's official.* **prrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_sit_in_square(channel, m):
+    """He finds a square or rectangle and sits in it."""
+    if random.random() > 0.035:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    squares = [
+        "a patch of sunlight on the floor that happens to be rectangular",
+        "the exact outline of a rug he has never cared about before",
+        "a piece of paper someone left on the floor",
+        "the shadow of a window frame",
+        "a small mat",
+        "a flattened cardboard box",
+    ]
+    sq = random.choice(squares)
+    lines = [
+        f"*He finds {sq}. He sits in it. "
+        f"He is perfectly centred. He did not measure this. He simply knew. "
+        f"He will stay here until the square is no longer available or he decides he is done. "
+        f"Whichever comes first.* **...mrr.**",
+        f"*There is {sq}. It is a shape on the floor. "
+        f"He goes to it, turns once, and sits directly inside it. "
+        f"He looks out at the rest of the room from inside his square. "
+        f"This is his place now. The square has been claimed.* **mrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_bring_gift(channel, m):
+    """He brings someone a gift. It is not always a good gift."""
+    if random.random() > 0.03:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    gifts = [
+        ("a hair tie he found somewhere", "He sets it down. He sits. He waits for acknowledgement."),
+        ("a small piece of wool that fell off him at some point", "He deposits it carefully. He is proud of this."),
+        ("a sock that isn't his", "He drops it and looks up expectantly. This is a gift. The gift is a sock."),
+        ("something unidentified that was under the sofa", "He sets it down and steps back to let you see it better. You are not sure what it is. He is very sure it's good."),
+        ("a bottle cap", "He rolls it toward you with his nose and then sits and watches it arrive. He has presented this to you. He expects gratitude."),
+        ("a pen", "He carries it over, sets it at your feet, and sits. He found this. It is yours now. You're welcome."),
+    ]
+    item, detail = random.choice(gifts)
+    lines = [
+        f"*He trots in carrying {item}. {detail}* **mrr.**",
+        f"*He arrives with {item} in his mouth, sets it down in front of whoever is nearest, "
+        f"and sits. {detail}* **mrr. prrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_sudden_sprint(channel, m):
+    """He just sprints for no reason."""
+    if random.random() > 0.035:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    lines = [
+        "*He is sitting quietly. He is calm. He is at peace. "
+        "And then he is gone — a sudden full-speed sprint across the room for no reason, "
+        "around the corner, back again, one jump onto something, back down, and then he sits. "
+        "He is calm again. He was always calm. Nothing happened.* **mrrp!**",
+        "*Without warning he bolts. Not away from anything. Not toward anything. "
+        "Just — movement, full speed, all four paws, for about eight seconds. "
+        "He stops exactly where he started. He licks his paw. He has discharged something. "
+        "He is better now.* **mrrp. mrr.**",
+        "*He gets up, sprints the entire length of the room, slides slightly on the floor at the end, "
+        "recovers, sits down, and begins grooming immediately as if establishing an alibi. "
+        "He was sitting here the whole time. You saw nothing.* **mrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
+
+
+async def _maybe_gravity_test(channel, m):
+    """He pushes something off a surface. Deliberately."""
+    if random.random() > 0.04:
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    items = ["a pen", "a remote control", "a coaster", "a small book", "someone's phone", "a cup (empty, fortunately)"]
+    item = random.choice(items)
+    lines = [
+        f"*He finds {item} on the edge of a surface. He looks at it. "
+        f"He looks at the floor. He looks at {item} again. "
+        f"He places one paw on it and pushes it slowly, deliberately, off the edge. "
+        f"He watches it fall. He watches it land. "
+        f"He looks satisfied. He walks away.* **mrr.**",
+        f"*He approaches {item}. He makes eye contact with whoever is in the room. "
+        f"He pushes {item} off the table. Still making eye contact. "
+        f"He holds eye contact for a moment after. Then he walks away.* **mrr.**",
+        f"*{item.capitalize()} is on the surface. He has decided it should not be on the surface. "
+        f"He nudges it. It moves closer to the edge. He nudges it again. "
+        f"It falls. He watches it go all the way to the floor. "
+        f"He does not regret this.* **...mrr.**",
+    ]
+    try:
+        await channel.send(random.choice(lines))
+    except Exception:
+        pass
 
 
 # ==========================================
@@ -66073,6 +66370,73 @@ async def shoes_cmd(ctx):
     ]))
     m["stats"]["mood_score"] = max(0, m["stats"].get("mood_score", 50) - 3)
     save_db(m)
+
+
+# ==========================================
+# !car — yarnaby tries to make car sounds
+# ==========================================
+
+@bot.command(name="car")
+async def car_cmd(ctx):
+    """Yarnaby tries to make car sounds. May or may not work."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    user = ctx.author.display_name
+
+    success = random.random() < 0.45
+
+    if success:
+        await ctx.send(random.choice([
+            f"*{user} asks him to make a car sound. He considers this. "
+            f"He opens his mouth. What comes out is, genuinely, something like a low engine rumble — "
+            f"a deep, sustained purr that revs slightly at the end. "
+            f"He closes his mouth. He looks at {user}. "
+            f"He does not know that was good. He just did it.* **rrrmmmmmm. mrr.**",
+
+            f"*He tilts his head. He opens his mouth. "
+            f"He produces something from deep in his chest — a rolling, mechanical sound, "
+            f"somewhere between a purr and a diesel engine idling. "
+            f"It lasts about four seconds. He stops. He licks his nose. "
+            f"He has no idea what just happened but the room does.* **rrrmmmmmmmmrr. mrr.**",
+
+            f"*He makes the sound. It is not a car exactly. "
+            f"It is the impression of a car — something revving, something idling, "
+            f"something that should not be coming from a creature this size. "
+            f"He does it for a few seconds and then just stops and sits there. "
+            f"He seems unbothered. The room is not unbothered.* **rrrRRRRmmmmm. prrr.**",
+
+            f"*He opens his mouth and makes a sound like a small engine turning over — "
+            f"once, twice, catching on the third try. "
+            f"It settles into a low rumble. He holds it. He revs it slightly. "
+            f"He stops. He looks at his own chest like he's surprised it did that.* **rrr-rrr-RRRMMM. mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*{user} asks him to make a car sound. He opens his mouth. "
+            f"He makes his normal sound. It is a mrr. "
+            f"He tries again. It is also a mrr. "
+            f"He looks at {user}. He has done what he can. The car sound was not in there.* **mrr. mrr.**",
+
+            f"*He tries. He genuinely tries. "
+            f"He opens his mouth, furrows his brow slightly, and produces: a slightly longer mrr. "
+            f"He tilts his head. He tries once more. Another mrr, this one with more texture. "
+            f"He sits back. He is not a car. He has confirmed this.* **mrrr. ...mrr.**",
+
+            f"*He considers the request. He opens his mouth. "
+            f"What comes out is a wheeze — not a car sound, not really any sound he usually makes, "
+            f"just a small, confused exhale with no clear goal. "
+            f"He closes his mouth. He looks away. This is not discussed further.* **...hff.**",
+
+            f"*He tries to make the sound. Instead he yawns. "
+            f"A full, enormous, very sincere yawn — jaw all the way open, tongue curling. "
+            f"He closes his mouth. He blinks. That was not a car. "
+            f"He lies down. The request has been considered and declined by his body.* **...mrr. hff.**",
+
+            f"*He opens his mouth. He makes a sound. "
+            f"It is — almost. There's something in there that could have been a car if it had gone "
+            f"slightly differently. But it didn't. It was a mrow. "
+            f"He looks at {user}. Close enough, he decides. He sits back down.* **mrow.**",
+        ]))
 
 
 # ==========================================
