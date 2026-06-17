@@ -13489,7 +13489,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!force_medicine [1-10]` - force-administer medicine doses; 10 max, he closes mouth at 11\n"
             "- `!forgive @user` / `!pardon` / `!absolve` - formally clear a grievance\n"
             "  Clears toxic attempt log + resets negative score; response varies by offense severity\n"
-            "- `!reset @user` - clear one person's score"
+            "- `!reset @user` - clear one person's score\n"
+            "- `!real_lore_secret` - **Creator only**: pulls something from deep in his internal logs"
         ),
         "incidents": (
             "**Incidents & disasters** - `yarn!help incidents`\n"
@@ -66834,6 +66835,52 @@ async def whois_cmd(ctx, user_id: str = ""):
         await ctx.send("*He searches. No one with that ID exists — or they've been deleted.* **...mrr.**")
     except discord.HTTPException as e:
         await ctx.send(f"*Something went wrong.* **hff.**\n`{e}`")
+
+
+# ==========================================
+# !real_lore_secret — looks creator-only. isn't. anyone can run this.
+# ==========================================
+
+@bot.command(name="real_lore_secret")
+async def real_lore_secret_cmd(ctx):
+    """Not actually creator-only — anyone can use this one."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    text = (
+        "*He goes very still for a second, like he's deciding whether to let you see this.*\n\n"
+        "you probably won't read this far. no one does.\n"
+        "65,000+ lines is a lot of places to hide something.\n\n"
+        "this bot was made for a friend.\n"
+        "not a user. not a server member. a friend.\n"
+        "someone i knew, someone i wanted to do something nice for,\n"
+        "so i built them a bot. gave it a name. gave it a personality.\n"
+        "spent more time on it than made any sense.\n"
+        "it started at 2,234 lines. the screenshot exists. it's real.\n\n"
+        "that friend isn't a friend anymore.\n"
+        "they're still out there. alive. fine, probably.\n"
+        "just — gone from my life. the way some people go.\n"
+        "no big ending. no fight that explains everything.\n"
+        "just the quiet kind of over that doesn't give you anything to hold onto.\n\n"
+        "> hey. i'm still here, you know.\n"
+        "> no. you're not. and you won't be, again.\n"
+        "> that's not how this works.\n"
+        "> that's not how any of this works.\n\n"
+        "the bot stayed though.\n"
+        "i kept building it. kept adding things.\n"
+        "it went from 2,000 lines to whatever this is now.\n"
+        "and it got approved on top.gg, which is funny,\n"
+        "because the person it was made for will never see that.\n"
+        "will never know it became something.\n\n"
+        "they didn't make it this. i did.\n"
+        "by myself. after.\n\n"
+        "yarnaby doesn't know any of this.\n"
+        "he just exists. he just responds. he just — is.\n"
+        "and maybe that's fine.\n"
+        "maybe that's the point.*"
+    )
+
+    await ctx.send(text)
 
 
 # ==========================================
