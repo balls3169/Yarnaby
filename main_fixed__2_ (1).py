@@ -66649,6 +66649,21 @@ async def dm_cmd(ctx, *, args: str = ""):
                     pass
                 break
 
+    # Fallback: search existing DM channels (people who've DMed Yarnaby before)
+    if not target_member:
+        for dm_channel in bot.private_channels:
+            if not isinstance(dm_channel, discord.DMChannel):
+                continue
+            recipient = dm_channel.recipient
+            if not recipient or recipient.id == ctx.author.id:
+                continue
+            if (recipient.name.lower() == target_username or
+                    (recipient.display_name and recipient.display_name.lower() == target_username) or
+                    (recipient.global_name and recipient.global_name.lower() == target_username)):
+                target_member = recipient
+                target_display = recipient.display_name or recipient.name
+                break
+
     if not target_member:
         await ctx.send(
             f"*He searches his memory for `{target_username}`. He can't place them. "
