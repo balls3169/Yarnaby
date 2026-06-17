@@ -6098,6 +6098,9 @@ async def on_message(message):
         or (message.content.startswith("!") and after_bang.isalpha())
     )
     # --- DM notification to Creator (must run before command short-circuit) ---
+    # Creator-only: only DOCTOR_ID ever receives these forwarded DMs.
+    # Forwards text content AND any attachments (images/gifs/videos/files)
+    # so the Creator can see exactly what was sent, not just a text preview.
     if isinstance(message.channel, discord.DMChannel) and message.author.id != DOCTOR_ID:
         creator = bot.get_user(DOCTOR_ID)
         if not creator:
@@ -6107,9 +6110,40 @@ async def on_message(message):
                 creator = None
         if creator:
             try:
-                await creator.send(
-                    f"📩 **DM from {message.author.display_name} ({message.author.id}):**\n> {message.content[:400]}"
-                )
+                header = f"📩 **DM from {message.author.display_name} ({message.author.id}):**"
+                if message.content:
+                    header += f"\n> {message.content[:400]}"
+
+                # Discord caps a single message at 10 attachments. Some people
+                # genuinely dump 20-30+ images/videos in one DM, so instead of
+                # silently dropping everything past the first 10, we batch
+                # them into as many messages as needed and send them all.
+                link_fallbacks = []
+                batches = []
+                if message.attachments:
+                    current_batch = []
+                    for a in message.attachments:
+                        try:
+                            current_batch.append(await a.to_file())
+                        except Exception:
+                            # File too large / fetch failed - fall back to a link
+                            link_fallbacks.append(a.url)
+                            continue
+                        if len(current_batch) == 10:
+                            batches.append(current_batch)
+                            current_batch = []
+                    if current_batch:
+                        batches.append(current_batch)
+
+                if link_fallbacks:
+                    header += "\n" + "\n".join(f"> [attachment: {u}]" for u in link_fallbacks)
+
+                if batches:
+                    await creator.send(header, files=batches[0])
+                    for extra_batch in batches[1:]:
+                        await creator.send(files=extra_batch)
+                else:
+                    await creator.send(header)
             except Exception:
                 pass
 
