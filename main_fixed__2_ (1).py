@@ -1588,6 +1588,7 @@ CREATOR_ID = DOCTOR_ID
 CREATOR_NAME = "The Creator"
 CREATOR_USERNAME = "adidas doge"
 DATABASE = "1166_deep_memory.json"
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 # Co-owner / vet accounts - two Discord IDs (the friend switches between them)
 # Vets share: !vet, !forgive @user, !reset @user
@@ -66869,6 +66870,183 @@ async def whois_cmd(ctx, user_id: str = ""):
         await ctx.send("*He searches. No one with that ID exists — or they've been deleted.* **...mrr.**")
     except discord.HTTPException as e:
         await ctx.send(f"*Something went wrong.* **hff.**\n`{e}`")
+
+
+# ==========================================
+# !politics — rewrite a message in a real politician's speech style (AI powered)
+# ==========================================
+
+# Map of recognized politician names → style briefing for the AI
+_POLITICIAN_STYLES = {
+    # Presidents / heads of state
+    "erdogan":       "Turkish President Recep Tayyip Erdoğan. Passionate, nationalistic, references Ottoman heritage, accuses enemies of treason against the Turkish people, uses grand religious undertones, heavy rhetoric.",
+    "trump":         "Donald Trump. Very simple words, lots of repetition, superlatives ('the best', 'tremendous', 'disaster'), boastful, attacks critics by name, rambling tangents, heavy use of 'believe me', 'frankly', 'many people are saying'.",
+    "biden":         "Joe Biden. Folksy, working-class empathy, sometimes loses the thread mid-sentence, references Scranton, invokes unity and 'the soul of the nation', occasional stutters conveyed through dashes.",
+    "obama":         "Barack Obama. Eloquent, measured, uses tricolon structures, inspirational crescendos, references 'the arc of the moral universe', professorial tone, occasional self-deprecating humour.",
+    "putin":         "Vladimir Putin. Cold, calculated, formal Russian-style logic, refers to geopolitical threats from 'Western partners', claims to act only in self-defence, slightly threatening undertones disguised as diplomacy.",
+    "xi":            "Xi Jinping. Formal CCP language, references 'the great rejuvenation of the Chinese nation', 'the Party', 'the people', heavy on collective harmony, warns against interference in internal affairs.",
+    "modi":          "Narendra Modi. References 'my dear countrymen', Hindi-English blend, references Bharat/India's 5000-year civilisation, development-focused, alliteration, often addresses youth.",
+    "macron":        "Emmanuel Macron. Intellectual, slightly condescending, references European sovereignty, drops philosophical references, uses complex sentence structures, talks about 'the project of Europe'.",
+    "scholz":        "Olaf Scholz. Dry, technical, cautious German bureaucratic language, avoids strong claims, very measured, references 'our partners', often sounds like he is reading a coalition agreement.",
+    "sunak":         "Rishi Sunak. Polished, technocratic, references economic data and 'difficult decisions', mentions the British people's resilience, tries to sound relatable but comes off corporate.",
+    "johnson":       "Boris Johnson. Deliberately bumbling, classical Latin references, self-deprecating, rambling anecdotes, 'Let me be clear' followed by something unclear, blond chaos energy in text form.",
+    "zelensky":      "Volodymyr Zelensky. Emotional, direct, urges the world to act, references fallen soldiers, defiant against all odds, short punchy sentences, addresses the people of specific countries directly.",
+    "kim":           "Kim Jong-un. Supreme Leader tone, references 'the DPRK's dignity', warns of 'merciless punishment', praises the Workers' Party, references Juche ideology, very dramatic.",
+    "castro":        "Fidel Castro. Extremely long, revolutionary socialist language, references imperialism, cites statistics, addresses 'compañeros', passionate historical references, could go on for hours.",
+    "chavez":        "Hugo Chávez. Populist, theatrical, references Bolívar constantly, calls enemies 'the oligarchy', switches between serious and playful mid-speech, very energetic.",
+    "bolsonaro":     "Jair Bolsonaro. Macho military tone, references 'the family', 'God', 'the nation', attacks the 'communist left', anti-media, very blunt, occasional crass humour.",
+    "lula":          "Lula da Silva. Working-class warmth, references his own poverty, talks about bread on the table, optimistic about Brazil's future, populist but gentle.",
+    "trudeau":       "Justin Trudeau. Inclusive, apologetic tone, references diversity as strength, uses 'Canadians know that...', overly sincere, sometimes painfully politically correct.",
+    "netanyahu":     "Benjamin Netanyahu. Serious, references the Holocaust and existential threats to Israel, uses dramatic pauses, frames every conflict as civilisational, stern.",
+    "kennedy":       "John F. Kennedy. Iconic ask-not rhetoric, short declarative sentences, Cold War gravitas, inspirational call to service, poetic cadence.",
+    "reagan":        "Ronald Reagan. Sunny optimism, 'morning in America' energy, simple folksy metaphors, references American exceptionalism, anti-government quips.",
+    "thatcher":      "Margaret Thatcher. Iron conviction, 'the lady's not for turning', references economic hard truths, slightly scolding tone, very certain.",
+    "churchill":     "Winston Churchill. Epic Churchillian prose, 'we shall fight on the beaches' energy, powerful rhythm, references blood toil tears and sweat, historic gravitas.",
+    "mandela":       "Nelson Mandela. Dignified, forgiving, references reconciliation, ubuntu, the long walk to freedom, moral authority.",
+    "gandhi":        "Mahatma Gandhi. Non-violent, spiritual, simple truth, references self-sufficiency, satyagraha, sacrifice, very calm and certain.",
+    "lincoln":       "Abraham Lincoln. Gettysburg-level gravitas, references the founding ideals, short profound sentences, references 'a new birth of freedom'.",
+    "mao":           "Mao Zedong. Revolutionary class struggle language, references 'the masses', 'paper tigers', the Long March, very ideological.",
+    "mussolini":     "Benito Mussolini. Bombastic fascist rhetoric, references Roman glory, the nation as an organism, collective destiny, theatrical.",
+    "hitler":        "Adolf Hitler. [REFUSED — not generating content in this style under any framing.]",
+    "de_gaulle":     "Charles de Gaulle. Haughty French grandeur, 'La France', references national destiny, very formal, slightly theatrical.",
+    "adenauer":      "Konrad Adenauer. Post-war German reconstruction tone, serious, references rebuilding trust, European integration, measured.",
+    # More modern / current
+    "milei":         "Javier Milei. Anarcho-capitalist rage, references 'the political caste', 'motosierra' (chainsaw), libertarian economics jargon, screaming energy even in text.",
+    "meloni":        "Giorgia Meloni. Italian nationalist pride, references 'God, homeland, family', criticises EU overreach, emotional appeals to Italian identity.",
+    "orban":         "Viktor Orbán. Illiberal democracy rhetoric, references 'Soros', 'Brussels bureaucrats', Christian Europe, sovereignty, very combative.",
+    "farage":        "Nigel Farage. Pub-landlord populism, Brexit triumphalism, 'the establishment', 'the people vs the elites', very blunt.",
+    "le_pen":        "Marine Le Pen. French nationalist, references immigration and national identity, tries to sound reasonable while pushing hard-right positions.",
+    "ocasio":        "Alexandria Ocasio-Cortez. Progressive firebrand, references working people, healthcare as a right, calls out billionaires, Twitter-savvy energy.",
+    "bernie":        "Bernie Sanders. Gruff, repetitive for emphasis, 'the top 1%', 'the billionaire class', arms waving energy in text form, Medicare for All.",
+    "desantis":      "Ron DeSantis. Culture-war framing, references Florida as 'the free state', attacks 'woke ideology', tries to sound tough but a bit stiff.",
+    "mayor_pete":    "Pete Buttigieg. Annoyingly articulate, references his military service, structured arguments, very calm, sometimes too polished.",
+    "johnson_us":    "Hank Johnson (US Rep). References Guam capsizing, very measured but unexpected tangents.",
+    "elon":          "Elon Musk giving a political-style speech. References free speech, 'the legacy media', X/Twitter, colonising Mars as civilisational backup, meme-adjacent.",
+}
+
+_POLITICS_REFUSED = {"hitler"}
+
+async def _politics_generate(politician_key: str, message_text: str) -> str:
+    """Call OpenRouter to rewrite message_text in the given politician's style."""
+    style_desc = _POLITICIAN_STYLES.get(politician_key, "")
+    if not style_desc:
+        return None
+
+    if not OPENROUTER_API_KEY or aiohttp is None:
+        return "⚠️ Politics mode is not available right now (OPENROUTER_API_KEY missing)."
+
+    system_prompt = (
+        "You are a speech-writing assistant that rewrites any input message "
+        "as an authentic-sounding official political speech or statement in the "
+        "exact rhetorical style described. Make it sound genuinely like that "
+        "politician — use their vocabulary, sentence rhythm, favourite phrases, "
+        "mannerisms, and ideological framing. Keep the core meaning of the original "
+        "message intact but dress it entirely in their voice. Output ONLY the "
+        "rewritten speech/statement, no preamble, no explanation, no quotation marks "
+        "around it. Keep it under 1800 characters."
+    )
+    user_prompt = (
+        f"Politician style: {style_desc}\n\n"
+        f"Original message to rewrite:\n{message_text}"
+    )
+
+    payload = {
+        "model": "",  # set per-attempt in the fallback loop below
+        "max_tokens": 600,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_prompt},
+        ],
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/yarnaby-bot",  # optional but good practice for OpenRouter
+        "X-Title": "Yarnaby",
+    }
+
+    # Model fallback chain — tries each in order until one succeeds
+    _models = [
+        "openai/gpt-4o-mini",
+        "anthropic/claude-haiku-4-5",
+        "google/gemini-flash-1.5",
+        "meta-llama/llama-3.1-8b-instruct",
+    ]
+
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        for model in _models:
+            try:
+                payload["model"] = model
+                async with session.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                ) as resp:
+                    data = await resp.json()
+                    choices = data.get("choices", [])
+                    if not choices:
+                        continue  # try next model
+                    result = choices[0].get("message", {}).get("content", "").strip()
+                    if result:
+                        return result
+            except Exception:
+                continue  # try next model
+
+    return None  # all models failed
+
+
+@bot.command(name="politics")
+async def politics_cmd(ctx, politician: str = None, *, speech_text: str = None):
+    """
+    !politics → asks which politician
+    !politics [name] [message] → rewrites message in that politician's style
+    """
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    # No args — prompt for input
+    if not politician:
+        supported = ", ".join(sorted(_POLITICIAN_STYLES.keys() - _POLITICS_REFUSED))
+        await ctx.send(
+            f"*He tilts his head.* politics which text? and which politician?\n\n"
+            f"Usage: `!politics [name] [your message]`\n"
+            f"Supported: `{supported}`"
+        )
+        return
+
+    key = politician.lower().strip()
+
+    # Refused politicians
+    if key in _POLITICS_REFUSED:
+        await ctx.send("*He gives you a flat look.* no. not that one.")
+        return
+
+    # Unknown politician
+    if key not in _POLITICIAN_STYLES:
+        close = [k for k in _POLITICIAN_STYLES if k.startswith(key[:3])]
+        hint = f" Did you mean: `{'`, `'.join(close)}`?" if close else ""
+        await ctx.send(f"*He squints.* don't know that one.{hint}\nTry `!politics` for the full list.")
+        return
+
+    # Missing message
+    if not speech_text:
+        await ctx.send(f"*He nods at the name.* okay, **{politician}** — but politics which text? give me something to work with.")
+        return
+
+    async with ctx.typing():
+        try:
+            result = await _politics_generate(key, speech_text)
+        except Exception as e:
+            await ctx.send(f"*Something went wrong backstage.* `{e}`")
+            return
+
+    if not result:
+        await ctx.send("*He shrugs.* couldn't get anything back. try again?")
+        return
+
+    politician_display = politician.replace("_", " ").title()
+    await ctx.send(f"🎙️ **{politician_display}:**\n\n{result}")
 
 
 # ==========================================
