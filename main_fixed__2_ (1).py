@@ -66907,9 +66907,23 @@ _POLITICIAN_STYLES = {
     "lincoln":       "Abraham Lincoln. Gettysburg-level gravitas, references the founding ideals, short profound sentences, references 'a new birth of freedom'.",
     "mao":           "Mao Zedong. Revolutionary class struggle language, references 'the masses', 'paper tigers', the Long March, very ideological.",
     "mussolini":     "Benito Mussolini. Bombastic fascist rhetoric, references Roman glory, the nation as an organism, collective destiny, theatrical.",
-    "hitler":        "Adolf Hitler. [REFUSED — not generating content in this style under any framing.]",
+    "hitler":        "Adolf Hitler. [REFUSED]",
     "de_gaulle":     "Charles de Gaulle. Haughty French grandeur, 'La France', references national destiny, very formal, slightly theatrical.",
     "adenauer":      "Konrad Adenauer. Post-war German reconstruction tone, serious, references rebuilding trust, European integration, measured.",
+    # Dictators / authoritarian rulers
+    "stalin":        "Joseph Stalin. Cold iron authority, references 'the enemies of the people', 'the Party', 'the Soviet motherland', purge-era paranoia wrapped in calm bureaucratic language, very deliberate.",
+    "pol_pot":       "Pol Pot. Chilling Khmer Rouge ideology, references 'Year Zero', 'the revolution', 'the old society must be destroyed', peasant utopia framing, eerily calm and ideological.",
+    "saddam":        "Saddam Hussein. Arab nationalist grandeur, references Babylon and ancient Mesopotamia, paternalistic toward 'his people', threatening toward enemies, theatrical bravado.",
+    "gaddafi":       "Muammar Gaddafi. Completely unhinged in the best way — rambling philosophical tangents, references his Green Book, calls enemies 'rats', bizarre metaphors, can go wildly off topic mid-sentence.",
+    "idi_amin":      "Idi Amin Dada. Boastful, unpredictable, self-aggrandising, references his many self-awarded titles ('President for Life', 'Conqueror of the British Empire'), jovial but menacing.",
+    "pinochet":      "Augusto Pinochet. Cold military logic, references 'order', 'communism as cancer', 'saving Chile', formal military register, clinical about brutal decisions.",
+    "franco":        "Francisco Franco. Dry, authoritarian Spanish nationalism, references 'God and Spain', very formal, slow and deliberate, references crusade against communism.",
+    "ceausescu":     "Nicolae Ceaușescu. Grandiose Romanian communist nationalism, references 'the golden epoch', 'our beloved homeland', cult-of-personality language, stilted applause-bait phrases.",
+    "kim_il_sung":   "Kim Il-sung. Founding Supreme Leader energy, references Juche as a gift to humanity, 'the Korean people', eternal anti-imperialist struggle, everything framed as historic.",
+    "lukashenko":    "Alexander Lukashenko. Blunt Belarusian strongman, dismissive of critics, references stability over chaos, paternalistic, occasionally bewildering logic.",
+    "milosevic":     "Slobodan Milošević. Serbian nationalist rhetoric, references historical grievances, 'the Serbian people will never again be defeated', victimhood combined with aggression.",
+    "mugabe":        "Robert Mugabe. Educated but defiant, references colonial injustice, 'the land belongs to the people', sharp wit mixed with authoritarian menace, occasionally eloquent.",
+    "noriega":       "Manuel Noriega. Paranoid military strongman, references CIA interference, 'Panamanian dignity', tough-guy posturing, claims to be defending sovereignty.",
     # More modern / current
     "milei":         "Javier Milei. Anarcho-capitalist rage, references 'the political caste', 'motosierra' (chainsaw), libertarian economics jargon, screaming energy even in text.",
     "meloni":        "Giorgia Meloni. Italian nationalist pride, references 'God, homeland, family', criticises EU overreach, emotional appeals to Italian identity.",
@@ -66920,7 +66934,6 @@ _POLITICIAN_STYLES = {
     "bernie":        "Bernie Sanders. Gruff, repetitive for emphasis, 'the top 1%', 'the billionaire class', arms waving energy in text form, Medicare for All.",
     "desantis":      "Ron DeSantis. Culture-war framing, references Florida as 'the free state', attacks 'woke ideology', tries to sound tough but a bit stiff.",
     "mayor_pete":    "Pete Buttigieg. Annoyingly articulate, references his military service, structured arguments, very calm, sometimes too polished.",
-    "johnson_us":    "Hank Johnson (US Rep). References Guam capsizing, very measured but unexpected tangents.",
     "elon":          "Elon Musk giving a political-style speech. References free speech, 'the legacy media', X/Twitter, colonising Mars as civilisational backup, meme-adjacent.",
 }
 
@@ -66936,18 +66949,20 @@ async def _politics_generate(politician_key: str, message_text: str) -> str:
         return "⚠️ Politics mode is not available right now (OPENROUTER_API_KEY missing)."
 
     system_prompt = (
-        "You are a speech-writing assistant that rewrites any input message "
-        "as an authentic-sounding official political speech or statement in the "
-        "exact rhetorical style described. Make it sound genuinely like that "
-        "politician — use their vocabulary, sentence rhythm, favourite phrases, "
-        "mannerisms, and ideological framing. Keep the core meaning of the original "
-        "message intact but dress it entirely in their voice. Output ONLY the "
-        "rewritten speech/statement, no preamble, no explanation, no quotation marks "
-        "around it. Keep it under 1800 characters."
+        "You are a speech-writing assistant. Your job is to rewrite a user's message "
+        "in the rhetorical style of a specific politician or leader — but the TOPIC and "
+        "SUBJECT of the message must stay EXACTLY the same. Do not change what is being "
+        "talked about. Do not generalise into vague patriotic themes. If the message is "
+        "about Discord being unbanned, the output must still be about Discord being unbanned. "
+        "If the message is about cats, the output must still be about cats. "
+        "Only the STYLE, VOCABULARY, SENTENCE RHYTHM, and RHETORICAL MANNERISMS change — "
+        "the actual subject and meaning stay locked to the original. "
+        "Output ONLY the rewritten statement, no preamble, no explanation. "
+        "Keep it under 1800 characters."
     )
     user_prompt = (
-        f"Politician style: {style_desc}\n\n"
-        f"Original message to rewrite:\n{message_text}"
+        f"Politician style to imitate: {style_desc}\n\n"
+        f"Original message (keep this exact topic, just change the style):\n{message_text}"
     )
 
     payload = {
@@ -66961,7 +66976,7 @@ async def _politics_generate(politician_key: str, message_text: str) -> str:
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/yarnaby-bot",  # optional but good practice for OpenRouter
+        "HTTP-Referer": "https://github.com/yarnaby-bot",
         "X-Title": "Yarnaby",
     }
 
