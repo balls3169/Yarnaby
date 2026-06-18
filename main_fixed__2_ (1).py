@@ -66873,6 +66873,345 @@ async def whois_cmd(ctx, user_id: str = ""):
 
 
 # ==========================================
+# !asmr — Yarnaby does ASMR in phases, one message at a time
+# ==========================================
+
+_ASMR_SESSIONS = [
+
+    # ── PURRING SESSION ──────────────────────────────────────────
+    [
+        "*He settles down slowly, curling into a tight ball. The room gets very quiet.*",
+        "*A low vibration begins somewhere deep in his chest. Not quite sound yet. Just... warmth.*",
+        "prrrr... prrrrrr... prrrrrr...",
+        "*It deepens. Slow. Steady. Like something old and safe.*",
+        "prrrrrrrrr... prrrrr... prrrrrrrrrr...",
+        "*His breathing slows. The purring doesn't stop. It just becomes part of the air.*",
+        "prrrr... prrrr... prr... prr... prrrrrrr...",
+        "*One ear twitches. He doesn't open his eyes. The purring continues.*",
+        "...prrrrrrr... prrr... prrrrrrrrrrr...",
+        "*He exhales very slowly through his nose. Still purring. Still there.*",
+        "prrrr... prrrr...",
+        "*...and quiet.*",
+    ],
+
+    # ── SCRATCHING SESSION ───────────────────────────────────────
+    [
+        "*He finds a spot. He considers it seriously. Then he begins.*",
+        "*scratch scratch scratch*",
+        "*He adjusts. Tries a slightly different angle.*",
+        "*scritch... scritch... scritch scritch...*",
+        "*Slower now. More deliberate.*",
+        "*scrrritch... scrrritch...*",
+        "*He pauses. Tilts his head. Listens to something you can't hear.*",
+        "*scratch. scratch. scratch scratch scratch.*",
+        "*He switches paws without ceremony.*",
+        "*scritchscritch... scritch... scritch...*",
+        "*He slows. One last long drag.*",
+        "*scrrrrrritch.*",
+        "*He tucks his paw back under himself. Done. Perfect.*",
+    ],
+
+    # ── GROOMING SESSION ─────────────────────────────────────────
+    [
+        "*He licks his paw once. Considers. Licks it again.*",
+        "*The sound is very small. Deliberate. Unhurried.*",
+        "*lick... lick... lick lick...*",
+        "*He draws his paw slowly across his ear. Once. Then again.*",
+        "*lick... lick...*",
+        "*He switches to the other paw. Same process. Same patience.*",
+        "*lick lick... lick...*",
+        "*He pauses to yawn — a very small, very soft one — and then continues.*",
+        "*lick... lick... lick lick lick...*",
+        "*He runs his tongue along his wool slowly, straightening something only he can see.*",
+        "*...lick... lick...*",
+        "*He blinks. Satisfied. Tucks his chin down. Done for now.*",
+    ],
+
+    # ── TAPPING SESSION ──────────────────────────────────────────
+    [
+        "*He extends one paw and taps the surface lightly. Just to check.*",
+        "*tap.*",
+        "*tap. tap.*",
+        "*He tries a different rhythm. Slower.*",
+        "*tap... tap... tap...*",
+        "*Faster now, light as possible.*",
+        "*taptaptap... tap... taptap...*",
+        "*He switches paws. The other one is slightly softer.*",
+        "*tap. tap. tap. tap.*",
+        "*He taps with one claw extended, barely touching.*",
+        "*tic... tic... tic tic... tic...*",
+        "*Both paws now, alternating.*",
+        "*tap tic tap tic tap tic...*",
+        "*He stops. Rests his paws flat. Silence.*",
+    ],
+
+    # ── WOOL + BREATHING SESSION ─────────────────────────────────
+    [
+        "*He settles into the softest part of himself. His wool shifts.*",
+        "*You can hear it — the faintest rustle, like something being tucked in.*",
+        "*...fwshhh...*",
+        "*He breathes in. Slow. You can barely hear it.*",
+        "*...hhhhh...*",
+        "*Out. Slower.*",
+        "*...hhhhhhhh...*",
+        "*His wool catches the light. He shifts just slightly — another soft rustle.*",
+        "*...fwshh... fwshh...*",
+        "*In.*",
+        "*...hhhh...*",
+        "*Out.*",
+        "*...hhhhhhhhh...*",
+        "*He doesn't move again for a long time.*",
+        "...",
+    ],
+
+    # ── RAIN + PURRING SESSION ───────────────────────────────────
+    [
+        "*He finds the window. Sits in front of it. Outside: rain.*",
+        "*The drops hit the glass irregularly. He watches them.*",
+        "*...plink... plink plink... plink...*",
+        "*Without thinking about it, he starts to purr. Softly.*",
+        "prrrr...",
+        "*The rain and the purring overlap. Neither one stops for the other.*",
+        "*plink... plink... prrrr... plink plink... prrrr...*",
+        "*He leans his head slightly toward the glass. His breath fogs it, just barely.*",
+        "prrrrrr... plink... prrrr...",
+        "*He closes his eyes. Still purring. The rain keeps going.*",
+        "...prrrr... prrrr... plink... prrrr...",
+        "*He doesn't move for a very long time.*",
+        "...prrrr...",
+        "...",
+    ],
+
+    # ── KNEADING SESSION ─────────────────────────────────────────
+    [
+        "*He finds something soft. His eyes go half-lidded almost immediately.*",
+        "*press... press... press...*",
+        "*Slow. Rhythmic. He's somewhere else already.*",
+        "*press press... press... press press...*",
+        "*One paw. Then the other. Then the first again.*",
+        "*press... press... press...*",
+        "*A very faint sound escapes him — not quite a purr. Something smaller.*",
+        "*prr... press... prr... press press...*",
+        "*He sinks lower. His chin nearly touches the surface.*",
+        "*press... press...*",
+        "*...press...*",
+        "*He stops. His paws stay where they are. He is completely asleep.*",
+    ],
+
+    # ── WHISPERING SESSION ───────────────────────────────────────
+    [
+        "*He looks at you for a moment. Then, very quietly:*",
+        "...hey.",
+        "*A pause. He seems to be deciding something.*",
+        "you don't have to say anything. you can just... be here.",
+        "*He shifts. Gets a little closer. His voice stays low.*",
+        "it's okay if today was a lot. it's okay if you're tired.",
+        "*A long silence. He doesn't fill it.*",
+        "...",
+        "you're doing fine, by the way. in case nobody said that.",
+        "*He blinks slowly. Once.*",
+        "...mrr.",
+        "*He doesn't say anything else. He just stays.*",
+    ],
+
+    # ── CRACKLING FIRE SESSION ───────────────────────────────────
+    [
+        "*He finds the warmest spot in the room and sits down in it.*",
+        "*Somewhere nearby, something is crackling. Wood. Fire. The old kind of warm.*",
+        "*...crackle... pop...*",
+        "*He watches the light shift. His ears are relaxed. Completely flat and soft.*",
+        "*...crackle crackle... pop... crackle...*",
+        "*He exhales. His whole body settles lower, like something in him finally let go.*",
+        "*...pop... crackle... crackle...*",
+        "*He starts to purr. He doesn't plan it. It just happens.*",
+        "prrrr... crackle... prrrr...",
+        "*The fire and the purring are the same temperature.*",
+        "*...crackle... prrrr... pop... prrrrr...*",
+        "*He closes his eyes. His tail wraps around his paws.*",
+        "*...prrrr... crackle...*",
+        "*warm.*",
+    ],
+
+    # ── HEARTBEAT SESSION ────────────────────────────────────────
+    [
+        "*He lies very still. His ear is against the surface.*",
+        "*He's listening for something.*",
+        "*...thump... thump...*",
+        "*There it is.*",
+        "*thump... thump... thump...*",
+        "*He breathes with it. In on the first beat. Out on the second.*",
+        "*thump... thump... thump... thump...*",
+        "*His paw flexes once, slowly, then goes still.*",
+        "*...thump... thump...*",
+        "*He makes a very small sound. Not a word. Not a purr. Just — acknowledgment.*",
+        "*...thump...*",
+        "*...thump...*",
+        "*He's still here.*",
+    ],
+
+    # ── SLEEPY MUMBLING SESSION ──────────────────────────────────
+    [
+        "*He's already half asleep. You can tell by the ears.*",
+        "*...mrrph.*",
+        "*He adjusts. Tucks his nose further under his tail.*",
+        "*...mmmrr...*",
+        "*Something bothers him slightly. He doesn't open his eyes to address it.*",
+        "*...mrph... mrrr...*",
+        "*He rolls onto his side. His paws stretch out once and then go limp.*",
+        "*...mmm...*",
+        "*You say something. He hears it. He doesn't respond but his ear moves.*",
+        "*...mrrph...*",
+        "*He's decided you're fine. You can stay.*",
+        "*...mmmmrr...*",
+        "*...zzz...*",
+    ],
+
+    # ── STRETCHING SESSION ───────────────────────────────────────
+    [
+        "*He wakes up. This is announced by a very long, very slow stretch.*",
+        "*His front paws go forward. His back end goes up. The stretch makes a sound.*",
+        "*...mrrrrrowww...* *(very quiet)*",
+        "*He holds it. And holds it. And holds it.*",
+        "*...mrrr...*",
+        "*He releases. His whole body flattens back down like it was never tense.*",
+        "*He blinks at you. Once.*",
+        "*Then he starts again, other direction.*",
+        "*...mmmrrrrr...*",
+        "*His claws extend slightly into whatever he's lying on. He doesn't notice.*",
+        "*...mrr...*",
+        "*Done. He sits up. Considers breakfast. Decides against thinking about it.*",
+        "*...mrr.*",
+    ],
+
+    # ── THUNDERSTORM SESSION ─────────────────────────────────────
+    [
+        "*Outside: thunder. Distant. Not dangerous. Just there.*",
+        "*He's on the windowsill watching it happen.*",
+        "*...rummmble...*",
+        "*He's not scared. He's never scared of weather. He just finds it interesting.*",
+        "*...rumble... rummmble...*",
+        "*Lightning, far away. He blinks at it.*",
+        "*...crack... rumble... rummmmble...*",
+        "*Rain begins. First slow. Then not.*",
+        "*...patter patter patter patter...*",
+        "*He starts to purr somewhere in the middle of all of it. Just because.*",
+        "*...patter patter... prrrr... rumble... prrrrr...*",
+        "*He watches the street below go wet and dark and shiny.*",
+        "*...prrrr... rumble... patter... prrrr...*",
+        "*He could sit here all night.*",
+        "*...prrrr...*",
+    ],
+
+    # ── WALKING ON SURFACES SESSION ──────────────────────────────
+    [
+        "*He gets up. He's going somewhere. Nowhere specific. Just somewhere.*",
+        "*His paws on the floor:*",
+        "*...pap... pap... pap pap...*",
+        "*He stops. Sniffs something. Moves on.*",
+        "*...pap... pap...*",
+        "*He finds carpet. Different sound now.*",
+        "*...fwp... fwp... fwp...*",
+        "*He pauses at a doorway. Considers going through it. Decides to sit in it instead.*",
+        "*...fwp.*",
+        "*He turns around three times. This is mandatory. Non-negotiable.*",
+        "*...fwp fwp fwp... pap pap... fwp...*",
+        "*He lies down. Right there. In the doorway. Perfect.*",
+        "*...pap.*",
+        "*He's not moving.*",
+    ],
+
+    # ── EATING SESSION (VERY QUIET) ──────────────────────────────
+    [
+        "*He approaches his bowl. He looks at what's in it. He looks at you.*",
+        "*He looks back at the bowl. It's fine. He supposes.*",
+        "*...crunch... crunch...*",
+        "*Methodical. One piece at a time.*",
+        "*...crunch... crunch crunch...*",
+        "*He pauses to lick his nose. Then continues.*",
+        "*...crunch...*",
+        "*He slows down near the end. Savours the last few pieces like a professional.*",
+        "*...crunch... crunch...*",
+        "*Done. He steps back. Licks his paw once.*",
+        "*...lick...*",
+        "*He looks at the bowl again. It's empty now. This is correct.*",
+        "*He walks away with the energy of someone who completed a task.*",
+    ],
+
+    # ── LATE NIGHT SESSION ───────────────────────────────────────
+    [
+        "*It's late. Very late. The kind of late where everything gets softer.*",
+        "*He's the only one awake — or maybe you are too. It's hard to say.*",
+        "*...prr...*",
+        "*He doesn't ask why you're still up. He already knows it doesn't matter.*",
+        "*He just sits next to you.*",
+        "*...prr... prr...*",
+        "*The kind of sitting that says: I don't need you to explain. I'm just here.*",
+        "*...prrrr...*",
+        "you should probably sleep at some point.",
+        "*He says this without judgment. Just as information.*",
+        "*...prrrr... prrrr...*",
+        "but I'm not going anywhere.",
+        "*...prrrr...*",
+        "...",
+        "*...prr...*",
+    ],
+
+    # ── WOOL BRUSHING SESSION ─────────────────────────────────────
+    [
+        "*He sits very still. He's allowing something today.*",
+        "*The brush makes contact with his wool. He pretends to be indifferent.*",
+        "*...fwshh... fwshh...*",
+        "*He is not indifferent. His eyes are closing already.*",
+        "*...fwshh fwshh... fwshh...*",
+        "*A small sound escapes him. He tries to act like it didn't.*",
+        "*...prr— ...fwshh...*",
+        "*The wool is very soft. He knows this. He just doesn't usually admit it.*",
+        "*...fwshh... fwshhh... prr...*",
+        "*His head droops slightly. He catches it. He droops again.*",
+        "*...fwshh... prrrr... fwshh...*",
+        "*He gives up pretending. He leans into it.*",
+        "*...prrrrr... fwshh... prrrrr...*",
+        "*His tail wraps around his paws. His eyes close all the way.*",
+        "*...prrrr...*",
+    ],
+]
+
+# Varied endings — picked randomly so not every session ends the same way
+_ASMR_ENDINGS = [
+    "**mrr.**",
+    "*...mrr.*",
+    "*He blinks once. Then doesn't.*",
+    "*...mew.*",
+    "**...mrr.** *He's still there.*",
+    "*He tucks his nose under his tail. The session is over.*",
+    "*...* **mrr.**",
+    "*He doesn't say anything. He's just here.*",
+    "**mrrp.**",
+    "*...prr.* *fading.*",
+    "*He closes his eyes. You can still hear him breathing.*",
+    "*...* *nothing. just warmth.*",
+    "**mrr.** *goodnight.*",
+    "*...he's asleep.*",
+    "*he stayed.*",
+]
+
+@bot.command(name="asmr")
+async def asmr_cmd(ctx):
+    """Yarnaby does ASMR in phases, one message at a time."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    session = random.choice(_ASMR_SESSIONS)
+
+    for phase in session:
+        await asyncio.sleep(random.uniform(2.5, 4.5))
+        await ctx.send(phase)
+
+    await asyncio.sleep(random.uniform(2.0, 3.5))
+    await ctx.send(random.choice(_ASMR_ENDINGS))
+
+
+# ==========================================
 # !politics — rewrite a message in a real politician's speech style (AI powered)
 # ==========================================
 
