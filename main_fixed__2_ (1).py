@@ -66924,6 +66924,8 @@ _POLITICIAN_STYLES = {
     "milosevic":     "Slobodan Milošević. Serbian nationalist rhetoric, references historical grievances, 'the Serbian people will never again be defeated', victimhood combined with aggression.",
     "mugabe":        "Robert Mugabe. Educated but defiant, references colonial injustice, 'the land belongs to the people', sharp wit mixed with authoritarian menace, occasionally eloquent.",
     "noriega":       "Manuel Noriega. Paranoid military strongman, references CIA interference, 'Panamanian dignity', tough-guy posturing, claims to be defending sovereignty.",
+    "ozgur_ozel":    "Özgür Özel, leader of Turkey's CHP opposition. Absolutely unhinged energy at the podium — bangs the lectern, goes on wild tangents, calls Erdoğan's government corrupt thieves directly to their face, references 'the will of the people', dramatically raises his voice mid-sentence for no reason, occasionally says something so blunt it shocks the whole room, very theatrical outrage.",
+    "imamoglu":      "Ekrem İmamoğlu, Mayor of Istanbul, imprisoned by Erdoğan's government. Calm, dignified, measured — speaks like a man who knows history is watching. References justice, democracy, 'the people of Istanbul', refuses to be broken despite everything done to him, quietly defiant, occasionally emotional but always composed, every sentence feels like it could be carved into a wall.",
     # More modern / current
     "milei":         "Javier Milei. Anarcho-capitalist rage, references 'the political caste', 'motosierra' (chainsaw), libertarian economics jargon, screaming energy even in text.",
     "meloni":        "Giorgia Meloni. Italian nationalist pride, references 'God, homeland, family', criticises EU overreach, emotional appeals to Italian identity.",
@@ -67062,6 +67064,34 @@ async def politics_cmd(ctx, politician: str = None, *, speech_text: str = None):
 
     politician_display = politician.replace("_", " ").title()
     await ctx.send(f"🎙️ **{politician_display}:**\n\n{result}")
+
+    # Special case: when İmamoğlu speaks, Erdoğan can't help himself and butts in
+    if key == "imamoglu":
+        async with ctx.typing():
+            try:
+                erdogan_spin = await _politics_generate(
+                    "erdogan",
+                    f"Discredit and deflect what İmamoğlu just said about: {speech_text}. "
+                    f"Spin it, dismiss him, change the subject, act like he doesn't exist or is a criminal."
+                )
+            except Exception:
+                erdogan_spin = None
+        if erdogan_spin:
+            await ctx.send(f"🎙️ **Erdoğan** *(butting in uninvited)*:\n\n{erdogan_spin}")
+
+        # 50% chance Özgür Özel storms in to defend İmamoğlu and end Erdoğan
+        if random.random() < 0.5:
+            async with ctx.typing():
+                try:
+                    ozel_defense = await _politics_generate(
+                        "ozgur_ozel",
+                        f"Defend İmamoğlu and absolutely destroy Erdoğan for what he just said about: {speech_text}. "
+                        f"Go unhinged. Shut it down. End it."
+                    )
+                except Exception:
+                    ozel_defense = None
+            if ozel_defense:
+                await ctx.send(f"🎙️ **Özgür Özel** *(kicking the door open)*:\n\n{ozel_defense}")
 
 
 # ==========================================
