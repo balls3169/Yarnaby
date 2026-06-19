@@ -67209,6 +67209,32 @@ async def asmr_cmd(ctx):
     """Yarnaby does ASMR in phases, one message at a time."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The room is quiet but not in the right way.*",
+            "*There is no one here to make those sounds. The silence is different now.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is already asleep. He is, in fact, doing ASMR right now involuntarily. You can hear him breathing.* **...prrrr...**",
+            "*He is asleep. This is the ASMR. You're already in it.* **...prrr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He is not well. But somewhere, faintly — so faint you almost miss it — there is a purr. Just barely. Just enough.* **...prr...**",
+            "*He can't do much right now. His eyes are half open. But he makes a small sound anyway. For you.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send("*He looks at The Creator. Something settles in him. He finds the softest spot and begins.*")
 
     session = random.choice(_ASMR_SESSIONS)
 
@@ -67693,6 +67719,32 @@ async def instagram_cmd(ctx):
     """Yarnaby opens Instagram and narrates what he sees."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. His phone is still there. Instagram is still open. Nobody is watching it now.*",
+            "*He is not here. The feed keeps refreshing anyway. It doesn't know.*",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He cannot open Instagram right now. This is the healthiest he has ever been.* **...prrrr...**",
+            "*He is asleep. The phone is face-down. The algorithm is not winning tonight.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He can't really move right now. But he tilts the phone toward himself with one paw. Old habits.* **...mrr...**",
+            "*He is helpless. He still opens Instagram. This says a lot about all of us.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send("*He glances at The Creator, then back at his phone. He opens Instagram. He's going to narrate this whether anyone's ready or not.*")
 
     session = random.choice(_INSTAGRAM_SESSIONS)
 
@@ -67848,6 +67900,32 @@ async def politics_cmd(ctx, politician: str = None, *, speech_text: str = None):
     """
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The podium is empty. No speech today.* **...**",
+            "*He is not here. The politics continue without him. As they always do.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He cannot do political speechwriting right now. Frankly this is probably for the best.* **...prrrr...**",
+            "*He is asleep. The politicians will have to write their own speeches tonight.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He is helpless. He cannot reach the keyboard. He stares at you from the floor with the energy of a man who has opinions about geopolitics.* **...mrr...**",
+            "*He is not well. But he tries to gesture at the podium anyway. He's still got thoughts.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor and politician:
+        await ctx.send(f"*He straightens up immediately when The Creator asks. Whatever {politician.replace('_',' ').title()} would say — he's on it.*")
 
     # No args — prompt for input
     if not politician:
@@ -67930,6 +68008,24 @@ async def real_lore_secret_cmd(ctx):
     """Not actually creator-only — anyone can use this one."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. Whatever this was going to be — it stays buried.* **...**")
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. The secret keeps. It will still be there when he wakes.* **...prrrr...**",
+            "*He is asleep. The deep logs are closed for now.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(
+            "*He goes still. He looks at you from where he is lying. He knows what you found. His expression doesn't change. He lets you read it anyway.* **...mrr...**"
+        )
+        # still sends the lore after — helpless doesn't mean closed
 
     text = (
         "*He goes very still for a second, like he's deciding whether to let you see this.*\n\n"
@@ -67976,7 +68072,32 @@ async def grass_cmd(ctx):
     """Yarnaby and the user go outside. Touch grass. Come back in. Miss it."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
 
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The grass is still outside. It doesn't know that either.*",
+            "*He is not here. The door stays closed. Nobody goes outside today.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*He is asleep. {your_name} goes outside alone. The grass is still there. It's still nice. He would have liked it.* **...prrrr...**",
+            "*He is asleep on the grass in his dream. You can tell by how his paws are moving.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot go outside right now. But he looks at the door for a long moment. He knows it's out there.* **...mrr...**",
+            "*He is helpless. Someone brings a single piece of grass inside and sets it in front of him. He touches it with one paw. That counts.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send("*He looks at The Creator. Looks at the door. Something in him decides. He gets up.*")
     phases = [
         "*He looks at you. Looks at the door. Looks back at you.*",
         "mrrp. *(hey.)*",
