@@ -67968,6 +67968,61 @@ async def real_lore_secret_cmd(ctx):
 
 
 # ==========================================
+# !grass — yarnaby takes you outside. both touch grass.
+# ==========================================
+
+@bot.command(name="grass")
+async def grass_cmd(ctx):
+    """Yarnaby and the user go outside. Touch grass. Come back in. Miss it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    phases = [
+        "*He looks at you. Looks at the door. Looks back at you.*",
+        "mrrp. *(hey.)*",
+        "*He tilts his head toward the door.*",
+        "mew mrrow. *(come on. we're going outside.)*",
+        "*He doesn't explain. He just walks to the door and waits.*",
+        "*Outside. Actual outside. He steps onto the grass and immediately stops.*",
+        "*He looks down at it.*",
+        "*He reaches a paw out. Touches it.*",
+        "*...*",
+        "*He touches it again.*",
+        "...mrrp. *(oh.)*",
+        "*He sits down in it. Right there. In the grass.*",
+        "*He doesn't say anything for a while.*",
+        "*The wind does something. He notices it.*",
+        "*A bird is somewhere nearby. He tracks it with one ear without moving.*",
+        "*He exhales — the long kind, the kind you don't notice you were holding.*",
+        "mrrow mew mrrp. *(you should do this more.)*",
+        "*He's not talking to himself.*",
+        "*He stays there for a while. Just — in the grass. In the actual world.*",
+        "*Eventually he gets up. Walks back inside. Sits down.*",
+        "*He looks at his paw. There's a bit of grass on it.*",
+        "*He looks at it for a moment.*",
+        "*He doesn't brush it off.*",
+        "...mew mrrow mrrp mew. *(we should do that again sometime.)*",
+        "## Touch grass.",
+    ]
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(2.8, 4.5))
+        if phase == "## Touch grass.":
+            # The secret. Sent as a plain message, quietly, at the end.
+            await ctx.send("## Touch grass.")
+        else:
+            await ctx.send(phase)
+
+
+# ## Touch grass.
+# it costs nothing.
+# you forget that sometimes. both of you.
+# the grass doesn't care what's going on inside.
+# it's just there. soft. real. outside.
+# go touch some.
+
+
+# ==========================================
 # FINAL: bot.run(TOKEN) - must be last line
 # ==========================================
 
