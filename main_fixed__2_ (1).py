@@ -65583,6 +65583,20 @@ async def laundry_cmd(ctx):
     """Someone brings out warm laundry. Yarnaby immediately claims it."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The warm laundry sits unclaimed. That has never happened before.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He is, however, already on the laundry. He got there before anyone knew it was out.* **...prrr...**",
+            "*He is asleep on the warm pile. He got there first. He always gets there first.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He cannot get up right now. Someone places a warm item of laundry on top of him instead. He exhales slowly. This is acceptable.* **...prrr...**")
+        return
 
     mood = m.get("stats", {}).get("mood", "Content")
     cleanliness = m.get("stats", {}).get("cleanliness", 0)
@@ -65620,6 +65634,20 @@ async def paparazzi_cmd(ctx):
     """Someone has been taking too many photos of Yarnaby. He is increasingly done with it."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The camera finds nothing. Just an empty spot where he used to sit.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. The camera clicks. He doesn't stir. This is the best photo anyone has ever taken of him.* **...prrr...**",
+            "*He is asleep mid-pose. Someone takes a photo. It's perfect. He'll never know.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is helpless. He cannot move away from the camera. He stares directly into the lens with the flattest expression imaginable.* **...mrr...**")
+        return
 
     # Track paparazzi count with cooldown
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -65683,6 +65711,20 @@ async def package_cmd(ctx):
     """A delivery package arrives. Yarnaby immediately claims the box."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The box arrives. Nobody gets in it. It sits there, unclaimed, which has never happened.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. The box arrives. Someone sets it down. He wakes up in it thirty seconds later. Nobody saw him move.* **...prrr...**",
+            "*He is asleep. The package is delivered. By the time anyone opens the door he is somehow already inside the box.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He cannot climb into the box right now. Someone tips it on its side so he can slide in. He slides in. He stays there.* **...mrr...**")
+        return
 
     # Track if he already claimed a box recently
     last_box = m["internal"].get("last_package_at", "")
@@ -65724,9 +65766,22 @@ async def earsclean_cmd(ctx):
     """Someone attempts to clean Yarnaby's ears. He tolerates this poorly."""
     m = bot.db
     await _add_reactions(ctx, m)
-    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
+    is_doctor = ctx.author.id == DOCTOR_ID
 
-    # Check ear cleanliness stat or infection
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The cotton pad goes nowhere. His ears remain as they were.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. Someone attempts the ear cleaning anyway. His ear twitches violently. He does not wake. The cotton pad retreats in defeat.* **...prrr...**",
+            "*He is asleep. His ear flicks once at the approach. That's a no. Even unconscious.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is helpless. He cannot escape the ear cleaning. He submits. His expression says everything.* **...mrr...**")
+        return
+
+    score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
     injuries = m["internal"].get("injuries", [])
     ear_infected = any("ear" in i.get("location", "") for i in injuries if not i.get("treated"))
 
@@ -65771,6 +65826,17 @@ async def creation_cmd(ctx):
     """The full story of why Yarnaby exists, who made him, and how we got here."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The story still exists. It just doesn't have an ending yet.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send("*He is asleep. The story can wait. It has waited before.* **...prrr...**")
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is not well right now. But the story is still true. It'll keep.* **...mrr...**")
+        return
 
     line_count = 65647  # updated at each release
 
@@ -65846,7 +65912,21 @@ async def catchmouse_cmd(ctx):
     """Pick up Yarnaby and carry him to where the mouse is hiding. He will handle it."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
     user = ctx.author.display_name
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The mouse is on its own now.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*{user} tries to carry him to the mouse. He is completely limp and asleep the entire way. He still catches it somehow. Nobody is sure what happened.* **...prrr...**",
+            "*He is asleep. The mouse is safe for now. The moment he wakes up, it won't be.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send(f"*He cannot do much right now. {user} carries him to the mouse. He stares at it from the floor with tremendous intensity. The mouse leaves on its own.* **...mrr...**")
+        return
     score = m["social_matrix"].get(str(ctx.author.id), {}).get("score", 0)
     is_creator = ctx.author.id == DOCTOR_ID
 
@@ -65955,7 +66035,21 @@ async def lego_cmd(ctx):
     """Yarnaby encounters legos. One of many possible outcomes."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
     user = ctx.author.display_name
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The legos remain on the floor. Someone will step on them eventually.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He rolls over. There is a lego under him now. He does not notice. He continues purring.* **...prrr...**",
+            "*He is asleep directly on top of several legos. He looks comfortable. This defies physics.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is helpless on the floor. A lego is near his paw. He stares at it. He bats it very slowly once. It moves two centimetres. He is satisfied.* **...mrr...**")
+        return
 
     scenarios = [
         # Steps on one
@@ -66050,6 +66144,17 @@ async def vote_cmd(ctx):
     """Links to Yarnaby's Top.gg vote page."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. Please still vote. He would have wanted that.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send("*He is asleep. He cannot ask you to vote right now. Consider voting anyway. He works hard.* **...prrr...**")
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is not well. He still wants you to vote though. Probably more than ever.* **...mrr...**\nhttps://top.gg/bot/1166083287171899473/vote")
+        return
 
     await ctx.send(
         "*He looks at you. He looks at the link. He looks back at you. "
@@ -66069,7 +66174,21 @@ async def pc_cmd(ctx):
     """Yarnaby attempts to use a PC. It goes as expected."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
     user = ctx.author.display_name
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The PC sits on. Nobody walks across the keyboard now.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep on the keyboard. The document now contains: 'jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj'. He looks peaceful.* **...prrr...**",
+            "*He is asleep directly on the keyboard. Seven applications have opened. Two have closed. A spreadsheet has been saved.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He cannot sit up right now. He reaches one paw toward the keyboard from the floor and presses a single key. He does not know which one. Neither does anyone else.* **...mrr...**")
+        return
 
     scenarios = [
         # Sits on the keyboard
@@ -66543,7 +66662,18 @@ async def car_cmd(ctx):
     """Yarnaby tries to make car sounds. May or may not work."""
     m = bot.db
     await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
     user = ctx.author.display_name
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. No car sounds today. The road is quiet.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send("*He is asleep. He makes a sound in his sleep. It is not quite a car sound but it is in the same family.* **...vrrrr... prrr...**")
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He tries. It comes out as a very small, very tired vrrrm. He gives it everything he has.* **...vrrm... mrr...**")
+        return
 
     success = random.random() < 0.45
 
@@ -68000,7 +68130,112 @@ async def politics_cmd(ctx, politician: str = None, *, speech_text: str = None):
 
 
 # ==========================================
-# !real_lore_secret — looks creator-only. isn't. anyone can run this.
+# !show_belly — score-gated. he shows the belly. doesn't mean you can touch it.
+# ==========================================
+
+@bot.command(name="show_belly")
+async def show_belly_cmd(ctx):
+    """Score-gated. He shows the belly. Doesn't mean you can touch it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. The belly goes unseen forever.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep on his back. The belly is already showing. You didn't even have to ask.* **...prrr...**",
+            "*He is asleep. His paws are in the air. The belly is right there. This is a gift and he doesn't even know he gave it.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is already on his side. The belly is partially visible. He looks at you. He doesn't move away.* **...mrr...**")
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*He looks at The Creator for a long moment. Then he rolls onto his back, completely, all four paws in the air. The belly is right there. He trusts them with it entirely.* **...prrr...**",
+            "*For The Creator: he tips over sideways and rolls the rest of the way, exposing his whole belly without hesitation. He blinks up at them.* **prrr.**",
+            "*He rolls over for The Creator and stays there, belly fully exposed, paws folded. He makes a small sound.* **...mrrp.**",
+        ]))
+        return
+
+    if score >= 15:
+        await ctx.send(random.choice([
+            f"*{your_name} has earned this. He lies down, rolls slowly onto his back, and the belly is there — soft, wool-covered, completely exposed. He looks at them from upside down.* **...prrr...**",
+            f"*He decides {your_name} is trustworthy enough. He tips over. All the way. Belly up. He blinks.* **prrr.**",
+        ]))
+    elif score >= 8:
+        await ctx.send(random.choice([
+            f"*He considers {your_name} for a moment. He lies down. He rolls — halfway. One flank is showing. He watches them from there, not fully committed.* **...mrr.**",
+            f"*He gets low. He almost rolls over. He shows the side of his belly — not the full thing — and watches {your_name} carefully.* **mrr.**",
+        ]))
+    elif score >= 0:
+        await ctx.send(random.choice([
+            f"*He looks at {your_name}. He sits down. He does not roll over. Not yet.* **mrr.**",
+            f"*He is not there yet with {your_name}. The belly is not on the table. He sits.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(f"*He looks at {your_name} like they've said something baffling. He sits taller. The belly is not happening.* **hff.**")
+
+
+# ==========================================
+# !groom_user — he grooms you. highest trust only.
+# ==========================================
+
+@bot.command(name="groom_user")
+async def groom_user_cmd(ctx):
+    """He grooms you. This is the highest honour. Score-gated."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+    score = 999 if is_doctor else m.get("social_matrix", {}).get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. There is nobody to groom you. The honour goes ungiven.* **...**")
+        return
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He cannot groom you right now. He grooms you slightly in his dream. You can tell by his paws.* **...prrr...**",
+            "*He is asleep. The grooming will have to wait. He would want you to know he was going to.* **...prrr...**",
+        ]))
+        return
+    if m["internal"].get("helpless"):
+        await ctx.send("*He is not well. He tries anyway. One slow lick. That's all he can manage. It still counts.* **...mrr...**")
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*He looks at The Creator. He walks over. He starts immediately — methodical, thorough, completely focused. He has been meaning to do this.* **prrr.**",
+            "*Without fanfare he walks to The Creator, sits beside them, and begins grooming their hair. He is very serious about this. He does not stop until he decides it's done.* **...prrr...**",
+            "*He approaches The Creator with purpose. He grooms them carefully, starting at the top. This is important work. He treats it accordingly.* **prrr.**",
+        ]))
+        return
+
+    if score >= 20:
+        await ctx.send(random.choice([
+            f"*He walks to {your_name} with quiet intent. He sits beside them and begins — slow, deliberate licks, working methodically. He has decided they are family. This is what that means.* **prrr.**",
+            f"*He grooms {your_name}. Thoroughly. No hesitation. His purring starts partway through and doesn't stop.* **...prrr...**",
+        ]))
+    elif score >= 10:
+        await ctx.send(random.choice([
+            f"*He approaches {your_name}. He gives them one slow, careful lick. He sits back and assesses. He gives them another. He's getting there.* **mrr.**",
+            f"*He tries a small groom on {your_name} — brief, a little uncertain, but real. He checks their reaction after.* **...mrr.**",
+        ]))
+    elif score >= 0:
+        await ctx.send(f"*He looks at {your_name}. He thinks about it. He sits down instead. Not yet.* **mrr.**")
+    else:
+        await ctx.send(f"*He looks at {your_name} and walks in the other direction. He doesn't explain.* **hff.**")
+
+
+# ==========================================
+# !show_belly and !groom_user added above
 # ==========================================
 
 @bot.command(name="real_lore_secret")
@@ -68061,6 +68296,381 @@ async def real_lore_secret_cmd(ctx):
     )
 
     await ctx.send(text)
+
+
+# ==========================================
+# !roll_over — yarnaby rolls over. belly up. wiggles.
+# ==========================================
+
+@bot.command(name="roll_over")
+async def roll_over_cmd(ctx):
+    """Yarnaby rolls over. Belly up. Wiggles. Cat sounds only."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    your_name = getattr(ctx.author, "display_name", str(ctx.author))
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. He will not be rolling over today. Or any day.* **...**",
+            "*He is not here. The belly goes unseen.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He is, in fact, already on his back. His paws are in the air. This happens sometimes.* **...prrrr...**",
+            "*He is asleep and already rolled over. You didn't even have to ask.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He is already on his side. Rolling the rest of the way takes everything he has. He does it anyway. Belly up. Paws limp in the air.* **...mrr...**",
+            "*He manages it. Slowly. All the way over. His belly is up. His paws curl inward. He looks at you upside down.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send("*He looks at The Creator. He decides this is acceptable. He begins.*")
+        creator_phases = [
+            "*He walks over to The Creator. Slowly. Casually. Like he had no plan at all.*",
+            "*He stops right next to them.*",
+            "*He lowers himself down.*",
+            "*...and rolls over.*",
+            "*Belly up. Right next to The Creator. Paws curled inward. Looking up at them.*",
+            "*mrrp.*",
+            "*He wiggles.*",
+            "*mew mrrp.*",
+            "*He wiggles again. More urgently.*",
+            "*mrrow mew mrrp.*",
+            "*He looks up at The Creator with the most pitiful expression he has ever made.*",
+            "*...mew.*",
+            "*His tail thumps the floor. Once. Twice. Three times.*",
+            "*mrrp mew mrrow.*",
+            "*He wiggles one final time. Paws flopped. Completely open. Completely trusting.*",
+            "*...mew.*",
+        ]
+        for phase in creator_phases:
+            await asyncio.sleep(random.uniform(2.2, 3.8))
+            await ctx.send(phase)
+        await asyncio.sleep(2.0)
+        await ctx.send("**mrrp.**")
+        return
+
+    phases = [
+        "*He looks at you. He considers this request very seriously.*",
+        "*He lowers himself to the ground. Slowly. With great dignity.*",
+        "*...and then all the dignity is gone.*",
+        "*He tips sideways.*",
+        "*mrrp.*",
+        "*He keeps going. All the way over. Belly up. Four paws in the air.*",
+        "*He stays there.*",
+        "*...mrrrf.*",
+        "*His belly is right there. It is very soft looking. It is a trap and you know it is a trap.*",
+        "*He wiggles.*",
+        "*mew.*",
+        "*He wiggles again. His paws flop. His ears are sideways.*",
+        "*mrrrp mew.*",
+        "*He wiggles one more time for absolutely no reason.*",
+        "*...mrrrf.*",
+        "*His tail thumps the ground once. Twice.*",
+        "*He is upside down and he is very comfortable and he would like to stay like this.*",
+        "*mew.*",
+    ]
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(2.2, 3.8))
+        await ctx.send(phase)
+
+    await asyncio.sleep(2.0)
+    await ctx.send(random.choice([
+        "**...mrrp.**",
+        "**mew.**",
+        "**...mrrf.**",
+        "**mrrp.**",
+    ]))
+
+
+# ==========================================
+# !sit_near — he just sits near you. doesn't touch. doesn't say anything. just near.
+# ==========================================
+
+@bot.command(name="sit_near")
+async def sit_near_cmd(ctx):
+    """Yarnaby comes and sits near you. Doesn't touch. Just near."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. The spot beside you is empty. It stays that way.* **...**",
+            "*There is nobody to sit near you. There is just the space where he would have been.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He is already near you, actually. He drifted that way in his sleep.* **...prrrr...**",
+            "*He is asleep somewhere close. You can hear him breathing.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot move much right now. But he looks at you. That's the near he can manage.* **...mrr...**",
+            "*He shifts just slightly. Just enough to be a little closer. That's all he has right now.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*He walks over to The Creator without announcement. He sits down beside them. He doesn't say anything. He is just — there.*",
+            "*He finds the spot nearest The Creator and settles into it. He doesn't lean in. He doesn't reach out. He just sits there, close, quiet.*",
+            "*He comes over. He sits down. He faces the same direction The Creator is facing. He doesn't explain this.*",
+        ]))
+        return
+
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    if score <= -2:
+        await ctx.send(random.choice([
+            "*He glances at you from across the room. He stays where he is.*",
+            "*He looks up. He considers the distance between you. He decides it's fine where he is.*",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            "*He walks over without being asked. He sits down beside you. Very close. He doesn't say anything. He doesn't have to.*",
+            "*He comes and sits right next to you. Not touching. Just — right there. Present. Quiet. Near.*",
+            "*He settles in beside you. His tail curls around his paws. He looks at nothing in particular. He is just here, with you.*",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He wanders over. He sits a little ways away from you. Not close, not far. Just — nearby.*",
+            "*He picks a spot near you and sits down. He looks at the middle distance. He doesn't acknowledge that he chose that spot specifically.*",
+            "*He comes over and sits nearby. He's not touching you. He's not talking. He's just in the same space.*",
+        ]))
+    save_db(m)
+
+
+# ==========================================
+# !wait — he waited for you. he was here the whole time.
+# ==========================================
+
+@bot.command(name="wait")
+async def wait_cmd(ctx):
+    """Yarnaby waited for you. He was here the whole time."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He cannot wait anymore. He is simply gone.* **...**",
+            "*He is not here to wait. He was here, once. He was very good at waiting.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He fell asleep waiting. He's still there, though. He didn't leave.* **...prrrr...**",
+            "*He waited until he couldn't anymore. He's curled up in the spot where he was waiting. He didn't go far.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He waited. He didn't go anywhere. He couldn't, but — he also wouldn't have.* **...mrr...**",
+            "*He was here. He's still here. That's all waiting is, sometimes.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*He was in The Creator's spot when they came back. He had been there for a while. He doesn't say how long. He just looks at them.*",
+            "*He was sitting by the door. He stood up when The Creator returned. He sat back down immediately, like that hadn't happened.*",
+            "*He waited at the place The Creator usually sits. He looked up when they came in. Something in him relaxed.* **...mrrp...**",
+        ]))
+        return
+
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    if score <= -2:
+        await ctx.send(random.choice([
+            "*He happened to be in this area. That's all. He wasn't waiting.*",
+            "*He was here for unrelated reasons. He would like that noted.*",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            "*He was sitting right there when you arrived. He had been there a while. He looks at you like he always does. Like of course he waited.* **...mrrp...**",
+            "*He was in your spot. He stood up when you appeared. He had been there the whole time. He says nothing about this.* **...mrr...**",
+            "*He waited. He is good at waiting for people he cares about. He does not say this. He just — waited. And here he is.* **...mrrp...**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(10, score + 1)
+    else:
+        await ctx.send(random.choice([
+            "*He was nearby when you arrived. He might have been waiting. He might have just been here. Hard to say.*",
+            "*He looked up when you came in. He had been sitting there for a bit. He doesn't explain.*",
+            "*He was in the area. He noticed you arrive. He tracked you with one ear. That's all.* **...mrr...**",
+        ]))
+    save_db(m)
+
+
+# ==========================================
+# !bring — he brings you something small and useless. very proud of it.
+# ==========================================
+
+BRING_ITEMS = [
+    "a button", "a small pebble", "a piece of string", "a bottle cap",
+    "a crumpled receipt", "a single dried leaf", "a twist tie",
+    "a very small stick", "a paperclip", "a broken crayon",
+    "a coin from somewhere", "a ribbon", "a pen cap",
+    "a smooth piece of glass", "a tiny pinecone", "a folded piece of foil",
+    "a shoelace", "a wine cork", "a rubber band", "a small feather",
+    "a ticket stub from a long time ago", "a scrap of fabric", "a marble",
+    "a dried flower petal", "a little plastic ring", "a bead",
+    "a shell fragment", "a short length of wire", "a chip of pottery",
+]
+
+@bot.command(name="bring")
+async def bring_cmd(ctx):
+    """Yarnaby brings you something small and useless. He is very proud of it."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    item = random.choice(BRING_ITEMS)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. There is nothing to bring. The floor is empty.* **...**",
+            "*He cannot bring you anything. He is gone. Whatever he would have found for you stays unfound.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*He is asleep with {item} tucked near his paws. He found it earlier. He was going to show you.* **...prrrr...**",
+            f"*He found {item} before he fell asleep. It's right there beside him. He's very pleased with it, even asleep.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*He found {item} from where he is. He nudged it toward you. It took effort. He is very proud.* **...mrr...**",
+            f"*He located {item} within reach and pushed it in your direction. This was important to him.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        phases = [
+            "*He disappears for a moment.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He sets it down in front of The Creator very carefully.*",
+            "*He sits back.*",
+            "*He looks at the item. He looks at The Creator. He looks at the item again.*",
+            "**mrrp.**",
+            "*He waits.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.8))
+            await ctx.send(phase)
+        return
+
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    if score <= -2:
+        await ctx.send(random.choice([
+            f"*He has {item}. He is not giving it to you. He just wanted you to see it.*",
+            f"*He brings {item} over. He sets it down. He picks it back up. He leaves.*",
+        ]))
+    else:
+        phases = [
+            "*He goes somewhere.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He deposits it in front of you.*",
+            "*He sits.*",
+            "*He looks at it. He looks at you.*",
+            "**...mrrp.**",
+            "*He is waiting for a reaction. He brought you this. It is a gift. It is very important.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+            await ctx.send(phase)
+        if score >= 3:
+            m["social_matrix"][u_id]["score"] = min(10, score + 1)
+    save_db(m)
+
+
+# ==========================================
+# !watch_over — sits somewhere high, watches you while you do things
+# ==========================================
+
+@bot.command(name="watch_over")
+async def watch_over_cmd(ctx):
+    """Yarnaby perches somewhere high and watches over you."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+
+    PERCH_SPOTS = [
+        "the top of the bookshelf", "the highest point he could find",
+        "a cabinet above the door", "a windowsill with a good view",
+        "somewhere up near the ceiling that you didn't think was reachable",
+        "the top of the wardrobe", "a high shelf in the corner",
+        "an elevated surface that is definitely not meant to be a cat perch",
+    ]
+    spot = random.choice(PERCH_SPOTS)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*There is nobody watching over you from above. The high places are empty.* **...**",
+            "*He used to watch from up there. He is not there anymore.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            f"*He is asleep up on {spot}. He got up there and then fell asleep. He is watching over you in a general sense.* **...prrrr...**",
+            f"*He climbed {spot} and immediately fell asleep on it. He is present. He is technically above you. Close enough.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot climb right now. He watches you from where he is, from the ground, which is less impressive but he is still watching.* **...mrr...**",
+            "*The high spots are not available to him right now. He watches you from floor level. Same intention. Different altitude.* **...mrr...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot}. He arranges himself. He looks down at The Creator with an expression that means: I see everything from here. I am always watching. You are safe.* **...mrrp...**",
+            f"*He finds {spot} and claims it. He folds his paws beneath him. He watches The Creator work. He doesn't interrupt. He is simply present, above, keeping watch.* **...mrr...**",
+        ]))
+        return
+
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+    if score <= -2:
+        await ctx.send(random.choice([
+            f"*He climbs {spot}. He watches from up there. Not for your sake specifically. He just likes the view.*",
+            f"*He goes to {spot}. He sits. He looks down at you. He looks away. He is not watching you. He is watching the general area you happen to be in.*",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot} without being asked. He settles in. He watches you with both ears forward. He will be up there as long as you're doing whatever you're doing. He does not explain this.* **...mrrp...**",
+            f"*He finds {spot} and makes himself comfortable. He keeps one eye on you the whole time. Not hovering. Not hovering at all. Just — watching. Keeping track. Making sure.* **...mrr...**",
+            f"*He is on {spot}. He has been up there for a while. Every so often he checks on you. He is very serious about this.* **...mrrp...**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot}. He looks down at you. He stays there a while. He watches you do your thing. He doesn't say anything about it.*",
+            f"*He picks {spot} and sits up there. He watches. He's not doing anything else. Just watching. Quiet.* **...mrr...**",
+        ]))
+    save_db(m)
 
 
 # ==========================================
