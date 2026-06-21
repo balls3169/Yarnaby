@@ -7527,6 +7527,44 @@ async def on_message(message):
                     await message.channel.send(reaction)
                     break
 
+        # "eat yarnaby" / "i could eat yarnaby" / hungry threat joke detection
+        elif any(phrase in msg for phrase in [
+            "eat yarnaby", "eat yarn", "i could eat him", "i could eat you",
+            "so hungry i could eat", "hungry enough to eat", "gonna eat yarnaby",
+            "gonna eat you", "going to eat yarnaby", "going to eat you",
+            "could eat yarnaby", "want to eat yarnaby", "want to eat you",
+            "yarnaby looks tasty", "he looks tasty", "looks delicious",
+            "yarnaby looks delicious", "eat the cat", "eat him",
+        ]) and any(w in msg for w in ["yarnaby", "yarn", "him", "you", "cat", "he"]):
+            await message.channel.send(
+                random.choice([
+                    # pure panic
+                    "*Yarnaby STARES. His pupils go to pinpoints. He is on his feet before the sentence is finished.* **MRRROW.**",
+                    # running away
+                    "*He was here. He is no longer here. There is a Yarnaby-shaped absence where he was sitting. Something knocked over in the exit.* **...**",
+                    # slow horrified realization
+                    "*He heard the first half of that sentence and was fine. He heard the second half. He is processing it. His ear goes back. His other ear goes back. His tail fluffs.* **...mrrow??**",
+                    # denial / no you won't
+                    "*He stares directly at you for three full seconds.* **No.** *He turns around and walks away. That's it. That's the whole reaction.*",
+                    # affront to his dignity
+                    "*He stands up very slowly, keeping eye contact the entire time. He turns to face away from you. He sits back down. His back is to you now. He will not be acknowledging that sentence.* **...mrr.**",
+                    # unimpressed
+                    "*He looks at you. He looks at his own paw. He looks back at you. His expression says: you could not. You literally could not.* **mrrp.**",
+                    # hide immediately
+                    "*He is gone. You blinked. He was here and now he is not. There is a faint sound from inside the wardrobe.* **...mew...**",
+                    # fully puffed up
+                    "*Every single piece of fur on his body stands straight up. He is twice his normal size. He is also backing away very slowly while maintaining eye contact.* **MRROW.**",
+                    # flat no you won't meow
+                    "*He fixes you with a very flat look.* **mrrp.** *Which means: no you won't.*",
+                    # offended not scared
+                    "*He's not scared. He's OFFENDED. He sits up very straight, ears forward, and stares at you with the expression of someone who has been personally insulted.* **mrrow.**",
+                    # contemplating leaving forever
+                    "*He looks toward the door. He looks at you. He looks toward the door again. He is performing a genuine cost-benefit analysis of just leaving and never coming back.* **...mrr...**",
+                    # dramatic betrayal collapse
+                    "*He drops onto his side dramatically. He does not get up. He stares at the ceiling.* **...mew...** *He has been betrayed.*",
+                ])
+            )
+
         # "what are you doing" curiosity
         elif any(
             phrase in msg
@@ -9385,6 +9423,30 @@ async def doctor_wake(ctx):
     u_id = str(ctx.author.id)
     await _add_reactions(ctx, m)
 
+    # ── PASSED OUT from horse kick ──
+    if m["internal"].get("passed_out"):
+        reason = m["internal"].get("passed_out_reason", "unknown cause")
+        if not m["internal"].get("is_sleeping"):
+            # Already been woken somehow, clean up flag
+            m["internal"].pop("passed_out", None)
+            m["internal"].pop("passed_out_reason", None)
+            save_db(m)
+        else:
+            m["internal"]["is_sleeping"] = False
+            m["internal"]["sleep_until"] = None
+            m["internal"].pop("passed_out", None)
+            m["internal"].pop("passed_out_reason", None)
+            # He wakes up still hurt — chest injury remains
+            await ctx.send(random.choice([
+                "*He stirs. Not like waking from sleep — like surfacing from somewhere deeper. His eyes open partway. He breathes in and immediately his face changes. His chest. He remembers his chest.* **...mrr...** *He is awake. He is not okay. He needs medicine.*",
+                "*His eyes open. He stays flat for a moment, processing where he is and what happened. Then he tries to shift and stops. His breath catches. He looks down at his own chest and then up at whoever woke him.* **...mew...** *He is conscious. The injury is still there. It will hurt for a while.*",
+                "*A small sound first — barely a breath. Then his eyes, slowly. He blinks several times. He does not try to get up. He just lies there, looking up, breathing carefully.* **...mrr?** *He is back. Something in him is very glad to be back. His chest still hurts. He needs help.*",
+                "*He comes back gradually — like watching a light turn on in a room very slowly. First his ears. Then his eyes. He exhales, winces, goes still again.* **...mew...** *Awake. Hurt. Alive. He needs medicine for that chest.*",
+                "*His paw twitches first. Then his eyes open — wide, briefly, then settling to half. He looks at the person who woke him. Something in his expression is grateful and also in considerable pain.* **...mrr...** *He made it back. His chest tells him immediately that this is not over.*",
+            ]))
+            save_db(m)
+            return
+
     # Non-Doctor trying to wake Yarnaby
     if not is_doctor:
         if not m["internal"]["is_sleeping"]:
@@ -10701,6 +10763,26 @@ async def feed(ctx, *, item: Optional[str] = None):
     if await _handle_user_feed(ctx, target_member, is_doctor, score):
         return
     if await _handle_inedible_item_extended(ctx, item, is_doctor, score):
+        return
+
+        # --- CHILD PROTECTION - he will NOT eat his children, not ever ---
+    _guild_id_feed = str(ctx.guild.id) if ctx.guild else "dm"
+    _children_feed = _get_children(m, _guild_id_feed)
+    _matched_child_feed = _find_child(_children_feed, item_lower) if _children_feed else None
+    if _matched_child_feed:
+        _cname = _matched_child_feed["name"]
+        await ctx.send(
+            random.choice([
+                f"*Yarnaby goes completely still. He looks at **{item}**. He looks at you. He looks at **{item}** again. Something in him closes very quietly.* **No.** *He picks **{_cname}** up and carries them away from you.* **mrrow.**",
+                f"*He heard that. He stands up. He walks to **{_cname}**, sits down directly in front of them, and does not move. He is not eating **{_cname}**. He will not be eating **{_cname}**. This conversation is over.* **...mrr.**",
+                f"*The look he gives you is not anger. It is something worse. It is very quiet and very final.* **No.** *He tucks **{_cname}** closer and turns away from you.* **...mrrow...**",
+                f"*He picks **{_cname}** up immediately. He carries them to the other side of the room. He sets them down. He sits in front of them. He does not look at you again for a while.* **mrr.**",
+                f"*Yarnaby's ears go back. Not in fear. In something else entirely. He steps between you and **{_cname}** and stays there.* **MRRROW.** *That's not a question.*",
+                f"*He stares at you for a long moment. Then he looks at **{_cname}**. He looks back at you. He curls himself around **{_cname}** and lays his head down over them. Gentle. Certain. Immovable.* **...mrr...**",
+                f"*He blinks once. Slowly. Then he gets up, walks to **{_cname}**, and sits on them — not hard, just present, just there, just blocking. He is the wall now. He is always going to be the wall.* **...mrrp.**",
+                f"*Something in his expression doesn't change and that's somehow worse than if it had. He just moves to **{_cname}** and stays there.* **No.** *The word is in his posture. He will not be repeating it.*",
+            ])
+        )
         return
 
     # --- NSFW / INAPPROPRIATE - hard block, always, every time ---
@@ -32003,6 +32085,26 @@ async def eat_cmd(ctx, *, item: str = ""):
             f"*The **{item_clean}** exists. Yarnaby knows this. He is also full, so he stays exactly where he is.* **prrt.**",
             f"*Yarnaby watches {name} eat **{item_clean}** with mild academic interest. No theft today. He is not hungry.* **...mrr.**",
         ]))
+        return
+
+    # --- CHILD PROTECTION - he will NOT let you eat his children ---
+    _guild_id_eat = str(ctx.guild.id) if ctx.guild else "dm"
+    _children_eat = _get_children(m, _guild_id_eat)
+    _matched_child_eat = _find_child(_children_eat, item_lower) if _children_eat else None
+    if _matched_child_eat:
+        _cname = _matched_child_eat["name"]
+        await ctx.send(
+            random.choice([
+                f"*Yarnaby hears that sentence and does not move for one full second. Then he is between you and **{_cname}** and he is not moving.* **MRRROW.**",
+                f"*He stares at you. He walks to **{_cname}**. He sits on them. He is the wall. He will be the wall forever.* **...mrr.**",
+                f"*No.* *He says it with his body first. He places himself between you and **{_cname}** without a word. The word comes after, quiet and absolute.* **No.**",
+                f"*Something changes in his eyes. He doesn't growl. He doesn't hiss. He just walks to **{_cname}**, lowers himself over them, and looks at you.* **...mrrow...**",
+                f"*He heard you. He is not going to respond to that. He is going to go sit next to **{_cname}** and that is going to be his response.* **mrrp.**",
+                f"*Yarnaby puts his whole body between you and **{_cname}**. He doesn't explain. He doesn't need to.* **MRRROW.** *Try again.*",
+                f"*He picks **{_cname}** up very carefully and carries them somewhere else. He comes back. He looks at you. His expression does not say 'no.' It says 'absolutely not. ever. in any universe.'.* **...mrr.**",
+                f"*The look he gives you lasts about three seconds and communicates everything. Then he turns around and curls himself around **{_cname}**.* **mrrow.** *That's final.*",
+            ])
+        )
         return
 
     is_loved = any(w in item_lower for w in FEED_LOVES)
@@ -61990,7 +62092,75 @@ async def save_cmd(ctx):
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
     your_name = ctx.author.display_name
 
-    if not m["internal"].get("is_being_tortured"):
+    # ── SOCK RESCUE ──
+    if m["internal"].get("in_sock"):
+        socked_by = m["internal"].get("socked_by", "")
+        is_comfy = m["internal"].get("sock_is_comfy", False)
+        m["internal"]["in_sock"] = False
+        m["internal"].pop("socked_by", None)
+        m["internal"].pop("sock_is_comfy", None)
+        # clear helpless only if the sock was the reason
+        if m["internal"].get("helpless_reason") == "trapped inside a very large sock":
+            m["internal"]["helpless"] = False
+            m["internal"].pop("helpless_reason", None)
+            m["internal"].pop("helpless_by", None)
+        save_db(m)
+
+        if m["internal"].get("is_sleeping"):
+            await ctx.send(random.choice([
+                "*You open the sock. He spills out slowly, still completely asleep. He finds a new position on whatever surface he lands on. He does not wake up.* **...prrrr...**",
+                "*You tip the sock. He slides out. He is still asleep. He adjusts. He keeps sleeping. He is fine.* **...prr...**",
+            ]))
+            return
+
+        # He was comfy — not happy about being removed
+        if is_comfy:
+            await ctx.send(random.choice([
+                f"*{your_name} opens the sock. He does not come out. He looks at the opening. He looks away.* **mrrow.** *He was comfortable. He was perfectly comfortable. He comes out slowly and the look he gives them communicates clearly that this was unnecessary.* **...mrr.**",
+                f"*{your_name} reaches in. He moves away from their hand. He was in there voluntarily. He was warm. He was fine.* **mrrp.** *He comes out eventually, reluctantly, and immediately looks for somewhere else enclosed to sit.* **...mrr.**",
+                f"*{your_name} opens the sock and he just looks at them from inside it.* **mrrow.** *He does not immediately exit. He was comfortable. He needs a moment to process that this is over.* **...mrrp.** *He comes out. He finds a corner. He sits in it.* **...mrr.**",
+                f"*He hears the sock opening and his ears go back slightly. He was cozy. He was very cozy.* **mrrow.** *He comes out when {your_name} insists. He shakes himself. He looks at the sock. He looks at them. He looks at the sock again.* **...mrr.**",
+            ]))
+            return
+
+        if is_doctor:
+            await ctx.send(random.choice([
+                "*The Creator reaches in and lifts him out. He comes free all at once, wool ruffled, blinking. He looks at The Creator. He looks at the sock. He looks at The Creator again.* **...mrrp.** *He headbutts their hand and stays there.* **...prrr...**",
+                "*The Creator opens the sock and he climbs toward the opening immediately, toward them, specifically. He gets his paws on their hand and pulls himself out and doesn't let go for a moment.* **...prrrr...**",
+                "*The Creator frees him. He comes out, shakes himself, sits down very straight. He stares at The Creator. His expression says many things. He headbutts them anyway.* **...prrr...**",
+            ]))
+            if not is_doctor:
+                entry = m["social_matrix"].setdefault(u_id, {})
+                entry["score"] = min(10, entry.get("score", 0) + 2)
+            return
+
+        if socked_by == u_id:
+            # The person who socked him is also freeing him
+            await ctx.send(random.choice([
+                f"*{your_name} opens the sock. He climbs out. He sits. He looks at them.* **...mrr.** *He is free. He is also aware of who put him in there. He files this.* **mrr.**",
+                f"*{your_name} reaches in. He lets them pull him out. He shakes himself. He sits down and stares at them with an expression that means: I remember this. I will always remember this.* **...mrr.**",
+            ]))
+        elif score >= 5:
+            await ctx.send(random.choice([
+                f"*{your_name} opens the sock. He sees them and climbs out toward them immediately. He shakes himself. He bumps his head against them once, briefly, and then sits back.* **...prrr...**",
+                f"*{your_name} reaches in and he comes to them. He gets free. He exhales. He sits close to them after, closer than usual.* **...prrr...**",
+            ]))
+            entry = m["social_matrix"].setdefault(u_id, {})
+            entry["score"] = min(10, entry.get("score", 0) + 2)
+        elif score >= 0:
+            await ctx.send(random.choice([
+                f"*{your_name} opens the sock. He climbs out on his own, shakes himself, sits.* **...mrr.** *He glances at them. Something has shifted very slightly.* **...mrrp.**",
+                f"*{your_name} frees him. He comes out, reassembles himself, blinks at them.* **...mrr.** *He sits near them. Not touching. But near.*",
+            ]))
+            entry = m["social_matrix"].setdefault(u_id, {})
+            entry["score"] = min(10, entry.get("score", 0) + 1)
+        else:
+            await ctx.send(random.choice([
+                f"*{your_name} opens the sock. He doesn't wait — he's out immediately, away from everyone, shaking his wool back into order.* **mrrow.** *He is free. He does not look back.*",
+                f"*{your_name} frees him. He comes out fast, puts distance between himself and the sock, between himself and everyone. He sits alone. He is out. That's enough.* **...mrr.**",
+            ]))
+        save_db(m)
+        return
         await ctx.send(
             "*He looks at you. He is not hiding right now. He is fine.* **mrr?**\n"
             "*He appreciates the thought, though. Probably.*"
@@ -68674,6 +68844,258 @@ async def watch_over_cmd(ctx):
 
 
 # ==========================================
+# !sock — user puts yarnaby in a sock bigger than him. he is trapped.
+# ==========================================
+
+@bot.command(name="sock")
+async def sock_cmd(ctx):
+    """User puts Yarnaby in a big sock. He is trapped. !save to free him."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is gone. The sock remains empty.* **...**",
+            "*There is no one to put in the sock.* **...**",
+        ]))
+        return
+
+    if m["internal"].get("in_sock"):
+        await ctx.send(random.choice([
+            "*He is already in the sock. He knows. He is aware.* **...mrrp!**",
+            "*He is currently inside a sock. Adding more sock does nothing. He is still in there.* **...mrr!**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        phases_asleep = [
+            "*He is asleep.*",
+            "*You pick him up very carefully.*",
+            "*You slide him into the sock.*",
+            "*He fits. He is very small. The sock is very large.*",
+            "*He is still asleep.*",
+            "*...*",
+            "*He is asleep inside a sock now.*",
+            "**...prrrr...**",
+            "*He does not know this is happening. He is somewhere warm and enclosed and he finds this deeply comfortable.*",
+            "*Use `!save` to get him out. Or don't. He seems fine.*",
+        ]
+        for phase in phases_asleep:
+            await asyncio.sleep(random.uniform(1.8, 3.0))
+            await ctx.send(phase)
+        m["internal"]["in_sock"] = True
+        m["internal"]["socked_by"] = u_id
+        save_db(m)
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot stop you right now. He watches you approach with the sock with an expression of profound resignation.* **...mew...**",
+            "*He is already having a bad time. The sock does not improve things. He does not resist. He simply accepts the sock.* **...mrr...**",
+        ]))
+        m["internal"]["in_sock"] = True
+        m["internal"]["socked_by"] = u_id
+        save_db(m)
+        return
+
+    # Awake and mobile — the sock introduction
+    # Small chance he just... finds it cozy. regardless of who did it.
+    finds_it_cozy = random.random() < 0.2
+
+    if finds_it_cozy:
+        phases = [
+            "*You put him in the sock.*",
+            "*He goes in.*",
+            "*...*",
+            "*He is in the sock.*",
+            "*...*",
+            "*He is not struggling.*",
+            "*...*",
+            "*He is not trying to get out.*",
+            "*...*",
+            "*He has curled up.*",
+            "*He is inside the sock and he has curled up and his purr is audible from outside it.*",
+            "**...prrrr...**",
+            "*The sock is warm. The sock is enclosed. The sock is, apparently, exactly what he needed.*",
+            "*He is not coming out on his own. He is fine. He is very fine. Use `!save` if you must.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.8, 3.0))
+            await ctx.send(phase)
+        m["internal"]["in_sock"] = True
+        m["internal"]["socked_by"] = u_id
+        m["internal"]["sock_is_comfy"] = True
+        # No helpless — he's choosing to stay
+        save_db(m)
+        return
+
+    if is_doctor:
+        phases = [
+            "*The Creator produces a sock.*",
+            "*Yarnaby sees the sock.*",
+            "*He looks at The Creator.*",
+            "*He looks at the sock.*",
+            "*He looks at The Creator again.*",
+            "**mrrow?**",
+            "*The Creator begins.*",
+            "*He does not run. He trusts The Creator. He does not know if this was the right call.*",
+            "*He goes in.*",
+            "*He is in the sock.*",
+            "*The sock is very large. He is very small. He is completely inside it.*",
+            "*He is still for a moment.*",
+            "**...mrrp?**",
+            "*He cannot get out. He is in the sock. He is helpless and somewhat confused and the wool is very soft against his wool.*",
+            "*Use `!save` to free him.*",
+        ]
+    elif score <= -2:
+        phases = [
+            "*He sees you coming.*",
+            "*He sees the sock.*",
+            "*He runs.*",
+            "*You are faster, somehow.*",
+            "*He is in the sock.*",
+            "*He does not accept this.*",
+            "**MRRROW.**",
+            "*He is struggling. The sock does not care. The sock is bigger than him and he is fully inside it.*",
+            "**MRRROW. MRRROW.**",
+            "*He is very unhappy. He is also completely stuck.*",
+            "*Use `!save` to free him. He would like that. He will not thank you.*",
+        ]
+    elif score <= 2:
+        phases = [
+            "*You have a sock.*",
+            "*He notices the sock.*",
+            "*He takes one step back.*",
+            "*You are quicker.*",
+            "*He is in the sock.*",
+            "*...*",
+            "**...mrrow?**",
+            "*He is processing this. He is inside a sock. It is quite large. He cannot get out.*",
+            "**...mrrp.**",
+            "*He has decided to wait this out with as much dignity as the situation allows.*",
+            "*Use `!save` to free him.*",
+        ]
+    else:
+        phases = [
+            "*You approach with the sock.*",
+            "*He eyes it.*",
+            "*He doesn't run.*",
+            "*He lets you.*",
+            "*He is in the sock.*",
+            "*...*",
+            "*He is sitting inside the sock looking up at the opening like a very small creature in a very large vessel.*",
+            "**...mrrp?**",
+            "*He cannot get out. The sock is too big. He is too small. He is contained.*",
+            "*He is being very patient about this.*",
+            "*Use `!save` to free him.*",
+        ]
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(1.8, 3.2))
+        await ctx.send(phase)
+
+    m["internal"]["in_sock"] = True
+    m["internal"]["socked_by"] = u_id
+    m["internal"]["helpless"] = True
+    m["internal"]["helpless_reason"] = "trapped inside a very large sock"
+    m["internal"]["helpless_by"] = u_id
+    save_db(m)
+
+
+# ==========================================
+# !lean — you put your head on his wool. you lean on him.
+# ==========================================
+
+@bot.command(name="lean")
+async def lean_cmd(ctx):
+    """You lean your head on Yarnaby's wool. He reacts."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. There is no wool to lean on. There is just the space where he used to be.* **...**",
+            "*You reach for him. He is not there. He has not been there for a while.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. You lean on him anyway. He makes a small sound but does not wake. His wool is very warm.* **...prrrr...**",
+            "*He does not stir when you lean on him. He just keeps sleeping, and his purr gets a little louder, and that's all.* **...prrr...**",
+            "*He's asleep. You put your head on him. He adjusts slightly in his sleep — just enough so you're more comfortable. He does not open his eyes.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        chest = m["internal"].get("chest_injury")
+        if chest:
+            await ctx.send(random.choice([
+                "*He sees what you're about to do and makes a very small, very careful sound. You stop. You sit beside him instead, close but not touching his chest. He exhales. That's okay. That's fine.* **...mrr...**",
+                "*He doesn't pull away. But his breath catches when your head gets close to his chest. He holds very still, and you hold very still, and eventually you find a position that doesn't hurt him.* **...mew...**",
+                "*He wants to let you. He really does. But his chest — he shifts just slightly, a small wince, and you understand. You lean against his side instead, gently. He relaxes into it.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He is not at his best right now. But he leans back against you, just a little. Just enough.* **...mrr...**",
+                "*He can't do much. But he doesn't move away when you lean on him. He stays.* **...mrr...**",
+            ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*You lean your head on him. He goes very still. Not tense — the other kind of still. The kind that means he is trying not to disturb this.* **...prrr...**",
+            "*He feels your head rest on his wool. Something in him settles. He doesn't move. He doesn't speak. He just stays exactly where he is and lets you have this.* **...prrr...**",
+            "*Your head on his wool. His wool is soft. He is warm. He closes his eyes. He lets out a breath he didn't know he was holding.* **...prrrr...**",
+            "*He doesn't say anything. He just angles himself slightly so you're more comfortable, and stays. His purr starts low and gets louder, slowly, like something warming up.* **...prrr...**",
+            "*You lean on him. He leans back. Not much — just enough to let you know he feels it. He is here. He is not going anywhere.* **...prrrr...**",
+        ]))
+        return
+
+    score = m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if score <= -3:
+        await ctx.send(random.choice([
+            "*He moves. Not dramatically. Just — he's no longer where your head was going.* **...mrr.**",
+            "*He looks at you. He looks at where your head was heading. He shifts just enough that it doesn't happen.* **mrr.**",
+            "*He stands up before you get there. He walks a short distance away. He sits back down.* **...mrr.**",
+        ]))
+    elif score <= 0:
+        await ctx.send(random.choice([
+            "*He allows it. He doesn't lean into it. He stays very still and waits to see what you do next.* **...mrr.**",
+            "*He doesn't move away. He doesn't move toward you either. He just — accepts it, in a neutral sort of way.* **...mrr.**",
+            "*Your head on his wool. He tolerates this. He is not purring. But he doesn't leave.* **...mrr.**",
+        ]))
+    elif score <= 3:
+        await ctx.send(random.choice([
+            "*He holds still when you lean on him. After a moment, his purr starts up — quiet, a little uncertain, like he wasn't sure it was allowed.* **...prrr...**",
+            "*He doesn't say anything. He sits a little straighter so you have more to lean against. He pretends he didn't do that.* **...mrr...**",
+            "*Your head on his wool. He exhales. He doesn't move away. His tail wraps around himself slowly.* **...prrr...**",
+        ]))
+    elif score <= 6:
+        await ctx.send(random.choice([
+            "*He leans back into you, just a little. His wool is warm. His purr is steady.* **...prrr...**",
+            "*He lets you lean. He tilts toward you slightly, like he's meeting you halfway. He is purring.* **...prrr...**",
+            "*Your head on his wool. He closes his eyes. He stays perfectly still and lets you have all of it.* **...prrrr...**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He feels your head and leans into it immediately, naturally, like he was already waiting for this. His purr fills in the silence.* **...prrrr...**",
+            "*You lean on him. He leans back. He presses his cheek very lightly to the top of your head and stays there, warm and still and present.* **...prrrr...**",
+            "*His wool is impossibly soft. He is warm. He doesn't move a single inch, because he doesn't want to lose this. His purr is very loud.* **...prrrr...**",
+            "*He shifts so you fit better against him. He doesn't make a thing of it. He just — makes room for you, and stays, and purrs.* **...prrrr...**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(10, score + 1)
+
+    save_db(m)
+
+
+# ==========================================
 # !grass — yarnaby takes you outside. both touch grass.
 # ==========================================
 
@@ -68751,6 +69173,517 @@ async def grass_cmd(ctx):
 # the grass doesn't care what's going on inside.
 # it's just there. soft. real. outside.
 # go touch some.
+
+
+
+# ==========================================
+# !horse — yarnaby encounters a horse. it can go many ways.
+# ==========================================
+
+@bot.command(name="horse")
+async def horse_cmd(ctx):
+    """Yarnaby sees a horse. It can go well or very badly."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. The horse is somewhere. Neither of them knows about the other.* **...**",
+            "*He cannot see the horse. He is gone. The horse goes on existing without him.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. He cannot see the horse. The horse is very large and he is very asleep.* **...prrrr...**",
+            "*He is asleep and possibly dreaming of something. Given what his face is doing, it might be a horse.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot deal with a horse right now. He is dealing with enough.* **...mrr...**",
+            "*A horse. He registers this. He files it under things he cannot address at this time. He stares at the ceiling.* **...mrr...**",
+        ]))
+        return
+
+    outcome = random.choice([
+        "awe", "awe", "awe",          # more likely to be awed
+        "fear", "fear",
+        "offended",
+        "investigates",
+        "investigates",
+        "standoff",
+        "tries_to_befriend",
+        "immediate_retreat",
+        "fixated",
+    ])
+
+    if outcome == "awe":
+        phases = random.choice([
+            [
+                "*Yarnaby sees the horse.*",
+                "*He stops.*",
+                "*He does not move for a very long time.*",
+                "*The horse is so large. He did not know things could be that large.*",
+                "*He sits down slowly, never looking away.*",
+                "**...mrrow...**",
+                "*He is going to think about this for a while.*",
+            ],
+            [
+                "*He rounds the corner and finds a horse.*",
+                "*He goes completely still.*",
+                "*His ears are fully forward. Both of them. That almost never happens.*",
+                "*The horse breathes. He watches the horse breathe.*",
+                "*Something in him is very moved by the horse.*",
+                "**...mrrp...**",
+                "*He sits beside it for a long time. He does not touch it. He just stays near it.*",
+            ],
+            [
+                "*Yarnaby sees the horse for the first time.*",
+                "*He sits down immediately, like his legs decided for him.*",
+                "*It is a very big creature. It is a very calm creature. He respects both of these things enormously.*",
+                "**...mrrow...**",
+                "*He watches it the way he watches things he has decided are important.*",
+            ],
+        ])
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.0))
+            await ctx.send(phase)
+
+    elif outcome == "fear":
+        phases = random.choice([
+            [
+                "*Yarnaby sees the horse.*",
+                "*The horse is very large.*",
+                "*He is very small.*",
+                "*He takes one step backward.*",
+                "*He takes another step backward.*",
+                "**HSS.**",
+                "*He is gone.*",
+            ],
+            [
+                "*He finds the horse.*",
+                "*The horse turns its head and looks at him.*",
+                "*Every hair on Yarnaby's body stands straight up simultaneously.*",
+                "**MRRROW.**",
+                "*He is no longer there. He was there and now he is not there. The horse watches the space he used to occupy.*",
+            ],
+            [
+                "*He approaches. He gets close enough to really understand the scale.*",
+                "*He reconsiders everything.*",
+                "**...hff...**",
+                "*He backs away with great dignity.*",
+                "*He backs away faster.*",
+                "*He is around the corner now. He is fine. He was never scared.*",
+                "**...mrr.**",
+            ],
+        ])
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.0, 3.5))
+            await ctx.send(phase)
+
+    elif outcome == "offended":
+        await ctx.send(random.choice([
+            "*Yarnaby looks at the horse. The horse is enormous. The horse is also, objectively, not a cat. He finds this personally offensive. He turns around and walks away at a very measured pace.* **...mrr.**",
+            "*He stares at the horse for a long time. The horse stares back. He has decided that the horse is doing this on purpose and he will not be engaging with it.* **hff. mrr.**",
+            "*The horse exists. Yarnaby is aware that the horse exists. He sits down, looks at the horse for exactly five seconds, and then looks away. He does not look back. He has made his decision about horses.* **...mrr.**",
+        ]))
+
+    elif outcome == "investigates":
+        # 40% chance the horse kicks him
+        gets_kicked = random.random() < 0.4
+        if gets_kicked:
+            phases = [
+                "*Yarnaby finds the horse.*",
+                "*He approaches slowly. Low to the ground. Ears forward.*",
+                "*He stops. He sniffs from a safe distance.*",
+                "*He takes a few more steps.*",
+                "*He sniffs again.*",
+                "*He reaches one paw out toward the horse's leg.*",
+                "*The horse shifts its weight.*",
+                "*Yarnaby does not register this as a warning.*",
+                "*He leans in closer.*",
+                "*.*",
+                "*..*",
+                "*...*",
+                "**CRACK.**",
+                "*The horse has kicked him square in the chest.*",
+                "*He goes backward.*",
+                "*He lands.*",
+                "*He does not get up immediately.*",
+                "*He gets up.*",
+                "*He takes one step.*",
+                "*He sits down very carefully.*",
+                "**...mew...**",
+                "*He breathes. Slowly. Something in his chest hurts in a specific and serious way.*",
+                "*He does not look at the horse.*",
+            ]
+            for phase in phases:
+                await asyncio.sleep(random.uniform(1.8, 3.2))
+                await ctx.send(phase)
+            # Apply chest injury
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 35)
+            m["internal"]["helpless"] = True
+            m["internal"]["helpless_reason"] = "chest injury from a horse kick"
+            m["internal"]["helpless_by"] = "horse"
+            m["internal"]["chest_injury"] = True
+            # 50/50 chance he passes out from the impact
+            if random.random() < 0.5:
+                m["internal"]["is_sleeping"] = True
+                m["internal"]["passed_out"] = True
+                m["internal"]["passed_out_reason"] = "horse kick to the chest"
+                await ctx.send(random.choice([
+                    "*He breathes. Once. Twice. His eyes go glassy. He tries to hold his head up and doesn't manage it. He goes down — not a fall, almost peaceful — and stays there, very still, chest rising and falling in small careful increments.* **...mrr...** *He is out. Use `!wake` when ready. He needs medicine.*",
+                    "*He sits very still for a long moment. His eyes are half closed. He exhales slowly and does not inhale again right away. Then his head drops. He lists sideways and stays there, unconscious, breathing shallow.* **...** *Use `!wake`. He needs help.*",
+                    "*Something behind his eyes dims. He blinks, very slowly, and then doesn't open them again. He is down. Not dead — breathing — but somewhere else entirely. His chest moves but barely.* **...mew...** *He needs `!wake` and medicine.*",
+                ]))
+            else:
+                await ctx.send(random.choice([
+                    "*He is breathing in short careful increments. Something in his chest was not supposed to move that way and now it has.* **...mrr...** *He needs to rest. He needs medicine. He is not going anywhere fast.*",
+                    "*He holds himself very still. Every breath is deliberate. He presses one paw lightly against his own chest, then removes it.* **...mew...** *He is hurt. He knows he is hurt. He will not look at the horse.*",
+                    "*He exhales very slowly. He inhales even more slowly. Something is wrong in there and he is being very careful not to make it worse.* **...mrr...** *He sits with his head low and his eyes half closed. He needs help.*",
+                ]))
+        else:
+            phases = [
+                "*Yarnaby finds the horse.*",
+                "*He approaches slowly. Low to the ground. Ears forward.*",
+                "*He stops. He sniffs from a safe distance.*",
+                "*He takes a few more steps.*",
+                "*He sniffs again.*",
+                "*The horse is very big and smells unusual and has hooves.*",
+                "*He sits down and considers all of this very carefully.*",
+                "**...mrr?**",
+                "*He reaches one paw out toward the horse's leg. He touches it. He pulls his paw back.*",
+                "*He sits back down.*",
+                "**...mrrp.**",
+                "*He has done a full assessment. He files the horse under: large, strange, not a threat, still strange.*",
+            ]
+            for phase in phases:
+                await asyncio.sleep(random.uniform(2.2, 3.8))
+                await ctx.send(phase)
+
+    elif outcome == "standoff":
+        phases = [
+            "*Yarnaby sees the horse.*",
+            "*The horse sees Yarnaby.*",
+            "*Neither of them moves.*",
+            "*...*",
+            "*...*",
+            "*They are still not moving.*",
+            "*The horse blinks.*",
+            "*Yarnaby blinks.*",
+            "**...mrr.**",
+            "*The horse goes back to being a horse. Yarnaby goes back to being Yarnaby. Whatever that was, it's over.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.5))
+            await ctx.send(phase)
+
+    elif outcome == "tries_to_befriend":
+        # small chance the horse kicks him mid-friendship attempt
+        gets_kicked = random.random() < 0.2
+        if gets_kicked:
+            phases = [
+                "*Yarnaby sees the horse and makes a decision.*",
+                "*He approaches with his tail up. Friendly. Confident. This is going to go well.*",
+                "*The horse looks down at him.*",
+                "*He looks up at the horse.*",
+                "**mrrp.** *(hello.)*",
+                "*The horse says nothing. It is a horse.*",
+                "*Yarnaby moves closer. He is being very friendly.*",
+                "*He reaches up toward the horse's face.*",
+                "*The horse steps sideways.*",
+                "*Its leg catches him directly in the chest.*",
+                "*He goes down.*",
+                "**...**",
+                "*He gets up slowly.*",
+                "*He looks at the horse.*",
+                "**...mew...**",
+                "*He sits very carefully.*",
+                "*Something in his chest hurts.*",
+                "*He was trying to be friends.*",
+            ]
+            for phase in phases:
+                await asyncio.sleep(random.uniform(1.8, 3.2))
+                await ctx.send(phase)
+            m["stats"]["health"] = max(0, m["stats"].get("health", 100) - 30)
+            m["internal"]["helpless"] = True
+            m["internal"]["helpless_reason"] = "chest injury from a horse kick"
+            m["internal"]["helpless_by"] = "horse"
+            m["internal"]["chest_injury"] = True
+            # 50/50 chance he passes out
+            if random.random() < 0.5:
+                m["internal"]["is_sleeping"] = True
+                m["internal"]["passed_out"] = True
+                m["internal"]["passed_out_reason"] = "horse kick to the chest"
+                await ctx.send(random.choice([
+                    "*He looks at the horse. He looks at nothing. His eyes close very slowly, not the way they close when he decides to sleep — the other way. He goes down sideways, carefully, like his body is managing it for him.* **...mew...** *He is unconscious. He was just trying to say hello. Use `!wake`.*",
+                    "*He sits for a moment with his paw still outstretched from when he was reaching. Then his head drops. Then the rest of him follows. He is breathing. Shallow, but there.* **...** *He needs `!wake` and then medicine.*",
+                    "*Something leaves his eyes. He stays upright for one more second — then he's down, curled on his side, very still. His chest moves in small, careful rises.* **...mrr...** *Use `!wake`. He needs it.*",
+                ]))
+            else:
+                await ctx.send(random.choice([
+                    "*He breathes very carefully. He keeps one paw against his chest. He was just trying to say hello.* **...mrr...**",
+                    "*He holds himself still. His chest hurts in a way that demands stillness. He looks at the horse one more time.* **...mew...**",
+                ]))
+        else:
+            phases = [
+                "*Yarnaby sees the horse and makes a decision.*",
+                "*He approaches with his tail up. Friendly. Confident. This is going to go well.*",
+                "*The horse looks down at him.*",
+                "*He looks up at the horse.*",
+                "**mrrp.** *(hello.)*",
+                "*The horse says nothing. It is a horse.*",
+                "**mew mrrow.** *(I said hello.)*",
+                "*The horse blinks.*",
+                "*Yarnaby sits down directly in front of the horse's enormous face.*",
+                "**...mrrp.**",
+                "*The horse breathes on him. He closes his eyes. He is accepting this.*",
+                "*He has decided they are friends now. The horse has no opinion on this.*",
+                "**prrr.**",
+            ]
+            for phase in phases:
+                await asyncio.sleep(random.uniform(2.2, 3.8))
+                await ctx.send(phase)
+
+    elif outcome == "immediate_retreat":
+        phases = [
+            "*He turns the corner.*",
+            "*Horse.*",
+            "**MRRROW.**",
+            "*Gone.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+            await ctx.send(phase)
+
+    elif outcome == "fixated":
+        phases = [
+            "*Yarnaby sees the horse.*",
+            "*He sits down.*",
+            "*He does not stop looking at the horse.*",
+            "*...*",
+            "*He is still looking at the horse.*",
+            "*Someone walks between him and the horse. He moves to see around them.*",
+            "*...*",
+            "*The horse moves. He tracks it with both eyes without moving his head.*",
+            "*...*",
+            "**...mrrow...**",
+            "*He does not know what a horse is but he has decided it is the most important thing.*",
+            "*He is going to be here for a while.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.0))
+            await ctx.send(phase)
+
+    save_db(m)
+
+
+# ==========================================
+# !horse_race — yarnaby watches horse racing on TV.
+# ==========================================
+
+@bot.command(name="horse_race")
+async def horse_race_cmd(ctx):
+    """Yarnaby watches horse racing on TV."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. The race goes on without him.* **...**",
+            "*The TV is on. Nobody watches it.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep in front of the TV. The race is on. He misses it entirely. He makes a small sound at some point that might be excitement. He does not wake up.* **...prrrr...**",
+            "*He fell asleep before the race started. The crowd noise does something to his ears while he sleeps. His tail twitches.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*Someone turns the TV to the races. He watches from where he is. He cannot sit up fully. He watches anyway. His tail moves once when a horse accelerates.* **...mrr...**",
+            "*He cannot get to the TV. Someone brings the screen to him. He watches the horses. He is very still. Something in him is paying very close attention.* **...mrr...**",
+        ]))
+        return
+
+    # Pick a race scenario
+    scenario = random.choice([
+        "slow_start", "slow_start",
+        "immediately_riveted",
+        "tracks_one_horse",
+        "tracks_one_horse",
+        "gets_too_into_it",
+        "gets_too_into_it",
+        "falls_asleep_during",
+        "bats_at_screen",
+        "upset_by_result",
+        "completely_unimpressed",
+    ])
+
+    # Random horse names for flavour
+    horse_names = [
+        "Thunderfoot", "Pale Morning", "Red Current", "Soldier On",
+        "The Long Way", "Quiet Storm", "Last Train", "Gold Standard",
+        "Still Water", "First Light", "Dust and Wind", "Noble Cause",
+    ]
+    horse = random.choice(horse_names)
+    horse2 = random.choice([h for h in horse_names if h != horse])
+
+    if scenario == "slow_start":
+        phases = [
+            "*The race comes on. Yarnaby is in the room.*",
+            "*He glances at the TV.*",
+            "*He looks away.*",
+            "*He looks back.*",
+            "*There are horses on the screen. Many horses. Moving very fast.*",
+            "*He sits down in front of the TV.*",
+            "*He watches.*",
+            "**...mrr?**",
+            "*He is watching quite closely now.*",
+            f"*{horse} takes the lead. Yarnaby's ears go forward.*",
+            "*He is very invested in this suddenly.*",
+            "**...mrrp.**",
+            f"*{horse} wins. He stares at the screen for a moment after.*",
+            "*He sits back.*",
+            "*He will probably watch again.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.0))
+            await ctx.send(phase)
+
+    elif scenario == "immediately_riveted":
+        phases = [
+            "*The race starts.*",
+            "*Yarnaby's head snaps toward the TV.*",
+            "*He is on his feet.*",
+            "*He walks directly to the screen and sits two inches from it.*",
+            "*He does not blink.*",
+            f"*{horse} is ahead. His tail lashes once.*",
+            f"*{horse2} is closing. His ears go flat.*",
+            f"*{horse} holds. He exhales.*",
+            "**MRRP.**",
+            "*He sits back. He is very pleased. He watches the replay with the same intensity.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.0, 3.5))
+            await ctx.send(phase)
+
+    elif scenario == "tracks_one_horse":
+        phases = [
+            "*The horses come out. Yarnaby watches.*",
+            f"*He picks {horse}. He doesn't explain why. He just does.*",
+            "*His eyes follow only that horse.*",
+            f"*{horse} is mid-pack. He watches patiently.*",
+            f"*{horse} moves up. His ears go forward.*",
+            f"*{horse} moves up more. His tail starts going.*",
+            f"*{horse} is second. He is very tense.*",
+            f"*{horse} pushes. {horse} pushes harder.*",
+            f"*{horse} wins.*",
+            "**MRRROW.**",
+            "*He chirps at the TV three times in quick succession.*",
+            "*He is very happy about this. He picked correctly. He always knew.*",
+            "**prrr.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.2, 3.8))
+            await ctx.send(phase)
+
+    elif scenario == "gets_too_into_it":
+        phases = [
+            "*The race starts. Yarnaby watches from the couch.*",
+            "*He slides off the couch.*",
+            "*He sits closer.*",
+            "*He sits closer again.*",
+            "*His tail is going.*",
+            f"*{horse} is in the lead. His tail is going faster.*",
+            "*He stands up.*",
+            "**mrrp. mrrp.**",
+            f"*{horse2} is catching up. He starts pacing.*",
+            "**MRRROW.**",
+            "*He puts his paws on the TV stand.*",
+            "**MRRROW MRRROW.**",
+            f"*{horse} holds on. Barely. {horse} wins.*",
+            "*He chirps five times at the screen.*",
+            "*He headbutts the TV.*",
+            "*He walks away and sits down very calmly as if none of that happened.*",
+            "**...mrr.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.0, 3.2))
+            await ctx.send(phase)
+
+    elif scenario == "falls_asleep_during":
+        phases = [
+            "*The race comes on. Yarnaby settles in to watch.*",
+            "*He watches the horses line up.*",
+            "*He watches the start.*",
+            "*He is watching quite intently.*",
+            "*...*",
+            "*His eyes are half closed.*",
+            "*...*",
+            "*He is asleep.*",
+            "*He sleeps through the entire race.*",
+            "*The crowd noise peaks at the finish. His ear moves. He does not wake up.*",
+            "**...prrrr...**",
+            "*The race is over. He missed it. He is very comfortable.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.0))
+            await ctx.send(phase)
+
+    elif scenario == "bats_at_screen":
+        phases = [
+            "*The horses appear on the screen. Yarnaby approaches.*",
+            "*He watches them move.*",
+            "*He reaches out one paw and bats at the screen.*",
+            "*The horses do not respond to this.*",
+            "*He bats again.*",
+            "*Still nothing.*",
+            "*He bats several more times with increasing urgency.*",
+            "**mrrow?**",
+            "*The horses are still in the screen. He cannot get them out.*",
+            "*He sits back and stares at the TV with an expression that suggests he finds this deeply unsatisfactory.*",
+            "**...mrr.**",
+            "*He bats at it one more time. Just in case.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.2, 3.5))
+            await ctx.send(phase)
+
+    elif scenario == "upset_by_result":
+        phases = [
+            "*The race. Yarnaby watches.*",
+            f"*He picks {horse}. Quietly. Privately. But he picks {horse}.*",
+            f"*{horse} is looking good. He is watching very carefully.*",
+            f"*{horse} falls back in the final stretch.*",
+            f"*{horse} does not recover.*",
+            f"*{horse} does not win.*",
+            "*Yarnaby stares at the screen.*",
+            "*He looks away.*",
+            "*He walks to the other side of the room.*",
+            "*He sits down with his back to the TV.*",
+            "**...mrr.**",
+            "*He will not be discussing this.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(2.5, 4.0))
+            await ctx.send(phase)
+
+    elif scenario == "completely_unimpressed":
+        await ctx.send(random.choice([
+            f"*The race comes on. Yarnaby glances at it. He glances away. He begins grooming himself. The horses run their race. He finishes grooming himself. The race ends. He has not watched any of it.* **...mrr.**",
+            f"*He sees the horses on the TV. He looks at them for about two seconds. He walks out of the room. He comes back in later. The race is over. He does not care.* **mrrp.**",
+            f"*He is present for the horse race in the sense that he is in the room. He spends the entire duration staring at the wall to the left of the TV. He leaves when it's over. He has no opinion.* **...mrr.**",
+        ]))
+
+    save_db(m)
 
 
 # ==========================================
