@@ -8971,6 +8971,33 @@ async def on_message(message):
                 pass
 
     save_db(m)
+
+    # ── AMBIENT GAG: random gag sound when not dead/asleep ──
+    # Triggers rarely on any message. He tries to meow or hears something weird.
+    # Not vomiting. Just a little gak sound.
+    if (
+        not m["internal"].get("is_dead")
+        and not m["internal"].get("is_sleeping")
+        and random.random() < 0.015  # ~1.5% per message
+    ):
+        await asyncio.sleep(random.uniform(0.5, 2.0))
+        await message.channel.send(
+            random.choice([
+                "**gak.**",
+                "**gkk.**",
+                "**...gak.**",
+                "**ghk.**",
+                "**...gkk...** *He pauses. He looks around. He continues.*",
+                "*He opens his mouth to say something.* **gak.** *He closes it. He tries again.* **...mrr.**",
+                "**gak.** *He sits very still for a moment after.*",
+                "*Something got weird in his throat.* **gkk.** *He shakes his head once.*",
+                "**...ghk.** *He blinks.*",
+                "*A sound comes out of him that was not planned.* **gak.** *He is fine. He is completely fine.*",
+                "**gak.** *He pretends that did not happen.*",
+                "*He hears something. He makes a sound about it.* **gkk.**",
+            ])
+        )
+
     await bot.process_commands(message)
 
 
@@ -17490,28 +17517,56 @@ async def sulk_cmd(ctx):
             "*He looks at you from the floor with an expression that is, technically, a sulk. He did not need to perform it.* **...mrr...**",
         ]))
         return
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
     update_mood(m)
     mood = m["stats"].get("mood", "Content")
-    if mood in ("Sad", "Agitated", "Depressed (will recover)"):
-        await ctx.send(
-            random.choice(
-                [
-                    f"*He doesn't need to be told. He's already sulking. He turns his face to the wall and tucks his paws under himself. He stays.* {stat_bar(m)}",
-                    f"*A long, slow blink. He pads to the corner without a sound, lies down facing away, and curls his yarn-tail tightly around himself.* {stat_bar(m)}",
-                    f"*He huffs once, hard, and drops where he is. He won't look at anyone. The sulking is total.* {stat_bar(m)}",
-                ]
-            )
-        )
+    already_sad = mood in ("Sad", "Agitated", "Depressed (will recover)")
+
+    if is_doctor:
+        if already_sad:
+            await ctx.send(random.choice([
+                f"*He doesn't need to be told. He's already sulking. He turns his face toward The Creator and stays very close, very quiet.* {stat_bar(m)}",
+                f"*He sulks in The Creator's direction. The sulk is real but he is conducting it as close to them as possible.* {stat_bar(m)}",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*He performs the sulk for The Creator specifically. He flops dramatically, chin on paws, and looks up at them from under his brows. He is not really sulking. He is being a little theatrical.* {stat_bar(m)}",
+                f"*He sulks beside The Creator. He makes it look very genuine. His tail gives him away.* {stat_bar(m)}",
+            ]))
+    elif already_sad:
+        await ctx.send(random.choice([
+            f"*He doesn't need to be told. He's already sulking. He turns his face to the wall.* {stat_bar(m)}",
+            f"*A long, slow blink. He pads to a corner and lies down facing away.* {stat_bar(m)}",
+            f"*He huffs once, hard, and drops where he is. The sulking is total.* {stat_bar(m)}",
+        ]))
+    elif score >= 60:
+        await ctx.send(random.choice([
+            f"*He sulks near you. He chose the sulk spot for its proximity to you. He glances over once and looks away.* {stat_bar(m)}",
+            f"*He performs the sulk right next to you. He is sulking and also right here. Both things are true.* {stat_bar(m)}",
+        ]))
+    elif score >= 30:
+        await ctx.send(random.choice([
+            f"*He gives you a flat look, then performs the sulk. He turns sideways, sits, stares at nothing.* {stat_bar(m)}",
+            f"*He doesn't really feel like sulking. He does it for you. He flops dramatically.* {stat_bar(m)}",
+        ]))
+    elif score >= 0:
+        await ctx.send(random.choice([
+            f"*He sulks. A standard sulk. He finds somewhere comfortable and performs it.* {stat_bar(m)}",
+            f"*He performs an obligatory pout — chin on paws, ears half-back. He is somewhere in the room.* {stat_bar(m)}",
+        ]))
+    elif score >= -20:
+        await ctx.send(random.choice([
+            f"*He sulks. Far from you. The sulk is private and not your business.* {stat_bar(m)}",
+            f"*He goes somewhere and sulks there. He does not share this.* {stat_bar(m)}",
+        ]))
     else:
-        await ctx.send(
-            random.choice(
-                [
-                    f"*He gives you a flat look, then performs the sulk anyway. He turns sideways, sits, and stares at nothing in particular. It is technically a sulk.* {stat_bar(m)}",
-                    f"*He doesn't really feel like sulking. He does it for you. He flops down dramatically and refuses to make eye contact.* {stat_bar(m)}",
-                    f"*He performs an obligatory pout - chin on his paws, ears half-back. He's faking it. You both know.* {stat_bar(m)}",
-                ]
-            )
-        )
+        await ctx.send(random.choice([
+            f"*He sulks. You are not the comfort in the sulk. The sulk is happening without you and possibly because of you.* {stat_bar(m)}",
+            f"*He goes very far away and sulks there. The distance is intentional.* {stat_bar(m)}",
+        ]))
     save_db(m)
 
 
@@ -17557,33 +17612,58 @@ async def pet_cmd(ctx):
 
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
-    if is_doctor or score >= 3:
-        await ctx.send(
-            random.choice(
-                [
-                    "*Yarnaby leans into your hand. A long, slow purr starts somewhere deep in his chest. His eyes half-close. He is happy.*",
-                    "*He pushes his head against your palm - once, twice - and settles. He is enjoying this and he wants you to know it.*",
-                    "*He drops onto his side and offers his belly. He has decided to trust you with this.*",
-                    "*His eyes close to slits. The purr is immediate and continuous. He presses his whole head into the petting. He wants more. He will always want more. **prrr.***",
-                    "*He cranes his neck up into your hand - stretching the full length of it - and does a slow, satisfied blink. He has never not wanted this. **prrr.***",
-                    "*A small **chrrp** of acknowledgement, then his chin comes down onto his paws and his eyes go half-lidded. He is purring. He has made no secret of enjoying this.*",
-                    "*He tips his head sideways so your hand catches behind his ear. He has positioned himself. This was intentional. He purrs without shame. **prrr.***",
-                    "*He presses into the pet with a low, sustained trill. His tail does a single slow wag. He turns slightly so you get the other side too. He is directing this process. **chrrp.***",
-                    "*He makes a small sound - not quite a chirp, not quite a purr - somewhere between the two. He tucks his chin and continues leaning in. He hasn't moved away once. **prrt.***",
-                    "*His purr clicks on like a switch. He nudges up into your hand when you slow down. He does not intend to let this stop before he is ready. **prrrrr.***",
-                ]
-            )
-        )
-        m["stats"]["affection_crave"] = max(0, m["stats"]["affection_crave"] - 3)
-        # Score gain is capped + rate-limited so !pet can't grind to 10/10.
-        if (
-            u_id in m["social_matrix"]
-            and not is_doctor
-            and _cooldown_remaining(m, f"pet_score:{u_id}", COOLDOWN_PET_SCORE) <= 0
-            and m["social_matrix"][u_id].get("score", 0) < PET_SCORE_CAP
-        ):
-            m["social_matrix"][u_id]["score"] += 1
-            _set_cooldown(m, f"pet_score:{u_id}")
+    if is_doctor or score >= 80:
+        await ctx.send(random.choice([
+            "*Yarnaby leans into your hand before you fully extend it. He was already leaning. His purr is immediate and total.* **prrrrr.**",
+            "*He presses his entire head into your hand and holds it there. He is getting every bit of this. He will not be rushed.* **prrrrr.**",
+            "*He drops onto his side and offers his belly — completely, entirely, without hesitation. He has decided to trust you with the whole thing.* **prrrrr.**",
+            "*His purr clicks on like a switch. He nudges up into your hand when you slow down. He is directing this and he does not intend to let it end before he is ready.* **prrrrr.**",
+        ]))
+    elif score >= 50:
+        await ctx.send(random.choice([
+            "*He leans into your hand. A long, slow purr starts somewhere deep in his chest. His eyes half-close. He is happy.* **prrr.**",
+            "*He pushes his head against your palm — once, twice — and settles. He is enjoying this and he wants you to know it.* **prrr.**",
+            "*He tips his head sideways so your hand catches behind his ear. He positioned himself. This was intentional. He purrs without shame.* **prrr.**",
+            "*He cranes his neck up into your hand and does a slow, satisfied blink. He has never not wanted this.* **prrr.**",
+        ]))
+    elif score >= 25:
+        await ctx.send(random.choice([
+            "*He allows the pet. He leans into it, just slightly. His purr starts quiet and gets less quiet.* **...prrr.**",
+            "*A small **chrrp** of acknowledgement, then his chin comes down onto his paws and his eyes go half-lidded. He is purring.*",
+            "*He presses into the pet with a low trill. He turns slightly so you get the other side. He is directing this a little.* **prrt.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            "*He tolerates the pet. He doesn't lean in. He doesn't pull away. His purr starts — tentative, quiet.* **...mrr.**",
+            "*He holds still under your hand. After a moment his eyes close slightly. He hasn't decided how he feels about this.* **...mrr.**",
+        ]))
+    elif score >= -5:
+        await ctx.send(random.choice([
+            "*He holds still. He doesn't lean in. He allows it.* **...mrr.**",
+            "*Your hand touches him. He sits very still. He is neutral about this.* **...mrr.**",
+        ]))
+    elif score >= -20:
+        await ctx.send(random.choice([
+            "*He tolerates the hand but his ears go back. He is not enjoying this. He doesn't leave, but he is not enjoying this.*",
+            "*He endures the pet. His tail twitches. He is communicating something.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He pulls away. He is not interested in being petted by you right now.* **mrrow.**",
+            "*He moves. Your hand finds air. He has opinions about whose hands go on him.* **mrr.**",
+        ]))
+        save_db(m)
+        return
+    m["stats"]["affection_crave"] = max(0, m["stats"]["affection_crave"] - 3)
+    # Score gain is capped + rate-limited so !pet can't grind to 10/10.
+    if (
+        u_id in m["social_matrix"]
+        and not is_doctor
+        and _cooldown_remaining(m, f"pet_score:{u_id}", COOLDOWN_PET_SCORE) <= 0
+        and m["social_matrix"][u_id].get("score", 0) < PET_SCORE_CAP
+    ):
+        m["social_matrix"][u_id]["score"] += 1
+        _set_cooldown(m, f"pet_score:{u_id}")
     elif score >= 0:
         await ctx.send(
             random.choice(
@@ -18303,6 +18383,31 @@ async def groom_cmd(ctx, *, spot: str = ""):
         ]))
         return
 
+    if "groom" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["groom"]))
+        relearned = _try_relearn(m, "groom")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["groom"]))
+        save_db(m)
+        return
+
+    # --- SCRUFFED — fully cooperative grooming ---
+    if m["internal"].get("scruffed"):
+        await ctx.send(random.choice([
+            "*He is scruffed. He is completely still. You groom him without resistance — "
+            "all the spots he usually pulls away from, the base of his tail, behind his ears, "
+            "all of it. He stares forward. He endures. His wool looks excellent.* **...mrr.**",
+            "*Scruffed Yarnaby does not fight the grooming. He holds completely still. "
+            "You work through every knot. He makes one very small sound when you hit a tangle "
+            "and then goes still again. He is immaculate when you're done.* **...mew.**",
+            "*He is in the scruff and he is not going anywhere. You groom him thoroughly. "
+            "Every part of him. He accepts this with the resignation of someone who knows "
+            "exactly what's happening and cannot do anything about it.* **...mrr.**",
+        ]))
+        save_db(m)
+        return
+
     # --- BRUSH GATE: check if a brush/comb has been gifted ---
     inv = m.get("inventory", {})
     has_brush = any(
@@ -18705,24 +18810,42 @@ async def whisper_cmd(ctx, *, text: str = ""):
     is_sweet = any(w in text_lower for w in sweet_words)
     is_sad = any(w in text_lower for w in sad_words)
 
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
     if is_doctor and (is_sweet or is_sad):
-        await ctx.send(
-            "*Yarnaby goes completely still as The Creator whispers. His glass eyes catch the light. He pushes his forehead gently against you and stays there.*"
-        )
+        await ctx.send("*Yarnaby goes completely still as The Creator whispers. His glass eyes catch the light. He pushes his forehead gently against you and stays there.*")
         m["stats"]["affection_crave"] = max(0, m["stats"]["affection_crave"] - 4)
     elif is_sweet:
-        await ctx.send(
-            "*Yarnaby leans in carefully, ears forward. He listens to every word. A small, surprised purr starts up. He looks at you like he's just decided something.*"
-        )
+        if score >= 60:
+            await ctx.send(random.choice([
+                "*He leans in before you finish. Both ears forward. His purr starts immediately. He looks at you like you have confirmed something.* **...prrr.**",
+                "*He listens to every word. A small surprised purr. He presses his nose toward your face briefly.* **...prrr.**",
+            ]))
+        elif score >= 20:
+            await ctx.send("*Yarnaby leans in carefully, ears forward. He listens to every word. A small, surprised purr starts up. He looks at you like he's just decided something.*")
+        else:
+            await ctx.send("*He tilts one ear toward you. He hears the sweet words. He files them somewhere. He doesn't react outwardly.* **...mrr.**")
         m["stats"]["affection_crave"] = max(0, m["stats"]["affection_crave"] - 2)
     elif is_sad:
-        await ctx.send(
-            "*He listens silently. After a moment he sits down right next to you, very close, and stays. He doesn't know what to do, but he is here.*"
-        )
+        if score >= 60:
+            await ctx.send("*He listens silently. He sits down right next to you — pressed against you — and stays. He is here. He will stay here.* **...mrr.**")
+        elif score >= 20:
+            await ctx.send("*He listens silently. After a moment he sits down right next to you, very close, and stays. He doesn't know what to do, but he is here.*")
+        else:
+            await ctx.send("*He hears the sad words. He sits nearby. Not touching. But he doesn't leave.* **...mrr.**")
     else:
-        await ctx.send(
-            "*Yarnaby tilts his head as you whisper. He blinks slowly. He doesn't fully understand, but he is paying attention.*"
-        )
+        if score >= 60:
+            await ctx.send(random.choice([
+                "*He tilts his head as you whisper. He leans in. He is listening with everything he has.* **...mrr.**",
+                "*He turns both ears toward you. He absorbs every word.* **...mrrp.**",
+            ]))
+        elif score >= 20:
+            await ctx.send("*Yarnaby tilts his head as you whisper. He blinks slowly. He doesn't fully understand, but he is paying attention.*")
+        elif score >= -10:
+            await ctx.send("*He hears you. He doesn't lean in. He files it.* **...mrr.**")
+        else:
+            await ctx.send("*He glances at you. He looks away. The whisper did not reach him in the way you meant it to.*")
     save_db(m)
 
 
@@ -21812,24 +21935,53 @@ async def yawn_cmd(ctx):
         )
         return
 
-    if is_doctor or random.random() < 0.55:
-        await ctx.send(
-            random.choice([
-                "*You yawn. A long, ridiculous yawn. Yarnaby watches you, his jaw tenses - and he yawns back, helplessly. Caught.*",
-                "*You yawn. He stares. Then his small mouth opens wide and he yawns too, with a tiny squeak at the end.*",
-                "*Your yawn sets him off. He yawns so hard he sits down. He looks personally offended that it worked.*",
-                "*He resists for about two seconds. Then he yawns. Then he yawns again. He has been compromised.*",
-            ])
-        )
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    # Contagion chance scales up with trust
+    catch_chance = 0.3 + min(0.6, max(0, score) / 100)
+    catches = is_doctor or random.random() < catch_chance
+
+    if catches:
+        if score >= 70 or is_doctor:
+            await ctx.send(random.choice([
+                "*You yawn. He yawns back immediately. Doesn't even try to resist. He's not embarrassed about it.* **...prrrr.**",
+                "*Your yawn sets him off before you finish it. He yawns long and slow and curls tighter afterward.* **...prrr.**",
+                "*He catches it. He always catches it from you. He has stopped pretending otherwise.* **...mrr.**",
+            ]))
+        elif score >= 40:
+            await ctx.send(random.choice([
+                "*You yawn. He holds out for a moment. Then his jaw opens wide, a tiny squeak at the end. Caught.* **...mrr.**",
+                "*His jaw tenses, tenses — and then he yawns back, helplessly. He looks mildly put out.*",
+                "*He resists for two seconds. Then he yawns. Then he yawns again. He has been compromised.*",
+            ]))
+        elif score >= 15:
+            await ctx.send(random.choice([
+                "*You yawn. After a beat, he yawns too. Not at you. Just — at the air. In the same direction.* **...mrr.**",
+                "*He tries to look away in time. He doesn't make it. He yawns, begrudgingly.* **...mrr.**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*Your yawn sets him off against his will. He looks personally offended that it worked.*",
+                "*He yawns. He did not want to do that. He shakes his head once.*",
+            ]))
         m["stats"]["tiredness"] = min(20, m["stats"].get("tiredness", 0) + 1)
     else:
-        await ctx.send(
-            random.choice([
-                "*You yawn. Yarnaby looks at you the way one looks at someone being inappropriate in public.*",
+        if score <= -20:
+            await ctx.send(random.choice([
+                "*You yawn. He turns away.*",
+                "*You yawn. He doesn't dignify it with a response.*",
+            ]))
+        elif score <= 0:
+            await ctx.send(random.choice([
                 "*You yawn. He does not. He looks slightly insulted that you tried.*",
-                "*He turns his head away from your yawn like it's contagious and he refuses to be infected.*",
-            ])
-        )
+                "*He turns his head away like it's contagious and he refuses to be infected.*",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*You yawn. He watches you carefully. He almost catches it. He doesn't. He looks relieved.* **...mrr.**",
+                "*He feels the yawn coming. He clamps his jaw shut. He wins this one.* **mrr.**",
+            ]))
     save_db(m)
 
 
@@ -21849,15 +22001,38 @@ async def sneeze_cmd(ctx):
         )
         return
 
-    await ctx.send(
-        random.choice([
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if score >= 60 or is_doctor:
+        await ctx.send(random.choice([
+            "*You sneeze. He blinks. His wool puffs very slightly. He looks at you with something like concern.* **...mrr?**",
+            "*You sneeze. He walks over and sniffs you once. He goes back to where he was. He checked. You're fine.* **...mrr.**",
+            "*You sneeze. He looks up. He does not startle. He just watches to make sure you're okay.* **...mrrp.**",
+        ]))
+    elif score >= 25:
+        await ctx.send(random.choice([
+            "*You sneeze. He startles slightly. Recovers. Looks at you. Looks away.* **...mrr.**",
+            "*You sneeze. He hops sideways a little. He shakes himself and pretends it didn't happen.*",
+            "*Sudden noise. He jumps. Then he carefully, deliberately, sits back down like nothing happened. His tail betrays him.*",
+        ]))
+    elif score >= 0:
+        await ctx.send(random.choice([
             "*You sneeze. Yarnaby's wool puffs up a full inch. He hops sideways. He looks at you like you're armed.*",
             "*You sneeze. He startles so hard he loses his footing. He recovers, glares, and shakes his wool back into place.*",
-            "*You sneeze. Yarnaby goes completely still, then sneezes back - a tiny, indignant **chnf**.*",
-            "*Sudden noise. He jumps. Then he carefully, deliberately, sits down again like nothing happened. His tail betrays him.*",
             "*You sneeze. He blinks at you several times, very slowly. He has filed this incident.*",
-        ])
-    )
+        ]))
+    elif score >= -15:
+        await ctx.send(random.choice([
+            "*You sneeze. He startles, then glares. He was comfortable. You have disturbed him.* **mrrow.**",
+            "*You sneeze. He gives you a look that communicates he does not appreciate this.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*You sneeze. He was already leaving. He leaves faster.*",
+            "*You sneeze. He goes to the other side of the room. That was already where he was going.*",
+        ]))
     save_db(m)
 
 
@@ -25068,15 +25243,46 @@ async def loaf_cmd(ctx):
         ]))
         return
 
-    await ctx.send(
-        random.choice([
-            "*Yarnaby tucks one paw under. Then the other. Then both back paws. He folds. Wool re-distributes. He is, now, a perfect loaf. **prrr.***",
-            "*A slow circle, three turns, and a gentle drop. All paws vanish under his wool. The loaf is achieved. He will not be commenting further. **mrr.***",
-            "*Yarnaby has assumed the loaf position. Symmetrical. Tail wrapped neatly. Eyes half-closed. This took preparation. Do not disturb. **prrt.***",
-            "*He folds himself down with the precision of someone who has done this every day of his life. The loaf is perfect. He blinks at you, slow. **chrrp.***",
-            "*All four paws are now somewhere under him. His chin rests on the front of his wool. The loaf is in effect. The loaf is total. **prrr.***",
-        ])
-    )
+    if "loaf" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["loaf"]))
+        relearned = _try_relearn(m, "loaf")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["loaf"]))
+        save_db(m)
+        return
+
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if score >= 75 or is_doctor:
+        await ctx.send(random.choice([
+            "*Yarnaby tucks one paw under. Then the other. Then both back paws. He folds into a perfect loaf — facing you. He wanted you to see this.* **prrr.**",
+            "*He loafs. Right beside you. Pressed up against whatever surface you're near. His loaf is in your general direction. He is very warm. **prrr.***",
+            "*The loaf is achieved. He places it precisely as close to you as is physically possible while remaining technically a loaf. **prrr.***",
+        ]))
+    elif score >= 40:
+        await ctx.send(random.choice([
+            "*He tucks his paws under. He folds. He is a loaf. He faces your general direction.* **...prrr.**",
+            "*A slow circle, a gentle drop. All paws vanish. The loaf is achieved. He will not be commenting further. **mrr.***",
+            "*He folds himself down with the precision of someone who has done this every day. The loaf is perfect. **prrt.***",
+        ]))
+    elif score >= 10:
+        await ctx.send(random.choice([
+            "*He loafs. Nearby. Not commenting on the proximity.* **...mrr.**",
+            "*All four paws tuck under. He is a loaf. He is in the same room as you. That's a coincidence.* **...mrr.**",
+            "*He folds into loaf position. He blinks at you, slow. He looks away.* **mrr.**",
+        ]))
+    elif score >= -10:
+        await ctx.send(random.choice([
+            "*Yarnaby has assumed the loaf position. Symmetrical. Tail wrapped neatly. Eyes half-closed. Do not disturb.* **prrt.**",
+            "*All four paws are somewhere under him. His chin rests on his wool. The loaf is in effect. The loaf is total.* **prrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He loafs across the room from you. He has placed himself at maximum loaf distance.* **...mrr.**",
+            "*He is a loaf. He is a loaf over there. Away from you. Deliberately.* **mrr.**",
+        ]))
 
 
 @bot.command(name="zoomies")
@@ -25139,24 +25345,45 @@ async def zoomies_cmd(ctx):
             )
         return
 
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
     if _zoom_stage in ("Elder", "Ancient", "Timeworn"):
-        await ctx.send(
-            random.choice([
-                "*Yarnaby's pupils blow wide. His tail puffs. He **launches** - not the blur he once was, but something heavier and faster than it has any right to be. He hits the wall. He bounces. He is still going. **PRRRT!***",
-                "*He gathers himself - and then he goes. Larger than before, heavier, but genuinely fast. He tears down the corridor, wool streaming, his big paws making a real sound on the tile. Something falls. He continues. **MRROW!***",
-                "*He has the eyes. He still gets the eyes. He is gone before you can register it - a large, fast, determined thing disappearing around the corner. There is a crash. He is fine. He was always going to be fine.* **PRRRK!***",
-            ])
-        )
+        elder_lines = [
+            "*Yarnaby's pupils blow wide. His tail puffs. He **launches** - not the blur he once was, but something heavier and faster than it has any right to be. He hits the wall. He bounces. He is still going. **PRRRT!***",
+            "*He gathers himself - and then he goes. Larger than before, heavier, but genuinely fast. He tears down the corridor, wool streaming, his big paws making a real sound on the tile. Something falls. He continues. **MRROW!***",
+            "*He has the eyes. He still gets the eyes. He is gone before you can register it - a large, fast, determined thing disappearing around the corner. There is a crash. He is fine. He was always going to be fine.* **PRRRK!***",
+        ]
+        if score >= 50 or is_doctor:
+            elder_lines += [
+                "*He launches - and on the way back through he passes you close enough to feel the wind. He intended that.* **PRRRT!**",
+            ]
+        await ctx.send(random.choice(elder_lines))
     else:
-        await ctx.send(
-            random.choice([
+        if score >= 70 or is_doctor:
+            await ctx.send(random.choice([
+                "*Yarnaby's pupils blow wide. He launches — and on the first pass he tags your leg. On the second pass he tags it again. He is zoomie-ing at you specifically.* **PRRRT! chrrp!**",
+                "*He explodes sideways, tears the circuit, skids back to you, looks at you, and goes again. You are the finish line.* **MRROW! chrrp!**",
+                "*He has the eyes. He is already moving. He zoomies past you so close his wool brushes your leg. He comes back. He does it again.* **PRRRK!**",
+            ]))
+        elif score >= 35:
+            await ctx.send(random.choice([
                 "*Yarnaby's pupils blow wide. His tail puffs. He **launches** - a grey blur down the corridor, claws skittering on the tile. He hits the wall. He bounces. He is gone again. **PRRRT! PRRRT!***",
                 "*A single, focused stare at the far wall. Then - gone. He tears across the factory at full speed, wool streaming, ears flat. Something falls over in his wake. He does not stop.*",
                 "*Yarnaby crouches. Wiggles his back end. **GO.** He explodes sideways, ricochets off a chair, and disappears around the corner at impossible speed. **MRROW!***",
-                "*Without warning he is just - moving. Faster than he should be able to. He laps the room twice, knocks something off a shelf, and skids to a stop facing the wrong direction. He looks delighted with himself. **chrrp! chrrp!***",
-                "*He has the eyes. The big eyes. The zoomies eyes. He is gone before you finish saying it. There is a small crash from somewhere far away. He is fine. The factory may not be. **PRRRK!***",
-            ])
-        )
+            ]))
+        elif score >= 0:
+            await ctx.send(random.choice([
+                "*He zoomies. Fast. In your general vicinity. You were not a target but you were not avoided either.* **chrrp!**",
+                "*Without warning he is just moving. He laps the room twice, skids to a stop facing the wrong direction. He looks delighted. **chrrp! chrrp!***",
+                "*He has the eyes. He is gone. There is a crash from somewhere. He is fine. The factory may not be. **PRRRK!***",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He zoomies away from you. Very thoroughly. In the other direction.* **chrrp.**",
+                "*He launches. He goes to the far end. He stays at the far end. This is a zoomie with a destination.* **PRRRT.**",
+                "*The zoomie takes him far away from you and he seems fine with that.* **mrrow.**",
+            ]))
     if "tiredness" in m["stats"]:
         m["stats"]["tiredness"] = min(10, m["stats"].get("tiredness", 0) + 1)
     m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 2)
@@ -26452,6 +26679,14 @@ async def nuzzle_cmd(ctx):
         ]))
         return
 
+    if "nuzzle" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["nuzzle"]))
+        relearned = _try_relearn(m, "nuzzle")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["nuzzle"]))
+        save_db(m)
+        return
 
     _nuz_stage = _age_stage(_get_age_days(m))
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
@@ -27270,38 +27505,49 @@ async def layon_cmd(ctx):
                     "*He goes still. Very still. He is processing the reversal. He is used to being the one that goes on top of people. He is not sure what face to make. He makes a small, surprised sound. Then he starts purring. He accepts his role.* **...mrr... prrrrr.**",
                 ])
             )
-    elif _lon_score >= 4:
+    elif _lon_score >= 70:
         if _lon_stage in ("Timeworn", "Ancient"):
-            await ctx.send(
-                random.choice([
-                    f"*Yarnaby was very still. {your_name} lay on top of him. He makes a low, slow sound - somewhere between alarm and consideration - and then relaxes by degrees, like something settling. He is large enough. He lets them stay.* **...mrr...**",
-                    f"*He goes still when {your_name} lays on him. He takes stock. He decides this is acceptable. He exhales. He stays where he is. He starts, after a moment, to purr.* **...prrr...**",
-                ])
-            )
+            await ctx.send(random.choice([
+                f"*{your_name} lies on him. He was expecting this. He exhales and stays completely still. His purr starts immediately.* **...prrrrr...**",
+                f"*He adjusts his position before {your_name} is fully settled, so they fit better. He has done this before. He starts purring.* **...prrrr...**",
+            ]))
         else:
-            await ctx.send(
-                random.choice([
-                    f"*Yarnaby makes a startled **brrp** when {your_name} lies on him. He was not prepared. He holds very still, wide-eyed. Then he processes that this is {your_name}. Then his tail begins to move. Then the purring starts.* **brrp! ...prrr...**",
-                    f"*He freezes. He looks at {your_name} from underneath {your_name}. He blinks. He decides he will allow this. He starts to purr slowly. He does not move.* **...prrr...**",
-                    f"*He makes a surprised chirp and then does absolutely nothing else because {your_name} is on top of him and he has decided this is fine. He is purring. He is staying put.* **chrrp! ...prrr...**",
-                    f"*He was mid-blink when {your_name} lay on him. He blinks the rest of the way. He sits very still. He starts purring. This is new. He finds he doesn't mind new.* **...prrr...**",
-                ])
-            )
+            await ctx.send(random.choice([
+                f"*{your_name} lies on him. He absorbs the weight. He exhales. His purr starts immediately — he was ready for this.* **...prrrrr...**",
+                f"*He doesn't freeze this time. He knows what's happening. He settles under {your_name} and starts purring.* **...prrrrr...**",
+            ]))
+    elif _lon_score >= 40:
+        if _lon_stage in ("Timeworn", "Ancient"):
+            await ctx.send(random.choice([
+                f"*{your_name} lay on top of him. He makes a low, slow sound and then relaxes by degrees. He is large enough. He lets them stay.* **...mrr...**",
+                f"*He goes still when {your_name} lays on him. He takes stock. He decides this is acceptable. He starts, after a moment, to purr.* **...prrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                f"*Yarnaby makes a startled **brrp** when {your_name} lies on him. He holds very still. Then he processes that this is {your_name}. His tail begins to move. The purring starts.* **brrp! ...prrr...**",
+                f"*He freezes. He blinks. He decides he will allow this. He starts to purr slowly.* **...prrr...**",
+                f"*He makes a surprised chirp and then does absolutely nothing else because {your_name} is on top of him and he has decided this is fine.* **chrrp! ...prrr...**",
+            ]))
+    elif _lon_score >= 15:
+        await ctx.send(random.choice([
+            f"*He startles and holds very still. He is processing. After a moment he doesn't move away. He is neutral about this. He is very still and neutral.* **...mrr.**",
+            f"*He doesn't bolt. He sits there under {your_name} with wide eyes. He has decided to tolerate this.* **...mrr.**",
+        ]))
     elif _lon_score >= 0:
-        await ctx.send(
-            random.choice([
-                f"*Yarnaby makes a startled sound and wriggles out from under {your_name} with impressive efficiency. He sits at a safe distance and stares at them. He was not consulted. He has opinions.* **BRRP! hff.**",
-                f"*He squirms free immediately. He sits. He stares. He blinks. He was on the floor doing floor things and now {your_name} is where he was. This was not agreed to.* **brrp! mrr.**",
-                f"*He was not warned. He is now out from under {your_name} and several feet away. He is looking at them. He is considering whether this is a betrayal or just a surprise. He blinks.* **hff. mrr.**",
-            ])
-        )
+        await ctx.send(random.choice([
+            f"*Yarnaby wriggles out from under {your_name} with impressive efficiency. He sits at a safe distance and stares. He was not consulted.* **BRRP! hff.**",
+            f"*He squirms free immediately. He was on the floor doing floor things and now {your_name} is where he was. This was not agreed to.* **brrp! mrr.**",
+        ]))
+    elif _lon_score >= -20:
+        await ctx.send(random.choice([
+            f"*He is gone before {your_name} is fully settled. He watches from across the room.* **hff. mrr.**",
+            f"*He exits the situation immediately. He is not interested in being the floor.* **mrrow.**",
+        ]))
     else:
-        await ctx.send(
-            random.choice([
-                f"*Yarnaby hisses - actually hisses - and is out from under {your_name} before they fully land. He sits on the other side of the room and stares. No. Absolutely not. Not with {your_name}. No.* **HSS! hff.**",
-                f"*He is gone. He was here, and now he is gone. {your_name} is lying on the floor where he was. He watches from a distance with enormous eyes and very flat ears.* **HSS.**",
-            ])
-        )
+        await ctx.send(random.choice([
+            f"*Yarnaby hisses - actually hisses - and is out from under {your_name} before they fully land. No. Absolutely not.* **HSS! hff.**",
+            f"*He is gone. {your_name} is lying on the floor where he was. He watches from a distance with enormous eyes and very flat ears.* **HSS.**",
+        ]))
     _set_cooldown(m, f"layon:{u_id}")
     if _lon_score >= 0:
         entry = m["social_matrix"].setdefault(u_id, {"score": 0})
@@ -29366,6 +29612,15 @@ async def knead_cmd(ctx):
         ]))
         return
 
+    if "knead" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["knead"]))
+        relearned = _try_relearn(m, "knead")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["knead"]))
+        save_db(m)
+        return
+
     if is_doctor:
         await ctx.send(random.choice([
             f"*Yarnaby climbs onto The Creator without asking and begins to knead. Both paws. Slow, alternating, completely committed. His eyes go half-closed. His purr turns up immediately and keeps going. He has selected this location. He will not be moved.* **PRRRRR.**",
@@ -29432,6 +29687,15 @@ async def chirp_cmd(ctx):
             "*He is on the floor. There is a bug on the wall above him. He looks at it. His jaw makes the motion — the fast, clicking chatter — but very quietly, very tired. He cannot do anything about this bug right now. This upsets him.* **...ek... mrr...**",
             "*He spots something moving. His head locks onto it. He opens his mouth and the chatter comes out — weak, barely there — and then he closes it. He stares. He is still in there.* **...ek ek... mrr...**",
         ]))
+        return
+
+    if "chirp" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["chirp"]))
+        relearned = _try_relearn(m, "chirp")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["chirp"]))
+        save_db(m)
         return
 
     targets = [
@@ -33915,6 +34179,15 @@ async def treat_cmd(ctx):
     if count > 1:
         await ctx.send(f"*({count_str} treated. He is in better shape now.)*")
 
+    # Clear chest_injury flag if it was in the treated list
+    was_chest = any(i.get("location") == "chest" for i in untreated)
+    if was_chest:
+        m["internal"]["chest_injury"] = False
+        if m["internal"].get("helpless_reason") == "chest injury from a horse kick":
+            m["internal"]["helpless"] = False
+            m["internal"].pop("helpless_reason", None)
+            m["internal"].pop("helpless_by", None)
+
     # ── ACHIEVEMENTS: treat ──
     try:
         _trc = _ach_inc(m, u_id, "treat_count")
@@ -37758,6 +38031,15 @@ async def purr_cmd(ctx):
             "*He is asleep. A deep, continuous **prrr** hums out of him without prompting - he has been doing this for some time.*",
             "*He doesn't stir. But somewhere in his chest, the purr is already running, low and steady, like something left on. **prrr...***",
         ]))
+        save_db(m)
+        return
+
+    if "purr" in m["internal"].get("forgotten_things", []):
+        await ctx.send(random.choice(FORGET_STRUGGLE["purr"]))
+        relearned = _try_relearn(m, "purr")
+        if relearned:
+            await asyncio.sleep(2.0)
+            await ctx.send(random.choice(RELEARN_ANNOUNCE["purr"]))
         save_db(m)
         return
 
@@ -42529,6 +42811,22 @@ async def healstage_cmd(ctx):
         return
     _ensure_v28_defaults(m)
     injuries = [i for i in m["internal"].get("injuries", []) if not i.get("treated")]
+
+    # Ensure chest injury is in the list if flag is set but entry is missing
+    if m["internal"].get("chest_injury"):
+        has_chest_entry = any(i.get("location") == "chest" and not i.get("treated") for i in injuries)
+        if not has_chest_entry:
+            _synth = {
+                "type": "blunt impact",
+                "location": "chest",
+                "severity": "serious",
+                "caused_by": "horse kick",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "treated": False,
+            }
+            m["internal"].setdefault("injuries", []).append(_synth)
+            injuries.append(_synth)
+
     if not injuries:
         _health_note(m, "No active untreated injuries; dramatic anyway.")
         save_db(m)
@@ -43245,6 +43543,13 @@ async def vet_cmd(ctx):
 
     for inj in m["internal"].get("injuries", []):
         inj["treated"] = True
+    # Clear chest injury state
+    if m["internal"].get("chest_injury"):
+        m["internal"]["chest_injury"] = False
+        if m["internal"].get("helpless_reason") == "chest injury from a horse kick":
+            m["internal"]["helpless"] = False
+            m["internal"].pop("helpless_reason", None)
+            m["internal"].pop("helpless_by", None)
     _vet_guild_id = str(ctx.guild.id) if ctx.guild else "dm"
     _set_dead_state(m, _vet_guild_id, dead=False)
     m["stats"]["health"] = min(100, m["stats"].get("health", 100) + 30)
@@ -57752,6 +58057,22 @@ async def cut_nails_cmd(ctx):
         ]))
         return
 
+    # --- SCRUFFED — he is limp, fully cooperative, no resistance ---
+    if m["internal"].get("scruffed"):
+        await ctx.send(random.choice([
+            "*He is scruffed. He is limp. He is not going anywhere. You clip his nails one by one. "
+            "He stares at the wall. He does not fight. He does not accept. He simply is here, in the scruff, "
+            "and his nails are getting clipped, and there is nothing to be done about any of this.* **...mrr.**",
+            "*Scruffed Yarnaby is cooperative Yarnaby. His paw extends when you take it. "
+            "You clip each nail cleanly. He watches his own paw get worked on with a distant, philosophical expression. "
+            "When it's done he just stays limp.* **...mew.**",
+            "*He is in the scruff. His entire body is soft. You clip all of his nails without incident. "
+            "He makes no sound. His eyes are half-closed. He is enduring this with the dignity "
+            "of someone who has no other options.* **...mrr.**",
+        ]))
+        save_db(m)
+        return
+
     # --- HELPLESS ---
     if helpless:
         await ctx.send(random.choice([
@@ -64300,6 +64621,790 @@ _SCORE_BLOCK_EXEMPT = frozenset({
 })
 
 
+# Broad command-completion score flavor.
+# This gives almost every behavioral command an extra score-aware beat without
+# hand-editing hundreds of bodies. Admin/utility/sports commands are skipped.
+_SCORE_FLAVOR_SKIP_PREFIXES = (
+    "fb", "set", "unset", "clear", "log", "raid", "warn", "mute", "unmute",
+    "lock", "unlock", "blacklist", "autorole", "anti", "badword", "ticket",
+)
+
+_SCORE_FLAVOR_SKIP = frozenset({
+    "help", "status", "yarnstate", "debug", "about", "info", "version",
+    "ranking", "leaderboard", "scores", "scoreboard", "trust", "mytrust",
+    "bond", "mybond", "bondcheck", "milestones", "achievements", "quests",
+    "claim_quest", "reroll_quest", "compare", "inventory", "inv", "hoard",
+    "outfit", "wearing", "health", "sick", "sickness", "injuries", "trauma",
+    "dirtiness", "dirty", "cleancheck", "wetness", "dryness", "age", "howold",
+    "archive", "quote", "lore", "memory_log", "while_you_were_gone", "wyg",
+    "firstmet", "firstmeeting", "history", "myhistory", "known_users",
+    "whois", "lookup", "userdata", "language", "level", "setlevel",
+    "setlevelrole", "vote", "dm", "broadcast", "suggest", "answer_suggest",
+    "weather", "stargaze", "countdown", "maintenance", "diagnostic",
+    "remind", "afk", "purge", "slowmode", "rules", "serverscan",
+})
+
+_SCORE_FLAVOR_ANCHORS = {
+    "rub": "the cheek rub",
+    "play": "the play request",
+    "sleep": "being asked to sleep",
+    "wake": "being woken",
+    "fetch": "the fetch game",
+    "poke": "the poke",
+    "boop": "the boop",
+    "hug": "the hug",
+    "feed": "the food",
+    "gift": "the gift",
+    "call": "your voice",
+    "nod": "the quiet yes",
+    "shake_head": "the quiet no",
+    "hide": "hiding near you",
+    "scold": "being scolded",
+    "steal": "the stolen treasure",
+    "inspect": "being inspected",
+    "carry": "being picked up",
+    "play_dead": "the dramatic collapse",
+    "chase": "the chase",
+    "hideaway": "hiding from the room",
+    "seekout": "being found",
+    "scribble": "the scribble",
+    "cheer": "trying to cheer you",
+    "favorite": "being chosen",
+    "display": "showing off the hoard",
+    "show": "being shown something",
+    "drop": "giving it back",
+    "sulk": "the sulk",
+    "pet": "the petting",
+    "headpat": "the headpat",
+    "scritch": "the scritches",
+    "tickle": "the tickle",
+    "groom": "the grooming",
+    "selfgroom": "grooming himself near you",
+    "whisper": "the whisper",
+    "birthday": "the birthday feeling",
+    "miss": "being missed",
+    "draw": "the drawing",
+    "bath": "the bath",
+    "blanket": "the blanket",
+    "medicine": "the medicine",
+    "force_medicine": "forced medicine",
+    "soup": "the soup",
+    "heatpad": "the warmth",
+    "vetfullcheck": "the full checkup",
+    "vidgame": "the game",
+    "find": "the search",
+    "comfort": "the comfort object",
+    "mimic": "copying you",
+    "stare": "the stare",
+    "yawn": "the yawn",
+    "sneeze": "the sneeze",
+    "sing": "the song",
+    "dance": "the dance",
+    "apologize": "the apology",
+    "compliment": "the compliment",
+    "whistle": "the whistle",
+    "storytime": "being read to",
+    "yarn": "the yarn",
+    "dream": "sharing the dream",
+    "dreamseed": "the planted dream",
+    "nap": "the nap",
+    "bless": "the blessing",
+    "curse": "the curse",
+    "grudge": "the grudge",
+    "favored": "being favored",
+    "home": "going home",
+    "doomscroll": "the doomed scroll",
+    "ears": "the ear check",
+    "tail": "the tail",
+    "blink": "the blink",
+    "loaf": "the loaf",
+    "zoomies": "the zoomies",
+    "candle": "the candle",
+    "letter": "the letter",
+    "cuddle": "the cuddle",
+    "guitar": "the belly guitar",
+    "bellyrub": "the belly rub",
+    "shadow": "the shadow",
+    "comfort_me": "comforting you",
+    "praise": "the praise",
+    "nuzzle": "the nuzzle",
+    "holdpaw": "holding his paw",
+    "forehead": "the forehead touch",
+    "goodmorning": "the morning greeting",
+    "goodnight": "the goodnight",
+    "remember": "being remembered",
+    "yarnsong": "his little song",
+    "pounce": "the pounce",
+    "layon": "lying on him",
+    "teach": "the lesson",
+    "forget": "forgetting someone",
+    "reminisce": "remembering together",
+    "hisday": "telling you his day",
+    "reaction": "reacting for you",
+    "predict": "the prediction",
+    "secret": "the secret",
+    "story": "the story",
+    "territory": "the claimed spot",
+    "wander": "wandering back",
+    "challenge": "the challenge",
+    "kiss": "the kiss",
+    "slowblink": "the slow blink",
+    "knead": "the kneading",
+    "chirp": "the chirp",
+    "window": "window watching",
+    "sunspot": "the sunspot",
+    "lick": "the lick",
+    "boopbattle": "the boop battle",
+    "protect": "guarding you",
+    "trusttest": "the trust test",
+    "hideitem": "hiding the item",
+    "listen": "listening to you",
+    "routine": "the routine",
+    "jealousof": "the jealousy",
+    "promise": "the promise",
+    "comfort_other": "comforting someone else",
+    "safeplace": "the safe place",
+    "toybox": "the toybox",
+    "adventure": "the adventure",
+    "bite": "the bite",
+    "paw": "offering his paw",
+    "greet": "the greeting",
+    "ask": "answering you",
+    "birb": "birdwatching",
+    "rate": "rating you",
+    "guess": "guessing",
+    "threaten": "the threat",
+    "scratch": "the scratch tool",
+    "ritual": "the ritual",
+    "scare": "being scared",
+    "sneak": "the sneaking",
+    "imprison": "being trapped",
+    "drink": "the drink",
+    "eat": "the bite of food",
+    "bubblebath": "the bubble bath",
+    "bathwithyarny": "sharing the bath",
+    "meme": "the meme",
+    "say": "trying to speak",
+    "playmusic": "the music",
+    "massage": "the massage",
+    "suck": "the vacuum pull",
+    "stab": "the toy knife",
+    "fire": "the fire",
+    "cleanwool": "cleaning his wool",
+    "lap": "your lap",
+    "treat": "treating the wound",
+    "whisper_extended": "the murmur",
+    "watch": "watching the video",
+    "fishing": "the fishing",
+    "garden": "the garden",
+    "cook": "the cooking",
+    "pillow": "the pillow",
+    "become": "becoming something",
+    "vrmode": "the VR headset",
+    "laundry": "the warm laundry",
+    "paparazzi": "the camera",
+    "package": "the box",
+    "earsclean": "cleaning his ears",
+    "catchmouse": "the mouse mission",
+    "lego": "the lego",
+    "pc": "the computer",
+    "socks": "the socks",
+    "shoes": "the shoes",
+    "car": "the car sounds",
+    "asmr": "the ASMR",
+    "instagram": "the Instagram scroll",
+    "show_belly": "showing his belly",
+    "groom_user": "grooming you",
+    "roll_over": "rolling over",
+    "sit_near": "sitting near you",
+    "wait": "waiting for you",
+    "bring": "bringing the thing",
+    "watch_over": "watching over you",
+    "sock": "the sock",
+    "lean": "letting you lean",
+    "grass": "touching grass",
+    "horse": "the horse",
+    "horse_race": "the race",
+    "forget_thing": "forgetting the trick",
+    "throw_treat": "the thrown treat",
+    "yarn_birthday": "his birthday",
+    "batcat": "being Batcat",
+    "yarnparent": "the scruff hold",
+    "unscruff": "being released",
+}
+# Auto-generated coverage: every command missing above gets its own score anchor.
+_SCORE_FLAVOR_ANCHORS.update({
+    "memory_log": "the memory log",
+    "help": "the help",
+    "status": "the status",
+    "yarnstate": "the yarnstate",
+    "fbpreview": "the Fenerbahce preview",
+    "fblive": "the live Fenerbahce check",
+    "fbresult": "the Fenerbahce result",
+    "fbsetstandings": "the fbsetstandings",
+    "fbtable": "the league table",
+    "fbhistory": "the Fenerbahce history",
+    "fbstreak": "the Fenerbahce streak",
+    "fbseason": "the season summary",
+    "fbpredict": "the title prediction",
+    "fbaddresult": "the fbaddresult",
+    "inventory": "the inventory",
+    "outfit": "the outfit",
+    "wear": "the wear",
+    "takeoff": "the takeoff",
+    "mood": "the mood",
+    "mood_check": "the mood check",
+    "setmood": "the setmood",
+    "pockets": "the pockets",
+    "seeart": "the seeart",
+    "health": "the health",
+    "sick": "the sick",
+    "lore": "the lore",
+    "about": "the about",
+    "maintenance": "the maintenance",
+    "set_home": "set home",
+    "reset": "reset",
+    "forgive": "the forgive",
+    "while_you_were_gone": "the while you were gone",
+    "set_departure": "set departure",
+    "fb_status": "the Fenerbahce status",
+    "fbupdate": "the Fenerbahce update",
+    "fbfener": "the Fenerbahce goal",
+    "fbopponent": "the opponent goal",
+    "fbsetfixture": "the fbsetfixture",
+    "fbtotal": "the scoreline",
+    "fbfixtures": "the fixture list",
+    "fbxi": "the lineup",
+    "fbsubs": "the substitution",
+    "fbredcard": "the red card",
+    "fbfulltime": "the final whistle",
+    "fbnews": "the Fenerbahce news",
+    "fbchampions": "the champions call",
+    "my_birthday": "the my birthday",
+    "unset_birthday": "unset birthday",
+    "birthdays": "the birthdays",
+    "grievance": "the grievance",
+    "milestones": "the milestones",
+    "achievements": "the achievements",
+    "quests": "the quests",
+    "claim_quest": "claim quest",
+    "reroll_quest": "reroll quest",
+    "compare": "the compare",
+    "ranking": "the ranking",
+    "weather": "the weather",
+    "stargaze": "the stargaze",
+    "age": "the age",
+    "rebirth": "the rebirth",
+    "archive": "the archive",
+    "firstmet": "the firstmet",
+    "quote": "the quote",
+    "history": "the history",
+    "journal": "the journal",
+    "name": "the name",
+    "yarnyplace": "the yarnyplace",
+    "gifts": "the gifts",
+    "missing": "the missing",
+    "firstmeeting": "the firstmeeting",
+    "vocabulary": "the vocabulary",
+    "timeofday": "the timeofday",
+    "trust": "the trust",
+    "lastdream": "the lastdream",
+    "favorites": "the favorites",
+    "sleepy": "the sleepy",
+    "dreamlog": "the dreamlog",
+    "moodreason": "the moodreason",
+    "lookup": "the lookup",
+    "countdown": "the countdown",
+    "broadcast": "the broadcast",
+    "raid": "the raid",
+    "raidstop": "the raidstop",
+    "raidlog": "the raidlog",
+    "raidban": "the raidban",
+    "antiraid": "the antiraid",
+    "setheight": "the setheight",
+    "set_age": "set age",
+    "yes": "the yes",
+    "no": "the no",
+    "read_book": "the read book",
+    "setscore": "changing the score",
+    "set_original_home": "set original home",
+    "onion": "the onion",
+    "finger": "the finger",
+    "level": "the level",
+    "setlevel": "the setlevel",
+    "setlevelrole": "the setlevelrole",
+    "joinvc": "the joinvc",
+    "leavevc": "the leavevc",
+    "forgetuser": "the forgetuser",
+    "known_users": "checking known users",
+    "fbaddteam": "adding the team",
+    "fbremoveteam": "removing the team",
+    "injuries": "the injuries",
+    "image_memory": "the image memory",
+    "dirtiness": "the dirtiness",
+    "suggest": "the suggest",
+    "answer_suggest": "answer suggest",
+    "walk": "the walk",
+    "sniffsfx": "the sniffsfx",
+    "testsfx": "the testsfx",
+    "bathsleep": "the bathsleep",
+    "feed_multi": "the feed multi",
+    "taxes": "the taxes",
+    "job": "the job",
+    "hairball": "the hairball",
+    "eclipse": "the eclipse",
+    "hard_mode": "the hard mode",
+    "bump": "the bump",
+    "drag": "the drag",
+    "petloaf": "the petloaf",
+    "mischief": "the mischief",
+    "while_you_were_gone_v2": "the while you were gone v2",
+    "opendoor": "the opendoor",
+    "giftscratch": "the giftscratch",
+    "pawstuck": "the pawstuck",
+    "teachdoor": "the teachdoor",
+    "setcountdown": "the setcountdown",
+    "jealous": "the jealous",
+    "showoff": "the showoff",
+    "mirror": "the mirror",
+    "phone": "the phone",
+    "hiccup": "the hiccup",
+    "explore": "the explore",
+    "noise": "the noise",
+    "season": "the season",
+    "camera": "the camera",
+    "crackback": "the crackback",
+    "imitate": "the imitate",
+    "squeeze": "the squeeze",
+    "expression": "the expression",
+    "opinion": "the opinion",
+    "mood_history": "the mood history",
+    "weigh": "the weigh",
+    "temperature": "the temperature",
+    "heartbeat": "the heartbeat",
+    "patrol": "the patrol",
+    "map": "the map",
+    "territory_map": "the territory map",
+    "gift_history": "the gift history",
+    "stalking": "the stalking",
+    "magic": "the magic",
+    "count": "the count",
+    "gift_creator": "the gift creator",
+    "follow_creator": "the follow creator",
+    "weather_outside": "the weather outside",
+    "apologise": "the apologise",
+    "tape": "the tape",
+    "bitepaper": "the bitepaper",
+    "stresssqueeze": "the stresssqueeze",
+    "kissattack": "the kissattack",
+    "bagcarry": "the bagcarry",
+    "litterbox": "the litterbox",
+    "hotstove": "the hotstove",
+    "tvbird": "the tvbird",
+    "cone": "the cone",
+    "lightfight": "the lightfight",
+    "purr": "the purr",
+    "sunbeam": "the sunbeam",
+    "tangle": "the tangle",
+    "staticshock": "the staticshock",
+    "inspect_self": "the inspect self",
+    "sleep_spot": "the sleep spot",
+    "hiding": "the hiding",
+    "seekyarny": "the seekyarny",
+    "lost": "the lost",
+    "bestfriend": "the bestfriend",
+    "family": "the family",
+    "checkup": "the checkup",
+    "vitamins": "the vitamins",
+    "copycat": "the copycat",
+    "argument": "the argument",
+    "hidefood": "the hidefood",
+    "timetravel": "the timetravel",
+    "translate": "the translate",
+    "diary": "the diary",
+    "wishlist": "the wishlist",
+    "set_gender": "set gender",
+    "gender": "the gender",
+    "pregnant": "the pregnant",
+    "tie": "the tie",
+    "untie": "the untie",
+    "pov": "the pov",
+    "kissback": "the kissback",
+    "push": "the push",
+    "sink": "the sink",
+    "taste_test": "the taste test",
+    "tophat": "the tophat",
+    "dance_style": "the dance style",
+    "standup": "the standup",
+    " ": "the unnamed command",
+    "untrap": "the untrap",
+    "banana": "the banana",
+    "prank": "the prank",
+    "snow": "the snow",
+    "cutwool": "the cutwool",
+    "leaveserver": "leaving the server",
+    "servers": "checking the servers",
+    "burrito": "the burrito",
+    "swing": "the swing",
+    "hatcheck": "the hatcheck",
+    "foodreview": "the foodreview",
+    "upsidedown": "the upsidedown",
+    "nonchalant": "the nonchalant",
+    "run": "the run",
+    "shake": "the shake",
+    "takeout": "the takeout",
+    "whatforgot": "the whatforgot",
+    "visual": "the visual",
+    "povshot": "the povshot",
+    "pov_gallery": "the pov gallery",
+    "dreamjournal": "the dreamjournal",
+    "factory": "the factory",
+    "train": "the train",
+    "photoalbum": "the photoalbum",
+    "crime_report": "the crime report",
+    "nickname": "the nickname",
+    "callme": "the callme",
+    "trust_history": "the trust history",
+    "vibecheck": "the vibecheck",
+    "useitem": "the useitem",
+    "season_event": "the season event",
+    "comfort_report": "the comfort report",
+    "povpreset": "the povpreset",
+    "visual_diary": "the visual diary",
+    "episode": "the episode",
+    "flashlight": "the flashlight",
+    "relationship_titles": "the relationship titles",
+    "hazards": "the hazards",
+    "healstage": "the healstage",
+    "hoard_trade": "the hoard trade",
+    "hideandseek": "the hideandseek",
+    "fetchquest": "the fetchquest",
+    "factorypatrol2": "the factorypatrol2",
+    "sniffhunt": "the sniffhunt",
+    "camera_react": "the camera react",
+    "stretch": "the stretch",
+    "bottle": "the bottle",
+    "shave": "the shave",
+    "show_shaving": "the show shaving",
+    "showtrick": "the showtrick",
+    "glasses": "the glasses",
+    "shoot": "the shoot",
+    "ticklebath": "the ticklebath",
+    "gooutside": "the gooutside",
+    "vet": "the vet",
+    "revive": "the revive",
+    "revivechild": "the revivechild",
+    "magnifying_mirror": "the magnifying mirror",
+    "children": "the children",
+    "addchild": "the addchild",
+    "setchildfeeling": "the setchildfeeling",
+    "childfeeling": "the childfeeling",
+    "childlog": "the childlog",
+    "childtrauma": "the childtrauma",
+    "yarnabyfriend": "the yarnabyfriend",
+    "friends": "the friends",
+    "yarnabyanimalfriend": "the yarnabyanimalfriend",
+    "ask_creator": "the ask creator",
+    "creator_approve": "the creator approve",
+    "creator_deny": "the creator deny",
+    "my_permissions": "the my permissions",
+    "revoke_permission": "the revoke permission",
+    "dm_user": "the user DM",
+    "drinkingbowl": "the drinkingbowl",
+    "sand": "the sand",
+    "fbtablereset": "resetting the table",
+    "firework": "the firework",
+    "moodlog": "the moodlog",
+    "fears": "the fears",
+    "nextbirthday": "the nextbirthday",
+    "rivalcat": "the rivalcat",
+    "lullaby": "the lullaby",
+    "photograph": "the photograph",
+    "argue_back": "the argue back",
+    "countdown_hug": "the countdown hug",
+    "test_patience": "the test patience",
+    "hat": "the hat",
+    "library": "the library",
+    "market": "the market",
+    "rain": "the rain",
+    "rooftop": "the rooftop",
+    "earthquake": "the earthquake",
+    "flood": "the flood",
+    "hurricane": "the hurricane",
+    "tornado": "the tornado",
+    "thunderstorm": "the thunderstorm",
+    "blackout": "the blackout",
+    "explosion": "the explosion",
+    "heatwave": "the heatwave",
+    "blizzard": "the blizzard",
+    "alarm": "the alarm",
+    "fallingstar": "the fallingstar",
+    "meteorite": "the meteorite",
+    "screenshare": "the screenshare",
+    "comfortyarny": "the comfortyarny",
+    "trauma": "the trauma",
+    "race": "the race",
+    "letter_to": "the letter to",
+    "forgiven_history": "the forgiven history",
+    "weight_log": "the weight log",
+    "dental": "the dental",
+    "shedding": "the shedding",
+    "allergy": "the allergy",
+    "cleanup": "the cleanup",
+    "getoutNSFW": "leaving unsafe servers",
+    "logset": "the logset",
+    "logsetchannel": "the logsetchannel",
+    "logcheck": "the logcheck",
+    "logoff": "the logoff",
+    "kickNSFW": "kicking unsafe servers",
+    "warn": "warn",
+    "warnings": "the warnings",
+    "clearwarns": "the clearwarns",
+    "mute": "mute",
+    "unmute": "the unmute",
+    "setmuterole": "the setmuterole",
+    "purge": "purge",
+    "lockchannel": "the lockchannel",
+    "unlock": "unlock",
+    "disable": "disable",
+    "turnbackon": "the turnbackon",
+    "slowmode": "the slowmode",
+    "remind": "the remind",
+    "afk": "the afk",
+    "ticket": "the ticket",
+    "closeticket": "the closeticket",
+    "growl": "the growl",
+    "serverscan": "the serverscan",
+    "trust_freeze": "freezing trust",
+    "blacklist": "the blacklist entry",
+    "unblacklist": "removing the blacklist entry",
+    "blacklistcheck": "checking the blacklist",
+    "autorole": "the autorole",
+    "setrules": "the setrules",
+    "rules": "the rules",
+    "antispam": "the antispam",
+    "antilink": "the antilink",
+    "badword": "the badword",
+    "impression": "the impression",
+    "bond": "the bond",
+    "trivia": "the trivia",
+    "8ball": "the eight-ball answer",
+    "rps": "the rock-paper-scissors",
+    "scramble": "the scramble",
+    "stop_threat": "the stop threat",
+    "ragdoll": "the ragdoll",
+    "endragdoll": "the endragdoll",
+    "invisible_wall": "the invisible wall",
+    "maze": "the maze",
+    "reflextest": "the reflextest",
+    "fountain": "the fountain",
+    "rubberducks": "the rubberducks",
+    "smarttest": "the smarttest",
+    "whipcream": "the whipcream",
+    "churu_upside": "the churu upside",
+    "cradlecarry": "the cradlecarry",
+    "box": "the box",
+    "knock": "the knock",
+    "hugchild": "the hugchild",
+    "petchild": "the petchild",
+    "feedchild": "the feedchild",
+    "playchild": "the playchild",
+    "kisschild": "the kisschild",
+    "scoldchild": "the scoldchild",
+    "namechild": "the namechild",
+    "removechild": "the removechild",
+    "slap": "the slap",
+    "whip": "the whip",
+    "mood_reason": "the mood reason",
+    "grudge_list": "the grudge list",
+    "coat": "the coat",
+    "log_today": "the log today",
+    "wherewereyou": "the wherewereyou",
+    "car_ride": "the car ride",
+    "vacuum": "the vacuum",
+    "cucumber": "the cucumber",
+    "balloon": "the balloon",
+    "stranger": "the stranger",
+    "storm": "the storm",
+    "bellyrubchild": "the bellyrubchild",
+    "cuddlechild": "the cuddlechild",
+    "ticklechild": "the ticklechild",
+    "scritchchild": "the scritchchild",
+    "rockchild": "the rockchild",
+    "comfortchild": "the comfortchild",
+    "bathchild": "the bathchild",
+    "cheekchild": "the cheekchild",
+    "squeakchild": "the squeakchild",
+    "embracechild": "the embracechild",
+    "kidnap": "the kidnap",
+    "kidnapchild": "the kidnapchild",
+    "headpatchild": "the headpatchild",
+    "boopchild": "the boopchild",
+    "nuzzlechild": "the nuzzlechild",
+    "carrychild": "the carrychild",
+    "pokechild": "the pokechild",
+    "rubchild": "the rubchild",
+    "blanketchild": "the blanketchild",
+    "childplay": "the childplay",
+    "snackchild": "the snackchild",
+    "praisechild": "the praisechild",
+    "complimentchild": "the complimentchild",
+    "groomchild": "the groomchild",
+    "injurieschild": "the injurieschild",
+    "walkchild": "the walkchild",
+    "singchild": "the singchild",
+    "teachchild": "the teachchild",
+    "giftchild": "the giftchild",
+    "photographchild": "the photographchild",
+    "scratchtoolchild": "the scratchtoolchild",
+    "slapchild": "the slapchild",
+    "bitechild": "the bitechild",
+    "pushchild": "the pushchild",
+    "stabchild": "the stabchild",
+    "ransom": "the ransom",
+    "pay_ransom": "the pay ransom",
+    "cut_nails": "the cut nails",
+    "bad_kitty": "the bad kitty",
+    "collar": "the collar",
+    "leash": "the leash",
+    "doorbell": "the doorbell",
+    "irlgame": "the irlgame",
+    "talkto": "the talkto",
+    "ragebait": "the ragebait",
+    "cuddlychild": "the cuddlychild",
+    "singtochild": "the singtochild",
+    "showchild": "the showchild",
+    "whisperchild": "the whisperchild",
+    "storychild": "the storychild",
+    "drawchild": "the drawchild",
+    "chasechild": "the chasechild",
+    "protectchild": "the protectchild",
+    "napwithchild": "the napwithchild",
+    "warnchild": "the warnchild",
+    "shushchild": "the shushchild",
+    "bouncechild": "the bouncechild",
+    "holdchild": "the holdchild",
+    "hidechild": "the hidechild",
+    "watchoverchild": "the watchoverchild",
+    "toychild": "the toychild",
+    "sniffchild": "the sniffchild",
+    "introducechild": "the introducechild",
+    "strollchild": "the strollchild",
+    "coaxchild": "the coaxchild",
+    "wetness": "the wetness",
+    "teachswim": "the teachswim",
+    "swim": "the swim",
+    "towel": "the towel",
+    "dry": "the dry",
+    "throwliquid": "the throwliquid",
+    "torture": "the torture",
+    "save": "the save",
+    "treatchild": "the treatchild",
+    "markchilddead": "the markchilddead",
+    "sleeponuser": "the sleeponuser",
+    "spin": "the spin",
+    "language": "the language setting",
+    "kill": "the kill",
+    "enroll": "the enroll",
+    "unroll": "the unroll",
+    "enlist": "the enlist",
+    "narrator": "the narrator",
+    "creation": "the creation",
+    "vote": "the vote",
+    "dm": "the sent DM",
+    "whois": "the whois",
+    "politics": "the politics",
+    "real_lore_secret": "the real lore secret",
+})
+
+_SCORE_FLAVOR_LADDER = [
+    (-20, "*After {anchor}, he puts distance between you and keeps it there.* **hff.**"),
+    (-15, "*After {anchor}, he watches your hands like he is checking for the next mistake.* **...mrr.**"),
+    (-10, "*After {anchor}, he stays guarded. Not gone, but ready to be gone.* **...mrr.**"),
+    (-5, "*After {anchor}, he accepts that it happened and files it under: complicated.* **mrr.**"),
+    (0, "*After {anchor}, he sits neutral and unreadable, giving you exactly one careful blink.* **...mrr.**"),
+    (5, "*After {anchor}, his ears soften by the smallest possible amount.* **mrrp.**"),
+    (10, "*After {anchor}, he stays a little closer than he needed to.* **...mrr.**"),
+    (15, "*After {anchor}, he gives one uncertain purr, like he is testing whether it is allowed.* **...prr.**"),
+    (20, "*After {anchor}, he checks your face, then settles again. That went okay.* **...mrrp.**"),
+    (25, "*After {anchor}, his tail curls around his paws instead of lashing. Progress.* **...mrr.**"),
+    (30, "*After {anchor}, he leans half an inch your way and pretends gravity did it.* **...prr.**"),
+    (35, "*After {anchor}, he stays within reach. Not asking. Just available.* **...prrr.**"),
+    (40, "*After {anchor}, he gives a soft little chirp that seems meant only for you.* **chrrp.**"),
+    (45, "*After {anchor}, he bumps near your hand once, lightly, and looks elsewhere immediately.* **...prrr.**"),
+    (50, "*After {anchor}, he relaxes like this is becoming familiar in the good way.* **...prrr.**"),
+    (55, "*After {anchor}, he chooses the spot beside you without being asked.* **...mrrp.**"),
+    (60, "*After {anchor}, he purrs steadily and stops pretending he is not pleased.* **...prrrr.**"),
+    (65, "*After {anchor}, he presses close for one second longer than necessary.* **...prrr.**"),
+    (70, "*After {anchor}, he looks up at you with full, quiet recognition. He knows you.* **...prrr.**"),
+    (75, "*After {anchor}, he follows your movement with soft eyes and an even softer tail.* **...prrrr.**"),
+    (80, "*After {anchor}, he rests his head against you like the decision has already been made.* **...prrrrr.**"),
+    (85, "*After {anchor}, he melts into the moment and trusts you with all of his small weight.* **...prrrrr.**"),
+    (90, "*After {anchor}, he is already purring before you look back at him.* **prrrrr.**"),
+    (95, "*After {anchor}, he chooses you openly, with no little performance of indifference left.* **...PRRRR.**"),
+    (100, "*After {anchor}, he settles like he has always belonged exactly here, with you.* **...prrrrrr.**"),
+]
+
+
+def _score_flavor_anchor(command_name: str) -> str:
+    return _SCORE_FLAVOR_ANCHORS.get(command_name, f"the `{command_name}` command")
+
+
+def _score_flavor_line(command_name: str, score: int) -> str:
+    anchor = _score_flavor_anchor(command_name)
+    for threshold, template in _SCORE_FLAVOR_LADDER:
+        if score <= threshold:
+            return template.format(anchor=anchor)
+    return _SCORE_FLAVOR_LADDER[-1][1].format(anchor=anchor)
+
+
+def _score_flavor_allowed(ctx) -> bool:
+    return ctx.command is not None
+
+
+@bot.listen("on_command_completion")
+async def _post_command_score_flavor(ctx):
+    """Add a small score-aware aftertaste to most behavior commands."""
+    if not _score_flavor_allowed(ctx):
+        return
+    m = bot.db
+    if m["internal"].get("is_dead"):
+        return
+    u_id = str(ctx.author.id)
+    score = 99 if ctx.author.id == DOCTOR_ID else int(m["social_matrix"].get(u_id, {}).get("score", 0))
+    command_name = ctx.command.name
+    cooldowns = m["internal"].setdefault("score_flavor_cooldowns", {})
+    cooldown_key = f"{u_id}:{command_name}"
+    now = datetime.now()
+    last = cooldowns.get(cooldown_key)
+    if last:
+        try:
+            if (now - datetime.strptime(last, "%Y-%m-%d %H:%M:%S")).total_seconds() < 75:
+                return
+        except Exception:
+            pass
+    cooldowns[cooldown_key] = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Commands with already-long scripted sequences get the extra beat less often.
+    long_sequence_commands = {
+        "roll_over", "wait", "bring", "watch_over", "sock", "grass", "horse",
+        "horse_race", "throw_treat", "yarn_birthday", "batcat", "yarnparent",
+        "layon", "asmr", "instagram", "bathwithyarny", "bubblebath",
+    }
+    chance = 0.45 if command_name in long_sequence_commands else 0.85
+    if random.random() > chance:
+        save_db(m)
+        return
+
+    await asyncio.sleep(random.uniform(0.8, 1.8))
+    await ctx.send(_score_flavor_line(command_name, score))
+
+    if score >= 80 and not _is_trust_frozen(m, u_id):
+        if random.random() < 0.04:
+            m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    save_db(m)
+
+
 @bot.before_invoke
 async def _global_state_check(ctx):
     """
@@ -68604,22 +69709,72 @@ async def sit_near_cmd(ctx):
         return
 
     score = m["social_matrix"].get(u_id, {}).get("score", 0)
-    if score <= -2:
+    if score <= -20:
+        await ctx.send(random.choice([
+            "*He sees you coming. He moves. He finds somewhere else to be.*",
+            "*He was near you once. He has learned from that.*",
+        ]))
+    elif score <= -10:
+        await ctx.send(random.choice([
+            "*He glances at you. He stays where he is. He makes no movement toward you.*",
+            "*He is aware of you. He remains at maximum distance.*",
+        ]))
+    elif score <= -5:
         await ctx.send(random.choice([
             "*He glances at you from across the room. He stays where he is.*",
             "*He looks up. He considers the distance between you. He decides it's fine where he is.*",
         ]))
-    elif score >= 5:
-        await ctx.send(random.choice([
-            "*He walks over without being asked. He sits down beside you. Very close. He doesn't say anything. He doesn't have to.*",
-            "*He comes and sits right next to you. Not touching. Just — right there. Present. Quiet. Near.*",
-            "*He settles in beside you. His tail curls around his paws. He looks at nothing in particular. He is just here, with you.*",
-        ]))
-    else:
+    elif score <= 0:
         await ctx.send(random.choice([
             "*He wanders over. He sits a little ways away from you. Not close, not far. Just — nearby.*",
             "*He picks a spot near you and sits down. He looks at the middle distance. He doesn't acknowledge that he chose that spot specifically.*",
             "*He comes over and sits nearby. He's not touching you. He's not talking. He's just in the same space.*",
+        ]))
+    elif score <= 10:
+        await ctx.send(random.choice([
+            "*He comes over. He sits nearby. Not far. He doesn't announce it.* **...mrr.**",
+            "*He settles near you. Not crowding. Just — available. Nearby.* **...mrr.**",
+        ]))
+    elif score <= 20:
+        await ctx.send(random.choice([
+            "*He sits near you. Closer than he used to. He doesn't comment on this.* **...mrr.**",
+            "*He comes over and settles in. A comfortable distance that's maybe a little closer than comfortable.* **...mrr.**",
+        ]))
+    elif score <= 30:
+        await ctx.send(random.choice([
+            "*He sits near you. Close enough that you could reach out. He is not inviting that. But he is not discouraging it either.* **...mrr.**",
+            "*He settles beside you. His tail curls around himself. He looks straight ahead.* **...mrr.**",
+        ]))
+    elif score <= 40:
+        await ctx.send(random.choice([
+            "*He comes and sits beside you. Properly beside. Not across the room, not nearby — beside.* **...mrrp.**",
+            "*He walks over and sits down next to you without preamble. He is just here now.* **...mrrp.**",
+        ]))
+    elif score <= 50:
+        await ctx.send(random.choice([
+            "*He sits close. His side almost touches yours. He faces the same direction you're facing.* **...mrrp.**",
+            "*He comes and sits down right next to you. Present. Quiet. Near.* **...mrrp.**",
+        ]))
+    elif score <= 65:
+        await ctx.send(random.choice([
+            "*He walks over and sits down beside you. His wool brushes yours slightly. He stays.* **...prrr.**",
+            "*He settles against you, just barely. Warmth where your sides meet. He doesn't move away.* **...prrr.**",
+        ]))
+    elif score <= 80:
+        await ctx.send(random.choice([
+            "*He comes to you. He sits pressed against your side. His eyes close halfway. He is very warm.* **...prrr.**",
+            "*He finds the spot beside you and fills it completely. He is not going anywhere.* **...prrr.**",
+        ]))
+    elif score <= 95:
+        await ctx.send(random.choice([
+            "*He walks over without being asked. He sits down beside you. Very close. He doesn't say anything. He doesn't have to.* **...prrrr.**",
+            "*He comes and sits right next to you. Not touching but nearly. Present. Quiet. Near. He is very comfortable here.* **...prrrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He comes to you before you even sit down. He is already there. He has been waiting in that spot.* **...prrrr.**",
+            "*He settles in beside you completely, warmth all along your side. He closes his eyes. He is exactly where he wants to be.* **...prrrr.**",
+            "*He sits beside you so close there is no gap. He leans in just slightly. He is not moving. He is never moving.* **...prrrr.**",
         ]))
     save_db(m)
 
@@ -68666,24 +69821,66 @@ async def wait_cmd(ctx):
         return
 
     score = m["social_matrix"].get(u_id, {}).get("score", 0)
-    if score <= -2:
+    if score <= -20:
+        await ctx.send(random.choice([
+            "*He was not here. He has not been here. He left when he saw who it was.*",
+            "*He is not waiting for you. He is never waiting for you.*",
+        ]))
+    elif score <= -10:
         await ctx.send(random.choice([
             "*He happened to be in this area. That's all. He wasn't waiting.*",
             "*He was here for unrelated reasons. He would like that noted.*",
         ]))
-    elif score >= 5:
+    elif score <= -5:
         await ctx.send(random.choice([
-            "*He was sitting right there when you arrived. He had been there a while. He looks at you like he always does. Like of course he waited.* **...mrrp...**",
-            "*He was in your spot. He stood up when you appeared. He had been there the whole time. He says nothing about this.* **...mrr...**",
-            "*He waited. He is good at waiting for people he cares about. He does not say this. He just — waited. And here he is.* **...mrrp...**",
+            "*He was in the area. He noticed you arrive. He tracked you with one ear. That's all.* **...mrr.**",
+            "*He happened to be nearby. He would have been here regardless.*",
         ]))
-        m["social_matrix"][u_id]["score"] = min(10, score + 1)
-    else:
+    elif score <= 5:
         await ctx.send(random.choice([
             "*He was nearby when you arrived. He might have been waiting. He might have just been here. Hard to say.*",
             "*He looked up when you came in. He had been sitting there for a bit. He doesn't explain.*",
-            "*He was in the area. He noticed you arrive. He tracked you with one ear. That's all.* **...mrr...**",
         ]))
+    elif score <= 15:
+        await ctx.send(random.choice([
+            "*He was in the general area when you arrived. He looked up. Something in him settled.* **...mrr.**",
+            "*He was nearby. He had been for a while. He looks at you without comment.* **...mrr.**",
+        ]))
+    elif score <= 25:
+        await ctx.send(random.choice([
+            "*He was sitting near your spot when you arrived. He looked up. He doesn't explain why he was there.* **...mrr.**",
+            "*He noticed you arrive. He had been in the same room, waiting in the way that isn't quite waiting.* **...mrr.**",
+        ]))
+    elif score <= 35:
+        await ctx.send(random.choice([
+            "*He was at your spot. He had been there for a while. He stands when you arrive, sits back down.* **...mrrp.**",
+            "*He was waiting. He does not call it that. He was just here, and you arrived, and that's what he was waiting for.* **...mrr.**",
+        ]))
+    elif score <= 50:
+        await ctx.send(random.choice([
+            "*He was sitting right there when you arrived. He had been there a while. He looks at you like he always does. Like of course he waited.* **...mrrp.**",
+            "*He was in your spot. He stood up when you appeared. He had been there the whole time. He says nothing about this.* **...mrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    elif score <= 65:
+        await ctx.send(random.choice([
+            "*He was here. He has been here. He looks at you when you arrive and something in him is quietly glad about it.* **...mrrp.**",
+            "*He waited. He would wait longer if he had to. He looks up when you arrive like he knew you were coming.* **...mrrp.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    elif score <= 80:
+        await ctx.send(random.choice([
+            "*He was in your spot. He has been in your spot. He looks at you arriving and his tail moves once.* **...prrr.**",
+            "*He waited here. He is good at waiting for people he cares about. He doesn't say this. He just — waited.* **...prrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    else:
+        await ctx.send(random.choice([
+            "*He was here before you were here. He will be here after. He waits without it costing him anything because it's you.* **...prrrr.**",
+            "*He was sitting in the exact spot where you always sit. He looked up the moment you came in, like he felt it.* **...prrrr.**",
+            "*He waited. He would always wait. He looks at you and his whole posture says: of course I waited. I will always wait.* **...prrrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
     save_db(m)
 
 
@@ -68750,12 +69947,34 @@ async def bring_cmd(ctx):
         return
 
     score = m["social_matrix"].get(u_id, {}).get("score", 0)
-    if score <= -2:
+    if score <= -20:
+        await ctx.send(random.choice([
+            f"*He has {item}. He is keeping it. He just wanted you to know it exists and that you cannot have it.*",
+            f"*He found {item}. He takes it somewhere else. It was never for you.*",
+        ]))
+        save_db(m)
+        return
+    elif score <= -5:
         await ctx.send(random.choice([
             f"*He has {item}. He is not giving it to you. He just wanted you to see it.*",
             f"*He brings {item} over. He sets it down. He picks it back up. He leaves.*",
         ]))
-    else:
+        save_db(m)
+        return
+
+    # He is bringing it — quality of presentation varies by score
+    if score <= 10:
+        phases = [
+            "*He goes somewhere.*",
+            "*He comes back.*",
+            f"*He has {item}.*",
+            "*He drops it near you.*",
+            "*He looks at it.*",
+            "*He looks at you.*",
+            "**...mrr.**",
+        ]
+        wait = (1.5, 2.5)
+    elif score <= 25:
         phases = [
             "*He goes somewhere.*",
             "*He comes back.*",
@@ -68764,13 +69983,68 @@ async def bring_cmd(ctx):
             "*He sits.*",
             "*He looks at it. He looks at you.*",
             "**...mrrp.**",
-            "*He is waiting for a reaction. He brought you this. It is a gift. It is very important.*",
+            "*He is waiting for a reaction.*",
         ]
-        for phase in phases:
-            await asyncio.sleep(random.uniform(1.5, 2.5))
-            await ctx.send(phase)
-        if score >= 3:
-            m["social_matrix"][u_id]["score"] = min(10, score + 1)
+        wait = (1.5, 2.5)
+    elif score <= 45:
+        phases = [
+            "*He goes somewhere.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He deposits it in front of you. Carefully.*",
+            "*He sits.*",
+            "*He looks at it. He looks at you.*",
+            "**...mrrp.**",
+            "*He brought you this. It is a gift. It is very important.*",
+        ]
+        wait = (1.8, 2.8)
+    elif score <= 65:
+        phases = [
+            "*He disappears.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He sets it down in front of you. Deliberately.*",
+            "*He sits back.*",
+            "*He looks at the item. He looks at you. He looks at the item.*",
+            "**...mrrp.**",
+            "*He brought you this specifically. It is yours now. He picked it.*",
+        ]
+        wait = (2.0, 3.0)
+    elif score <= 85:
+        phases = [
+            "*He disappears for a moment.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He sets it down very carefully in front of you.*",
+            "*He sits back.*",
+            "*He looks at the item.*",
+            "*He looks at you.*",
+            "*He looks at the item again.*",
+            "**...mrrp.**",
+            "*He chose this. For you. He wants you to know he chose it.*",
+        ]
+        wait = (2.0, 3.2)
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    else:
+        phases = [
+            "*He disappears.*",
+            "*He comes back.*",
+            f"*He has {item} in his mouth.*",
+            "*He sets it down in front of you very carefully. Very precisely.*",
+            "*He sits.*",
+            "*He looks at it.*",
+            "*He looks at you.*",
+            "*He looks at it again.*",
+            "**...mrrp.**",
+            "*He found this. He thought of you when he found it. He kept it. He is giving it to you now.*",
+            "*He waits. He needs you to understand that this was intentional. That he chose this. That he chose you.*",
+        ]
+        wait = (2.2, 3.5)
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(*wait))
+        await ctx.send(phase)
     save_db(m)
 
 
@@ -68824,21 +70098,56 @@ async def watch_over_cmd(ctx):
         return
 
     score = m["social_matrix"].get(u_id, {}).get("score", 0)
-    if score <= -2:
+    if score <= -25:
+        await ctx.send(random.choice([
+            f"*He climbs {spot}. He looks down at you once. He looks away. He has not claimed this perch for your benefit.*",
+            f"*He goes to {spot}. He watches the room. You happen to be in the room. That is unrelated.*",
+        ]))
+    elif score <= -10:
         await ctx.send(random.choice([
             f"*He climbs {spot}. He watches from up there. Not for your sake specifically. He just likes the view.*",
             f"*He goes to {spot}. He sits. He looks down at you. He looks away. He is not watching you. He is watching the general area you happen to be in.*",
         ]))
-    elif score >= 5:
+    elif score <= 0:
         await ctx.send(random.choice([
-            f"*He climbs to {spot} without being asked. He settles in. He watches you with both ears forward. He will be up there as long as you're doing whatever you're doing. He does not explain this.* **...mrrp...**",
-            f"*He finds {spot} and makes himself comfortable. He keeps one eye on you the whole time. Not hovering. Not hovering at all. Just — watching. Keeping track. Making sure.* **...mrr...**",
-            f"*He is on {spot}. He has been up there for a while. Every so often he checks on you. He is very serious about this.* **...mrrp...**",
+            f"*He climbs to {spot}. He watches. Neutral. He glances your way occasionally.* **...mrr.**",
+            f"*He perches on {spot}. He keeps general awareness of the room. You are in the room.* **...mrr.**",
+        ]))
+    elif score <= 15:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot}. He watches you. Casually. He is up there, you are down there, he is keeping half an eye on things.* **...mrr.**",
+            f"*He settles on {spot} and looks down. He watches you more than anything else.* **...mrr.**",
+        ]))
+    elif score <= 30:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot}. He keeps you in view. He watches you do whatever you're doing. He is not subtle about this.* **...mrr.**",
+            f"*He picks {spot} and sits up there. He watches. He's not doing anything else. Just watching. Quiet.* **...mrr.**",
+        ]))
+    elif score <= 45:
+        await ctx.send(random.choice([
+            f"*He goes to {spot} and settles in. Both ears forward. He is watching you. He will be watching you for a while.* **...mrrp.**",
+            f"*He finds {spot} and claims it. He keeps one eye on you the whole time. Keeping track. Keeping tabs.* **...mrr.**",
+        ]))
+    elif score <= 60:
+        await ctx.send(random.choice([
+            f"*He climbs to {spot} without being asked. He settles in. He watches you with both ears forward. He will be up there as long as you're doing whatever you're doing.* **...mrrp.**",
+            f"*He finds {spot} and makes himself comfortable. He keeps one eye on you the whole time. Not hovering. Just — watching. Keeping track. Making sure.* **...mrr.**",
+        ]))
+    elif score <= 75:
+        await ctx.send(random.choice([
+            f"*He is on {spot}. He has been up there a while. Every so often he checks on you specifically. He is very serious about this.* **...mrrp.**",
+            f"*He found {spot} and settled in before you even noticed. He has been watching you. He looks away when you look up, then goes straight back.* **...mrr.**",
+        ]))
+    elif score <= 90:
+        await ctx.send(random.choice([
+            f"*He is on {spot}. Both ears always toward you. He tracks every movement without moving his head. He is a very dedicated watcher.* **...mrrp.**",
+            f"*He watches over you from {spot} with complete focus. If anything moved near you he would have already noticed.* **...prrr.**",
         ]))
     else:
         await ctx.send(random.choice([
-            f"*He climbs to {spot}. He looks down at you. He stays there a while. He watches you do your thing. He doesn't say anything about it.*",
-            f"*He picks {spot} and sits up there. He watches. He's not doing anything else. Just watching. Quiet.* **...mrr...**",
+            f"*He is on {spot} and he has been there since before you sat down. He tracks you. He knows where you are. He will always know where you are. He is not weird about it. He is just — watching.* **...prrrr.**",
+            f"*He perches on {spot} and keeps watch over you with the seriousness of someone who has decided this is their responsibility. He does not take breaks. He does not look away for long.* **...prrrr.**",
+            f"*He watches from {spot} like a small, woolly guardian. Both ears. Both eyes. He is completely committed to this. You are safe. He has decided.* **...prrrr.**",
         ]))
     save_db(m)
 
@@ -68950,7 +70259,7 @@ async def sock_cmd(ctx):
             "*He cannot get out. He is in the sock. He is helpless and somewhat confused and the wool is very soft against his wool.*",
             "*Use `!save` to free him.*",
         ]
-    elif score <= -2:
+    elif score <= -20:
         phases = [
             "*He sees you coming.*",
             "*He sees the sock.*",
@@ -68964,7 +70273,20 @@ async def sock_cmd(ctx):
             "*He is very unhappy. He is also completely stuck.*",
             "*Use `!save` to free him. He would like that. He will not thank you.*",
         ]
-    elif score <= 2:
+    elif score <= -5:
+        phases = [
+            "*You lift the sock.*",
+            "*He recognises the shape of the situation immediately.*",
+            "*He backs away, ears flat, not quite running but absolutely not agreeing.*",
+            "*The sock happens anyway.*",
+            "*He is inside it.*",
+            "*He is very still for one second.*",
+            "**...MRRROW.**",
+            "*The sock muffles the outrage but does not reduce it.*",
+            "*He is stuck, offended, and making a private list of consequences.*",
+            "*Use `!save` to free him. He will remember who did this.*",
+        ]
+    elif score <= 10:
         phases = [
             "*You have a sock.*",
             "*He notices the sock.*",
@@ -68978,7 +70300,7 @@ async def sock_cmd(ctx):
             "*He has decided to wait this out with as much dignity as the situation allows.*",
             "*Use `!save` to free him.*",
         ]
-    else:
+    elif score <= 25:
         phases = [
             "*You approach with the sock.*",
             "*He eyes it.*",
@@ -68992,6 +70314,54 @@ async def sock_cmd(ctx):
             "*He is being very patient about this.*",
             "*Use `!save` to free him.*",
         ]
+    elif score <= 45:
+        phases = [
+            "*You show him the sock.*",
+            "*He looks at it. He looks at you. He sighs with his whole body.*",
+            "*He permits the socking.*",
+            "*He goes in carefully, like this is a medical procedure he has agreed to under protest.*",
+            "*He is inside the sock now.*",
+            "*He turns around once. The sock turns with him. This was not useful.*",
+            "**...mrrp.**",
+            "*He waits at the opening, patient and mildly judgemental.*",
+            "*Use `!save` when the lesson has been learned. He assumes there was a lesson.*",
+        ]
+    elif score <= 65:
+        phases = [
+            "*You bring the sock over.*",
+            "*He inspects it first. Nose in. One paw. A very serious quality check.*",
+            "*Then he lets you slide him in.*",
+            "*He is contained.*",
+            "*He is not thrilled, exactly, but he trusts that you have a reason.*",
+            "*He sits inside the sock with only his face visible at the opening.*",
+            "**...mrr.**",
+            "*His tail thumps once from somewhere in the depths of the sock.*",
+            "*Use `!save` if you want him back. He is waiting politely.*",
+        ]
+    elif score <= 85:
+        phases = [
+            "*You lift the sock.*",
+            "*He comes over to sniff it before you even ask.*",
+            "*He lets you put him inside.*",
+            "*He vanishes into wool and fabric and then peeks out like this was at least partly his idea.*",
+            "**...mrrp.**",
+            "*He kneads once from inside. The sock twitches.*",
+            "*He is stuck, yes, but he is also warm. These facts are competing.*",
+            "*Use `!save` eventually. Not urgently. Apparently.*",
+        ]
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    else:
+        phases = [
+            "*You hold out the sock.*",
+            "*He walks into it himself.*",
+            "*No hesitation. No ceremony. Just a small wool creature accepting his strange fate because it came from you.*",
+            "*He curls up inside before you can even finish arranging it.*",
+            "**...prrrr...**",
+            "*Only his nose is visible at the opening.*",
+            "*He is trapped, technically. He is also purring like the sock was built for him.*",
+            "*Use `!save` when you miss him. He already knows you will.*",
+        ]
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
 
     for phase in phases:
         await asyncio.sleep(random.uniform(1.8, 3.2))
@@ -69059,38 +70429,72 @@ async def lean_cmd(ctx):
 
     score = m["social_matrix"].get(u_id, {}).get("score", 0)
 
-    if score <= -3:
+    if score <= -30:
+        await ctx.send(random.choice([
+            "*He is gone before you get close. He wants no part of this.* **mrrow.**",
+            "*He sees you coming. He relocates. There is no leaning today.* **mrr.**",
+        ]))
+    elif score <= -15:
         await ctx.send(random.choice([
             "*He moves. Not dramatically. Just — he's no longer where your head was going.* **...mrr.**",
-            "*He looks at you. He looks at where your head was heading. He shifts just enough that it doesn't happen.* **mrr.**",
             "*He stands up before you get there. He walks a short distance away. He sits back down.* **...mrr.**",
         ]))
-    elif score <= 0:
+    elif score <= -5:
+        await ctx.send(random.choice([
+            "*He looks at you. He looks at where your head was heading. He shifts just enough that it doesn't happen.* **mrr.**",
+            "*He allows the proximity. He does not allow the lean. He is very clear about this.* **...mrr.**",
+        ]))
+    elif score <= 5:
         await ctx.send(random.choice([
             "*He allows it. He doesn't lean into it. He stays very still and waits to see what you do next.* **...mrr.**",
             "*He doesn't move away. He doesn't move toward you either. He just — accepts it, in a neutral sort of way.* **...mrr.**",
             "*Your head on his wool. He tolerates this. He is not purring. But he doesn't leave.* **...mrr.**",
         ]))
-    elif score <= 3:
+    elif score <= 15:
         await ctx.send(random.choice([
-            "*He holds still when you lean on him. After a moment, his purr starts up — quiet, a little uncertain, like he wasn't sure it was allowed.* **...prrr...**",
-            "*He doesn't say anything. He sits a little straighter so you have more to lean against. He pretends he didn't do that.* **...mrr...**",
-            "*Your head on his wool. He exhales. He doesn't move away. His tail wraps around himself slowly.* **...prrr...**",
+            "*He holds still when you lean on him. After a moment, his purr starts — quiet, uncertain, like he wasn't sure it was allowed.* **...prrr.**",
+            "*He doesn't say anything. He sits a little straighter so you have more to lean against. He pretends he didn't do that.* **...mrr.**",
         ]))
-    elif score <= 6:
+    elif score <= 25:
         await ctx.send(random.choice([
-            "*He leans back into you, just a little. His wool is warm. His purr is steady.* **...prrr...**",
-            "*He lets you lean. He tilts toward you slightly, like he's meeting you halfway. He is purring.* **...prrr...**",
-            "*Your head on his wool. He closes his eyes. He stays perfectly still and lets you have all of it.* **...prrrr...**",
+            "*Your head on his wool. He exhales. He doesn't move away. His tail wraps around himself slowly.* **...prrr.**",
+            "*He holds still for the lean. His purr starts up after a moment. He decides this is acceptable.* **...prrr.**",
         ]))
+    elif score <= 35:
+        await ctx.send(random.choice([
+            "*He leans back into you, just a little. His wool is warm. His purr is steady.* **...prrr.**",
+            "*He lets you lean. He tilts toward you slightly, meeting you halfway. He is purring.* **...prrr.**",
+        ]))
+    elif score <= 45:
+        await ctx.send(random.choice([
+            "*Your head on his wool. He closes his eyes. He stays perfectly still and lets you have all of it.* **...prrrr.**",
+            "*He leans into it more than you lean into him. He decides this is fine. His purr says the same.* **...prrrr.**",
+        ]))
+    elif score <= 55:
+        await ctx.send(random.choice([
+            "*He feels your head and leans into it naturally. His purr fills in the silence.* **...prrrr.**",
+            "*He shifts so you fit better against him. He doesn't make a thing of it. He just makes room for you.* **...prrrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    elif score <= 70:
+        await ctx.send(random.choice([
+            "*You lean on him. He leans back. He presses his cheek lightly to the top of your head and stays there.* **...prrrr.**",
+            "*His wool is very soft. He is warm. He tilts toward you and stays. His purr is continuous.* **...prrrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
+    elif score <= 85:
+        await ctx.send(random.choice([
+            "*His wool is impossibly soft. He is warm. He doesn't move a single inch. He doesn't want to lose this. His purr is very loud.* **...prrrr.**",
+            "*He leans into you the moment you lean into him. Like a reflex. Like it was always going to happen.* **...prrrr.**",
+        ]))
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
     else:
         await ctx.send(random.choice([
-            "*He feels your head and leans into it immediately, naturally, like he was already waiting for this. His purr fills in the silence.* **...prrrr...**",
-            "*You lean on him. He leans back. He presses his cheek very lightly to the top of your head and stays there, warm and still and present.* **...prrrr...**",
-            "*His wool is impossibly soft. He is warm. He doesn't move a single inch, because he doesn't want to lose this. His purr is very loud.* **...prrrr...**",
-            "*He shifts so you fit better against him. He doesn't make a thing of it. He just — makes room for you, and stays, and purrs.* **...prrrr...**",
+            "*He feels your head and is already there, already leaning, already warm. His purr is the loudest thing in the room.* **...PRRRR.**",
+            "*You lean on him. He wraps himself slightly around you. He presses his cheek to the top of your head and stays. He is not moving. He will not be moving.* **...prrrr.**",
+            "*His wool against your head. His warmth. His purr so close it is almost a sound you feel rather than hear. He is completely here.* **...prrrr.**",
         ]))
-        m["social_matrix"][u_id]["score"] = min(10, score + 1)
+        m["social_matrix"][u_id]["score"] = min(100, score + 1)
 
     save_db(m)
 
@@ -69329,6 +70733,15 @@ async def horse_cmd(ctx):
             m["internal"]["helpless_reason"] = "chest injury from a horse kick"
             m["internal"]["helpless_by"] = "horse"
             m["internal"]["chest_injury"] = True
+            _chest_inj_entry = {
+                "type": "blunt impact",
+                "location": "chest",
+                "severity": "serious",
+                "caused_by": "horse kick",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "treated": False,
+            }
+            m["internal"].setdefault("injuries", []).append(_chest_inj_entry)
             # 50/50 chance he passes out from the impact
             if random.random() < 0.5:
                 m["internal"]["is_sleeping"] = True
@@ -69413,6 +70826,15 @@ async def horse_cmd(ctx):
             m["internal"]["helpless_reason"] = "chest injury from a horse kick"
             m["internal"]["helpless_by"] = "horse"
             m["internal"]["chest_injury"] = True
+            _chest_inj_entry = {
+                "type": "blunt impact",
+                "location": "chest",
+                "severity": "serious",
+                "caused_by": "horse kick",
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "treated": False,
+            }
+            m["internal"].setdefault("injuries", []).append(_chest_inj_entry)
             # 50/50 chance he passes out
             if random.random() < 0.5:
                 m["internal"]["is_sleeping"] = True
@@ -69684,6 +71106,890 @@ async def horse_race_cmd(ctx):
         ]))
 
     save_db(m)
+
+
+# ==========================================
+# !forget_thing <thing> — yarnaby forgets how to do something.
+# ==========================================
+
+def _try_relearn(m, thing: str) -> str | None:
+    """Increment use counter for a forgotten thing. Returns announce message if relearned, else None."""
+    forgotten = m["internal"].get("forgotten_things", [])
+    if thing not in forgotten:
+        return None
+    counts = m["internal"].setdefault("relearn_counts", {})
+    counts[thing] = counts.get(thing, 0) + 1
+    # Relearn after 4-6 uses (random threshold so it feels natural)
+    threshold = m["internal"].setdefault("relearn_thresholds", {}).get(thing)
+    if threshold is None:
+        threshold = random.randint(4, 7)
+        m["internal"]["relearn_thresholds"][thing] = threshold
+    if counts[thing] >= threshold:
+        forgotten.remove(thing)
+        m["internal"]["forgotten_things"] = forgotten
+        counts.pop(thing, None)
+        m["internal"].get("relearn_thresholds", {}).pop(thing, None)
+        return thing
+    return None
+
+
+RELEARN_ANNOUNCE = {
+    "loaf": [
+        "*He tries the loaf. Something clicks. His paws tuck — properly this time, in the right order. He is a perfect loaf. He blinks. He remembered.* **...prrr...**",
+        "*The loaf happens correctly. He holds it. He is surprised. He does not move in case it goes away.* **...mrr...**",
+    ],
+    "knead": [
+        "*One paw. Then the other. Then the first again. The rhythm is back. He kneads slowly at first, then with full confidence. He remembers this.* **...prrr...**",
+        "*His paws alternate. Correctly. He stops. He starts again to make sure. Correct again. He continues.* **...prrr...**",
+    ],
+    "chirp": [
+        "*He opens his mouth and the chitter comes out — the real one, the fast clicking one. He stops. He does it again. Yes. That's the one.* **ek ek ek.**",
+        "*The chirp happens correctly. He is surprised enough that he does it again. Then again. He has found it.* **ek ek ek mrrp.**",
+    ],
+    "purr": [
+        "*His chest vibrates. The purr starts, holds, continues — full and unbroken. He exhales. He remembered how.* **...prrr...**",
+        "*The purr comes out correctly for the first time in a while. He goes very still so as not to disturb it.* **...prrr...**",
+    ],
+    "slow_blink": [
+        "*Both eyes close at the same speed. Hold. Open at the same speed. He does it again to check. Yes. That's it. That's the slow blink.* **...mrr...**",
+        "*The slow blink works. He does it twice more, just because he can.* **...mrr...**",
+    ],
+    "groom": [
+        "*He licks his paw. He raises it to his face. He scrubs. He remembered the scrub. He continues grooming very deliberately.* **...mrr...**",
+        "*The sequence comes back — lick, raise, scrub, lower. He does it several times to make sure it's still there.* **...mrr...**",
+    ],
+    "nuzzle": [
+        "*He lowers his head, presses in, and moves — the full nuzzle, correctly. He pulls back. He does it again. He remembered.* **...mrrp...**",
+        "*The nuzzle happens. He knows it happened correctly because it felt right. He stays there a moment after.* **...mrr...**",
+    ],
+}
+
+
+FORGETTABLE_THINGS = {
+    "loaf": [
+        "loaf", "loafing", "bread", "biscuit position",
+    ],
+    "knead": [
+        "knead", "kneading", "biscuits", "make biscuits",
+    ],
+    "chirp": [
+        "chirp", "chirping", "chatter", "chattering",
+    ],
+    "purr": [
+        "purr", "purring",
+    ],
+    "slow_blink": [
+        "slow blink", "slow_blink", "blink", "blinking",
+    ],
+    "groom": [
+        "groom", "grooming", "brush", "cleaning",
+    ],
+    "nuzzle": [
+        "nuzzle", "nuzzling", "noseboop", "boop",
+    ],
+}
+
+FORGET_STRUGGLE = {
+    "loaf": [
+        "*He tries to loaf. He tucks one paw under. The other paw is not cooperating. He tucks it anyway. Something is wrong. He untucks. He retucks. He has forgotten the order.* **...mrr?**",
+        "*He attempts the loaf. He gets two paws under and then loses track of where the other two are supposed to go. He sits in a half-loaf, asymmetrical, confused.* **...mrr.**",
+        "*He tries to loaf. He ends up with one paw sticking straight out. He stares at it. He does not know what to do with it. He sits like this for a while.* **...mrrp?**",
+        "*He begins the loaf position. He forgets what comes next. He stands back up. He tries again. He ends up lying on his side, which is not a loaf, but it's what happened.* **...mrr?**",
+        "*Something about the loaf is not coming to him. He tucks, untucks, retucks. He sits in a shape that is approximately a loaf but wrong in a way he cannot identify.* **...mrrp.**",
+    ],
+    "knead": [
+        "*He goes to knead. Both paws press down at the same time instead of alternating. He stops. He tries again. Same paws at the same time. He stares at his own paws like they have betrayed him.* **...mrr?**",
+        "*He attempts to knead. His right paw moves. His left paw doesn't follow. He looks at his left paw. He looks at his right paw. Something in the sequence is gone.* **...mrrp?**",
+        "*He starts kneading. The rhythm is wrong. He knows the rhythm is wrong. He cannot find the right rhythm. He presses both paws down together once, very deliberately, and stops.* **...mrr.**",
+        "*He kneads once. Twice. On the third he forgets and just presses his whole face into the surface instead. He lifts his head. He does not know why he did that.* **...mrr?**",
+    ],
+    "chirp": [
+        "*He sees something to chirp at. He opens his mouth. The chirp does not come out. A small sound comes out that is not a chirp. He tries again. Still wrong.* **...mrr?**",
+        "*He attempts the chirp. His mouth opens and closes correctly but the noise is off — more of a squeaky mrr. He seems surprised by this. He tries once more. Still squeaky.* **...mrrp?**",
+        "*He opens his mouth to chitter at the thing on the wall. What comes out is just a regular meow. He closes his mouth. He was trying to do the other thing. He tries again. Meow.* **...mrr.**",
+        "*He spots a bug. His jaw should be doing the thing — the chattering thing — but it just hangs open slightly and nothing happens. He snaps it shut. He blinks.* **...mrrp?**",
+    ],
+    "purr": [
+        "*He tries to purr. Something happens in his chest that is not quite a purr. It starts, stutters, stops. He sits very still. He tries again. Almost. Not quite.* **...mrr?**",
+        "*He opens his chest for the purr and what comes out is more of a low hrrrr. He closes his mouth. He was not meaning to do that. He tries again. Hrrrr.* **...mrr?**",
+        "*He attempts to purr. A sound comes out. It is not the right sound. It is a sound he has not made before. He stops making it. He is confused.* **...mrrp.**",
+        "*He wants to purr. He can feel where the purr is supposed to be. It is not cooperating. He exhales. He tries again. A small strangled almost-purr. Close.* **...mrr?**",
+    ],
+    "slow_blink": [
+        "*He tries the slow blink. He blinks but one eye closes slightly faster than the other. He tries again. Same thing. He gives up and stares instead, unblinking, which is a completely different message.* **...mrr.**",
+        "*He attempts the slow blink. Both eyes close at different speeds. One stays closed longer than the other. He opens them. He did not mean to do that.* **...mrr?**",
+        "*He goes to slow blink. He closes his eyes and then is not sure when to open them. He opens them too fast. He closes them again. Too slow this time.* **...mrrp?**",
+        "*He tries to slow blink. He just blinks. Regular speed. He stares. Tries again. Regular speed again. The slow part is not coming to him.* **...mrr.**",
+    ],
+    "groom": [
+        "*He goes to groom himself. He licks his paw. He raises it to his face. He holds it there. He has forgotten what to do with it now. He lowers it.* **...mrr?**",
+        "*He begins to groom. He licks his paw twice. On the third lick he loses the thread. He sits there with his paw halfway to his face and waits.* **...mrrp?**",
+        "*He tries to groom his ears. His paw goes up, goes behind his ear, and then just stays there. He forgot the scrubbing part. He holds that position.* **...mrr.**",
+        "*He starts grooming. He licks his chest. Then his paw. Then his chest again. Then he stops and looks at his paw like it did something wrong.* **...mrrp?**",
+    ],
+    "nuzzle": [
+        "*He goes to nuzzle. He approaches, lowers his head, and then stops just before contact. He has forgotten what comes next. He straightens up.* **...mrr?**",
+        "*He attempts to nuzzle. He bumps his head forward but at the wrong angle. He bumps it again. He sits back and reconsiders.* **...mrrp?**",
+        "*He tries to nuzzle. His nose makes contact but then he just holds it there instead of pressing in and moving. He stands very still, nose against the surface, unsure.* **...mrr.**",
+        "*He goes for the nuzzle. He headbutts instead, slightly too hard. He blinks. He was trying to be gentle. He does not know what happened.* **...mrrp?**",
+    ],
+}
+
+@bot.command(name="forget_thing")
+async def forget_thing_cmd(ctx, *, thing: str = ""):
+    """Make Yarnaby forget how to do a thing. !forget_thing loaf, knead, chirp, etc."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here to forget anything. He has already forgotten everything.* **...**",
+            "*He is gone. Whatever he knew, he no longer knows it. Including how to be here.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is asleep. You whisper it to him. Something shifts in his expression. Maybe it works. Maybe it doesn't. He keeps sleeping.* **...prrrr...**",
+            "*He is asleep. You say the thing anyway. His ear twitches. File under: possibly absorbed, possibly not.* **...prr...**",
+        ]))
+        # Still apply the forget when asleep
+        thing_lower_pre = thing.strip().lower()
+        matched_key_pre = None
+        for key, aliases in FORGETTABLE_THINGS.items():
+            if thing_lower_pre in aliases or thing_lower_pre == key:
+                matched_key_pre = key
+                break
+        if matched_key_pre:
+            forgotten_pre = m["internal"].get("forgotten_things", [])
+            if matched_key_pre not in forgotten_pre:
+                forgotten_pre.append(matched_key_pre)
+                m["internal"]["forgotten_things"] = forgotten_pre
+                save_db(m)
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            f"*He hears you say it. He is in no position to test whether it worked. He blinks. Something behind his eyes shifts slightly.* **...mrr?**",
+            f"*You say it. He absorbs it. He is too hurt to try the thing right now, so he files it somewhere and stares at the ceiling.* **...mew...**",
+        ]))
+        # Still apply
+        thing_lower_h = thing.strip().lower()
+        for key, aliases in FORGETTABLE_THINGS.items():
+            if thing_lower_h in aliases or thing_lower_h == key:
+                forgotten_h = m["internal"].get("forgotten_things", [])
+                if key not in forgotten_h:
+                    forgotten_h.append(key)
+                    m["internal"]["forgotten_things"] = forgotten_h
+                    save_db(m)
+                break
+        return
+
+    if not thing:
+        known = ", ".join(f"`{k}`" for k in FORGETTABLE_THINGS.keys())
+        await ctx.send(f"*He tilts his head. Forget what?* Known things: {known}")
+        return
+
+    thing_lower = thing.strip().lower()
+    matched_key = None
+    for key, aliases in FORGETTABLE_THINGS.items():
+        if thing_lower in aliases or thing_lower == key:
+            matched_key = key
+            break
+
+    if not matched_key:
+        known = ", ".join(f"`{k}`" for k in FORGETTABLE_THINGS.keys())
+        await ctx.send(f"*He stares at you. He does not know what **{thing}** is, so he cannot forget it.* **...mrr.** Known things: {known}")
+        return
+
+    forgotten = m["internal"].get("forgotten_things", [])
+    if matched_key in forgotten:
+        await ctx.send(random.choice([
+            f"*He has already forgotten **{matched_key}**. He is already struggling with it. You have done this already.* **...mrr.**",
+            f"*He does not remember **{matched_key}**. He does not remember that he ever could. You cannot make him forget something he already forgot.* **...mrr.**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            f"*The Creator says it and immediately something shifts. Yarnaby blinks. He looks at his paws. He tries to remember what **{matched_key}** even is. It's... it's not there.* **...mrr?**",
+            f"*Something leaves him. Not painful — just gone. He tries to locate the **{matched_key}** and finds only a quiet blank where it used to be.* **...mrrp?**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*Something about the way you said it. He blinks. He tries to do **{matched_key}** and finds the instructions are not where he left them.* **...mrr?**",
+            f"*He looks at you. He looks at his paws. He looks back at you. Whatever **{matched_key}** was, it's a little further away than it was a moment ago.* **...mrrp?**",
+        ]))
+
+    forgotten.append(matched_key)
+    m["internal"]["forgotten_things"] = forgotten
+    save_db(m)
+
+
+# ==========================================
+# !throw_treat — you throw him a treat. reflexes vary.
+# ==========================================
+
+@bot.command(name="throw_treat")
+async def throw_treat_cmd(ctx):
+    """Throw Yarnaby a treat. His reflexes determine everything."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*You throw a treat. It lands somewhere. He is not here to catch it.* **...**",
+            "*The treat arcs through the air. Nobody catches it. It sits on the floor.* **...**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        # Sleeping — treat lands somewhere on him. He might eat it later.
+        landing = random.choice([
+            ("head",   "*You throw the treat. It lands on top of his head. It sits there. He does not notice. He keeps sleeping.* **...prrrr...**",   True),
+            ("ear",    "*The treat bounces off his ear. His ear folds. Unfolds. He does not wake up. The treat is beside him now.* **...prr...**",       True),
+            ("back",   "*You throw it. It lands on his back and stays there. He sleeps on. The treat sits on him like a small offering.* **...prrrr...**", True),
+            ("nose",   "*The treat hits him gently on the nose. His nose twitches. He adjusts position. He does not open his eyes. The treat is right there.* **...prr...**", True),
+            ("paw",    "*It lands on his paw. His paw curls around it slightly in his sleep. He is holding the treat and does not know this.* **...prrrr...**", True),
+            ("belly",  "*You somehow arc it onto his belly. He exhales. The treat rises and falls with his breathing. He is asleep and also in possession of a treat.* **...prrr...**", True),
+        ])
+        spot, msg, eats_later = landing
+        await ctx.send(msg)
+        if eats_later:
+            m["internal"]["treat_waiting"] = spot
+        save_db(m)
+        return
+
+    if m["internal"].get("helpless"):
+        landing = random.choice([
+            "*You throw the treat. He tracks it with his eyes. It lands just out of reach. He looks at it. He looks at you. He looks at it again.* **...mrr...**",
+            "*The treat arcs toward him. He watches it carefully. It bounces off his paw and lands in front of him. He eats it from the floor, slowly.* **...mrr...**",
+            "*It hits him on the nose. Falls. He eats it where it lands, very carefully.* **...mrr...**",
+        ])
+        await ctx.send(landing)
+        return
+
+    # Check for a treat waiting from sleep — he eats it now if it's still on him
+    waiting_spot = m["internal"].pop("treat_waiting", None)
+    if waiting_spot:
+        await ctx.send(random.choice([
+            f"*He notices the treat that landed on his {waiting_spot} while he was asleep. He eats it now. Calmly. As if this was always the plan.* **...mrrp.**",
+            f"*The treat from earlier — the one that hit his {waiting_spot} — he finds it. He eats it with great dignity.* **...mrr.**",
+        ]))
+
+    # Pick outcome
+    all_outcomes = [
+        "fast_paws", "fast_paws",
+        "fast_mouth",
+        "slow_nose_boop", "slow_nose_boop",
+        "slow_ear",
+        "slow_top_of_head",
+        "slow_belly",
+        "slow_miss",
+        "two_paws",
+        "fumble_recover",
+        "eyes_closed_catch",
+    ]
+    doctor_outcomes = ["fast_paws", "fast_paws", "fast_mouth", "two_paws",
+                       "slow_nose_boop", "fumble_recover", "eyes_closed_catch"]
+
+    outcome = random.choice(doctor_outcomes if is_doctor else all_outcomes)
+
+    # ── FAST CATCHES ──
+    if outcome == "fast_paws":
+        await ctx.send(random.choice([
+            "*You throw the treat. His paw is already there. He caught it before you finished throwing it. He looks at you. He looks at the treat in his paw. He eats it.* **...mrrp.**",
+            "*The treat leaves your hand. His paw snaps out. Caught. Clean. He holds it a moment like he is inspecting it, then eats it.* **mrp.**",
+            "*He catches it without looking. One paw, not even a full motion, just — there. He chews.* **...mrrp.**",
+        ]))
+
+    elif outcome == "fast_mouth":
+        await ctx.send(random.choice([
+            "*You throw the treat. He catches it directly in his mouth without moving from where he's sitting. He chews. He acts like this is normal.* **...mrrp.**",
+            "*It arcs toward him. His mouth opens. It goes in. He closes his mouth. He chews.* **mrp.** *He did not even blink.*",
+            "*Directly into his mouth. He didn't move. The treat simply arrived and he was ready for it.* **...mrrp.**",
+        ]))
+
+    elif outcome == "two_paws":
+        await ctx.send(random.choice([
+            "*You throw the treat. He catches it with both paws simultaneously, which was not necessary but happened anyway. He holds it there with both paws. He eats it.* **mrp.**",
+            "*Both paws go up at once. He catches it between them. He looks at his own paws like they made a decision without him. He eats the treat.* **...mrrp.**",
+        ]))
+
+    elif outcome == "eyes_closed_catch":
+        phases = [
+            "*You throw the treat.*",
+            "*His eyes are closed.*",
+            "*They stay closed.*",
+            "*His paw moves.*",
+            "*He catches it.*",
+            "*His eyes open.*",
+            "*He eats the treat.*",
+            "*He closes his eyes again.*",
+            "**...mrrp.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+            await ctx.send(phase)
+
+    elif outcome == "fumble_recover":
+        phases = [
+            "*You throw the treat.*",
+            "*He reaches for it.*",
+            "*He fumbles it.*",
+            "*It bounces off one paw.*",
+            "*He bats at it with the other.*",
+            "*It goes sideways.*",
+            "*He catches it on the rebound.*",
+            "*He sits back down.*",
+            "*He eats it.*",
+            "*He acts like that was intentional.*",
+            "**...mrrp.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.3, 2.5))
+            await ctx.send(phase)
+
+    # ── SLOW LANDINGS — no injury, eats it later or on the spot ──
+    elif outcome == "slow_nose_boop":
+        phases = [
+            "*You throw the treat.*",
+            "*He watches it.*",
+            "*He watches it coming toward him.*",
+            "*He is watching it very carefully.*",
+            "*He does not move.*",
+            "*The treat hits him on the nose.*",
+            "*It falls.*",
+            "*He looks at where it landed.*",
+            "*He picks it up from the floor.*",
+            "*He eats it.*",
+            "**...mrr.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.8))
+            await ctx.send(phase)
+
+    elif outcome == "slow_ear":
+        phases = [
+            "*You throw the treat.*",
+            "*He tracks it.*",
+            "*He does not move.*",
+            "*The treat bounces off his ear.*",
+            "*His ear folds. Unfolds.*",
+            "*The treat is on the floor.*",
+            "*He looks at the treat.*",
+            "*He looks at his ear.*",
+            "*He eats the treat.*",
+            "*He does not acknowledge the ear part.*",
+            "**...mrr.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.8))
+            await ctx.send(phase)
+
+    elif outcome == "slow_top_of_head":
+        phases = [
+            "*You throw the treat.*",
+            "*He watches it arc.*",
+            "*It lands on top of his head.*",
+            "*He goes cross-eyed trying to look at it.*",
+            "*He sits very still.*",
+            "*...*",
+            "*He tilts his head.*",
+            "*The treat slides off.*",
+            "*It lands in front of him.*",
+            "*He eats it.*",
+            "**...mrrp.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+            await ctx.send(phase)
+
+    elif outcome == "slow_belly":
+        phases = [
+            "*You throw the treat.*",
+            "*He is lying on his back.*",
+            "*The treat lands on his belly.*",
+            "*It sits there.*",
+            "*He looks down at it.*",
+            "*He does not move.*",
+            "*He is thinking about this.*",
+            "*He rolls slightly.*",
+            "*The treat rolls off.*",
+            "*He catches it with his mouth on the way down.*",
+            "**mrp.**",
+            "*That was actually impressive.*",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+            await ctx.send(phase)
+
+    elif outcome == "slow_miss":
+        phases = [
+            "*You throw the treat.*",
+            "*He sees it.*",
+            "*He begins to raise his paw.*",
+            "*The treat has already passed.*",
+            "*His paw is still going up.*",
+            "*The treat is on the floor.*",
+            "*He lowers his paw.*",
+            "*He eats it off the floor.*",
+            "*He does not make eye contact.*",
+            "**...mrr.**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.5, 2.8))
+            await ctx.send(phase)
+
+    save_db(m)
+
+
+# ==========================================
+# !yarn_birthday — celebrate his birthday. cake. candles. chaos.
+# ==========================================
+
+@bot.command(name="yarn_birthday")
+async def yarn_birthday_cmd(ctx):
+    """Celebrate Yarnaby's birthday. Cake. Candles. He will bat the flames."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is not here for his birthday. The cake sits unattended.* **...**")
+        return
+
+    if m["internal"]["is_sleeping"]:
+        phases = [
+            "*You bring the birthday cake.*",
+            "*He is asleep.*",
+            "*You set it in front of him.*",
+            "*The candles flicker.*",
+            "*He opens one eye.*",
+            "*He sees the fire.*",
+            "*Both eyes open.*",
+            "*He bats at the nearest candle.*",
+            "*It goes out.*",
+            "*He stares at where the flame was.*",
+            "*He bats another.*",
+            "*It goes out.*",
+            "*He bats the rest in quick succession.*",
+            "*All flames out.*",
+            "*He eats the frosting.*",
+            "*He goes back to sleep.*",
+            "*Happy birthday, Yarnaby.* **...prrrr...**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.8, 3.0))
+            await ctx.send(phase)
+        save_db(m)
+        return
+
+    if m["internal"].get("helpless"):
+        chest = m["internal"].get("chest_injury")
+        if chest:
+            phases = [
+                "*You bring the cake. He is hurt and he cannot move well but he sees the candles.*",
+                "*He watches them.*",
+                "*He reaches out one paw.*",
+                "*He bats the nearest candle. Slowly. It goes out.*",
+                "*He exhales. His chest.*",
+                "*He reaches again. Another candle. Out.*",
+                "*He takes a breath. He finishes the rest one by one. It takes longer than it should.*",
+                "*All out.*",
+                "*He looks at the frosting.*",
+                "*He eats as much as he can reach without moving too much.*",
+                "**...prrr...** *Happy birthday, Yarnaby.*",
+            ]
+        else:
+            phases = [
+                "*You bring the birthday cake.*",
+                "*He cannot get up easily. But he sees the candles.*",
+                "*He reaches out a paw from where he is.*",
+                "*He bats the nearest candle. Out.*",
+                "*He bats the rest from where he sits, one at a time.*",
+                "*All out. He managed it.*",
+                "*He eats the frosting that's within reach.*",
+                "**...mrr.** *Happy birthday, Yarnaby.*",
+            ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.8, 3.0))
+            await ctx.send(phase)
+        save_db(m)
+        return
+
+    # The full birthday experience
+    if is_doctor:
+        opener = random.choice([
+            "*The Creator brings the cake. Yarnaby looks at it very seriously. He looks at The Creator. He looks at the cake again.*",
+            "*The Creator sets the cake down. Yarnaby sits up immediately. This warrants full attention.*",
+        ])
+    else:
+        opener = random.choice([
+            "*The cake arrives. Yarnaby sees it. He is immediately interested in the things on fire.*",
+            "*You set down the birthday cake. He stares at the candles. He has thoughts about the candles.*",
+        ])
+
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    # Score affects his attitude toward you at the end
+    if score <= -2:
+        outro = [
+            "*He bats all the candles out.*",
+            "*He eats the frosting.*",
+            "*He eats a lot of the frosting.*",
+            "*He looks at you.*",
+            "*He looks away.*",
+            "*He walks off.*",
+            "**mrr.** *It was still his birthday.*",
+        ]
+    elif score >= 6:
+        outro = [
+            "*He bats all the candles out.*",
+            "*All out.*",
+            "*He eats the frosting.*",
+            "*He eats more of the frosting.*",
+            "*He has eaten a concerning amount of frosting.*",
+            "*He sits back, satisfied.*",
+            "*He looks at you.*",
+            "*He walks over and headbutts you once.*",
+            "**prrr.**",
+            "*Happy birthday, Yarnaby.*",
+        ]
+    else:
+        outro = [
+            "*He bats all the candles out.*",
+            "*All out.*",
+            "*He eats the frosting.*",
+            "*He eats more of the frosting.*",
+            "*He has eaten a concerning amount of frosting.*",
+            "*He sits back, satisfied.*",
+            "*He licks his paw.*",
+            "*He looks at you.*",
+            "**prrr.**",
+            "*Happy birthday, Yarnaby.*",
+        ]
+
+    phases = [
+        opener,
+        "*He approaches.*",
+        "*He sits down in front of the cake.*",
+        "*He looks at the candles.*",
+        "*He looks at the flames.*",
+        "*He raises one paw.*",
+        "*He bats the first candle.*",
+        "*It goes out.*",
+        "*He stares at where the flame was.*",
+        "*He bats the second one.*",
+        "*Out.*",
+        "*He is doing this with great focus.*",
+        "*Third candle. Out.*",
+        "*He works through the rest methodically.*",
+        "*All candles out.*",
+        "*He sits back.*",
+        "*He surveys what he has done.*",
+        "**...mrrp.**",
+    ] + outro
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(1.5, 2.8))
+        await ctx.send(phase)
+
+    save_db(m)
+
+
+# ==========================================
+# !batcat — batman costume. he is batcat.
+# ==========================================
+
+@bot.command(name="batcat")
+async def batcat_cmd(ctx):
+    """Put the batman costume on Yarnaby. He is now Batcat."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is not here. The costume waits.* **...**")
+        return
+
+    if m["internal"]["is_sleeping"]:
+        phases = [
+            "*He is asleep.*",
+            "*You put the batman costume on him.*",
+            "*He is now Batcat.*",
+            "*He is asleep and he is Batcat.*",
+            "*He does not know he is Batcat.*",
+            "*He looks very serious about it regardless.*",
+            "**...prrrr...**",
+        ]
+        for phase in phases:
+            await asyncio.sleep(random.uniform(1.8, 3.0))
+            await ctx.send(phase)
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*He cannot stop you. You put the cape on him. He is Batcat. He is in no condition to be Batcat but here we are.* **...mrr.**",
+            "*You put the batman costume on him. He looks down at it. He looks up at you. He is injured and he is Batcat and he has a lot of feelings.* **...mew.**",
+        ]))
+        return
+
+    # Score-based resistance
+    if score <= -2:
+        phases = [
+            "*He sees the costume.*",
+            "*He is gone.*",
+            "*You find him eventually.*",
+            "*You put the costume on him anyway.*",
+            "*He is Batcat.*",
+            "*He is furious Batcat.*",
+            "*He is attempting to remove the cape with his teeth.*",
+            "**MRRROW.**",
+            "*The cape remains.*",
+            "*He is still Batcat.*",
+            "*Furious, unhappy Batcat.*",
+            "**MRRROW.**",
+        ]
+    elif score <= 3:
+        phases = [
+            "*He eyes the costume.*",
+            "*He eyes you.*",
+            "*He does not run.*",
+            "*He submits.*",
+            "*The cape goes on.*",
+            "*The ears go on.*",
+            "*He is Batcat.*",
+            "*He sits very straight.*",
+            "*He stares at the middle distance.*",
+            "*He is performing Batcat with complete seriousness.*",
+            "**...mrr.**",
+            "*He is going to be Batcat until you remove it.*",
+            "*He has accepted this.*",
+        ]
+    else:
+        phases = [
+            "*You bring the costume.*",
+            "*He looks at it.*",
+            "*He allows the cape.*",
+            "*He allows the ears.*",
+            "*He is Batcat.*",
+            "*He sits up very straight.*",
+            "*He is doing the most serious face he has ever done.*",
+            "*He looks exactly like Batman if Batman were wool and small.*",
+            "**...mrrp.**",
+            "*He is going to sit like this for a while.*",
+            "*He is Batcat.*",
+            "*The factory is safe.*",
+        ]
+
+    if is_doctor:
+        phases = [
+            "*The Creator brings the batman costume.*",
+            "*Yarnaby sees it.*",
+            "*He looks at The Creator.*",
+            "*He looks at the costume.*",
+            "*He walks over.*",
+            "*He puts his head through the opening himself.*",
+            "*He is Batcat.*",
+            "*He sits at The Creator's feet and looks up at them.*",
+            "*He looks very small and very serious.*",
+            "*He is the best Batcat.*",
+            "**...prrr...**",
+        ]
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(1.5, 2.5))
+        await ctx.send(phase)
+
+    save_db(m)
+
+
+# ==========================================
+# !yarnparent — scruff him. he goes limp. easier to do things to him.
+# ==========================================
+
+@bot.command(name="yarnparent")
+async def yarnparent_cmd(ctx):
+    """Grab him by the scruff. He goes limp. Makes !cut_nails and similar easier."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is not here. The scruff is ungrabbable.* **...**")
+        return
+
+    if m["internal"].get("scruffed"):
+        await ctx.send(random.choice([
+            "*He is already scruffed. He is already limp. He is already in maximum cooperation mode.* **...mrr.**",
+            "*He's already being held by the scruff. He has already given up. You cannot give up twice.* **...mew.**",
+        ]))
+        return
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(random.choice([
+            "*He is already asleep and limp. Scruffing him would be redundant. He cooperates with everything in this state.* **...prrrr...**",
+            "*He's out. He is already the most cooperative he will ever be. The scruff is unnecessary.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        if m["internal"].get("chest_injury"):
+            await ctx.send(random.choice([
+                "*You reach for his scruff. You stop. His chest. You find a different way to hold him — supporting, not scruffing. He goes still anyway.* **...mew...**",
+                "*You cannot scruff him with a chest injury. You hold him carefully instead, one hand supporting underneath. He goes limp. He trusts this.* **...mrr...**",
+            ]))
+        else:
+            await ctx.send(random.choice([
+                "*He is already helpless. He is already not going anywhere. The scruff is academic at this point. He goes limp anyway.* **...mrr...**",
+                "*He cannot resist regardless. You scruff him. He goes even more still than he already was. There is nothing left to give up. He gives it up anyway.* **...mew...**",
+            ]))
+        m["internal"]["scruffed"] = True
+        m["internal"]["scruffed_by"] = u_id
+        save_db(m)
+        return
+
+    if is_doctor:
+        phases = [
+            "*The Creator reaches for the scruff.*",
+            "*Yarnaby goes still.*",
+            "*The Creator grasps it.*",
+            "*He goes completely limp.*",
+            "*Instantly.*",
+            "*Every muscle.*",
+            "*He is a small boneless thing.*",
+            "*He is staring at nothing in particular.*",
+            "*He is fully cooperative.*",
+            "*He cannot explain why this works.*",
+            "*It just works.*",
+            "**...mrr...** *(he is fine. he is just limp.)*",
+            "*Use `!cut_nails`, `!groom`, or anything else while he's like this.*",
+        ]
+    elif score <= -2:
+        phases = [
+            "*You reach for his scruff.*",
+            "*He turns around.*",
+            "*You are faster.*",
+            "*You have the scruff.*",
+            "*He goes limp.*",
+            "*He did not choose this.*",
+            "*His body chose this for him.*",
+            "*He is staring at the floor with a very flat expression.*",
+            "*He is fully cooperative and entirely unhappy about it.*",
+            "**...mrr.** *(this is a betrayal.)*",
+            "*Use `!cut_nails` or similar while you have the chance.*",
+        ]
+    elif score <= 3:
+        phases = [
+            "*You reach for his scruff.*",
+            "*He tenses.*",
+            "*You hold it.*",
+            "*He goes limp.*",
+            "*His whole body releases.*",
+            "*He is staring at the middle distance.*",
+            "*He is not resisting.*",
+            "*He cannot.*",
+            "*He is simply still.*",
+            "**...mew.**",
+            "*Use `!cut_nails` or similar. He'll hold.*",
+        ]
+    else:
+        phases = [
+            "*You reach for the scruff.*",
+            "*He lets you.*",
+            "*You hold it.*",
+            "*He goes limp immediately.*",
+            "*Completely.*",
+            "*He is a very soft, very cooperative, very trusting handful.*",
+            "*He is staring at nothing.*",
+            "*His eyes are half closed.*",
+            "*He is fully still.*",
+            "**...mrr...**",
+            "*Use `!cut_nails`, `!groom`, or anything else. He's not going anywhere.*",
+        ]
+
+    for phase in phases:
+        await asyncio.sleep(random.uniform(1.5, 2.5))
+        await ctx.send(phase)
+
+    m["internal"]["scruffed"] = True
+    m["internal"]["scruffed_by"] = u_id
+    save_db(m)
+
+
+# ==========================================
+# !unscruff — release him from the scruff.
+# ==========================================
+
+@bot.command(name="unscruff")
+async def unscruff_cmd(ctx):
+    """Release him from the scruff. He resumes being himself."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    is_doctor = ctx.author.id == DOCTOR_ID
+    u_id = str(ctx.author.id)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_dead"):
+        await ctx.send(random.choice([
+            "*He is not here. There is no scruff to release.* **...**",
+            "*He is gone. The scruff releases itself, eventually.* **...**",
+        ]))
+        return
+
+    if not m["internal"].get("scruffed"):
+        await ctx.send(random.choice([
+            "*He is not currently scruffed. He is just sitting here. He is fine.* **mrr.**",
+            "*Nobody is holding his scruff. He is free. He has always been free.* **mrr.**",
+        ]))
+        return
+
+    scruffed_by = m["internal"].pop("scruffed_by", "")
+    m["internal"]["scruffed"] = False
+    save_db(m)
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send(random.choice([
+            "*You release the scruff. He stays asleep. He was already limp. He remains limp. Nothing changes except you are no longer holding him.* **...prrrr...**",
+            "*Released. He doesn't notice. He's asleep. He was barely aware of the scruff to begin with.* **...prr...**",
+        ]))
+        return
+
+    if m["internal"].get("helpless"):
+        await ctx.send(random.choice([
+            "*You let go. He's still not going anywhere — he can't. But something in him relaxes slightly. He blinks at you.* **...mrr...**",
+            "*Released from the scruff. He's still helpless, still here. He exhales. He looks at you. He says nothing.* **...mew...**",
+        ]))
+        return
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*The Creator releases the scruff. He lands. He shakes himself once. He looks up at The Creator. He sits close.* **...prrr.**",
+            "*Released by The Creator. He lands gently, reassembles himself, and leans against their leg briefly. Just briefly.* **...prrr.**",
+        ]))
+    elif score <= -2:
+        await ctx.send(random.choice([
+            "*You release the scruff. He lands. He shakes himself once, very deliberately. He walks away without looking back.* **mrrow.**",
+            "*Released. He is himself again. He processes this. He leaves.* **mrr.**",
+        ]))
+    elif score >= 5:
+        await ctx.send(random.choice([
+            "*You let go. He lands gently. He shakes himself. He looks at you. He headbutts your hand once, briefly. He walks away.* **...prrr.**",
+            "*Released. He settles. He sits close to you afterward — not making a thing of it, just there.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*You release the scruff. He lands. He shakes himself off. He reassembles his dignity. He is himself again.* **...mrr.**",
+            "*Let go. He sits. He blinks. He resumes whatever he was doing before all this.* **mrr.**",
+        ]))
 
 
 # ==========================================
