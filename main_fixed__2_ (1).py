@@ -41304,45 +41304,7 @@ _FORGETTABLE_THINGS = {
     },
 }
 
-@bot.command(name="forget_thing", aliases=["forgetit", "erasething", "forgethow"])
-async def forget_thing_cmd(ctx, *, thing: str = ""):
-    """Creator only: make him forget something specific."""
-    if ctx.author.id != DOCTOR_ID:
-        await ctx.send("*Only The Creator can make him forget specific things.* **mrr.**")
-        return
-
-    thing_lower = thing.lower().strip()
-    matched = None
-    for key in _FORGETTABLE_THINGS:
-        if key in thing_lower or thing_lower in key:
-            matched = key
-            break
-
-    if not matched:
-        keys = ", ".join(f"`{k}`" for k in _FORGETTABLE_THINGS)
-        await ctx.send(f"*What should he forget? Options: {keys}* **mrr.**")
-        return
-
-    entry = _FORGETTABLE_THINGS[matched]
-    m = bot.db
-    await _add_reactions(ctx, m)
-    if m["internal"]["is_sleeping"]:
-        await ctx.send(random.choice([
-            "*He is asleep. He does not respond.* **...zz.**",
-            "*He is curled up and deeply asleep. Nothing stirs.* **...zz.**",
-            "*A faint snore. He is not available.* **...zz.**",
-            "*He is asleep. His ear twitches once, then stills.* **...zz.**",
-            "*He is somewhere far away in sleep. He does not hear you.* **...zz.**",
-        ]))
-        return
-    m["internal"][entry["flag"]] = False if matched != "forgot_loaf" else True
-    save_db(m)
-
-    await ctx.send(
-        f"*Something has been taken from him. {entry['forget_msg']}*\n"
-        f"_{entry['relearn_msg']}_"
-    )
-
+# forget_thing command is defined later in the file (search for FORGETTABLE_THINGS dict)
 
 @bot.command(name="whatforgot", aliases=["forgotlist", "whatdidheforget", "hisforgotten"])
 async def whatforgot_cmd(ctx):
@@ -71235,7 +71197,7 @@ FORGET_STRUGGLE = {
     ],
 }
 
-@bot.command(name="forget_thing")
+@bot.command(name="forget_thing", aliases=["forgetit", "erasething", "forgethow"])
 async def forget_thing_cmd(ctx, *, thing: str = ""):
     """Make Yarnaby forget how to do a thing. !forget_thing loaf, knead, chirp, etc."""
     m = bot.db
