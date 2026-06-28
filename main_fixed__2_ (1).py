@@ -25284,6 +25284,7 @@ async def loaf_cmd(ctx):
         save_db(m)
         return
 
+    is_doctor = ctx.author.id == DOCTOR_ID
     u_id = str(ctx.author.id)
     score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
 
