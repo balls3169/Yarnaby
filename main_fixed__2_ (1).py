@@ -73392,76 +73392,114 @@ async def egypt_cmd(ctx):
             "He did not ask. He did not need to.* **PRRR.**"
         )
 
-
 # ==========================================
-# !invite -- creator-only. yarnaby invites the creator somewhere.
+# !invite -- generates a server invite link.
+#            creator-only: if a destination is given, yarnaby leads them there.
 # ==========================================
 
-@bot.command(name="invite", aliases=["inviteme", "invitefrom", "yarnyinvite"])
+@bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
     await _add_reactions(ctx, m)
 
-    # Non-creator users: silent ignore
-    if not is_doctor:
+    dest = server_name.strip()
+
+    # ── Creator + destination → roleplay lead-the-creator flow ──────────────
+    if is_doctor and dest:
+        sleeping = m["internal"].get("is_sleeping", False)
+        helpless = m["internal"].get("helpless", False)
+
+        if sleeping:
+            await ctx.send(
+                f"*He is asleep. He cannot invite anyone anywhere right now. "
+                f"He is on the invitation list in his dream, probably.* **...zz.**"
+            )
+            return
+
+        if helpless:
+            await ctx.send(
+                f"*He is restrained. He looks at The Creator. "
+                f"He looks at the direction of {dest}. "
+                f"He makes a sound that is clearly an invitation in spirit. "
+                f"He cannot do more than that right now.* **...mrr.**"
+            )
+            return
+
+        await ctx.send(random.choice([
+            f"*He pads to The Creator. He sits in front of them with considerable composure. "
+            f"He looks at them. He looks toward **{dest}**. "
+            f"He looks back at The Creator. "
+            f"He makes a small, deliberate sound. "
+            f"He would like The Creator to come to **{dest}**. "
+            f"He is asking formally. This is a formal invitation.* **...mrr. prrr.**",
+
+            f"*He arrives at The Creator's side and sits. "
+            f"He looks up at them. He looks in the direction of **{dest}**. "
+            f"He looks up again. "
+            f"He stands. He takes two steps toward **{dest}** and stops and looks back. "
+            f"He is showing The Creator. He is leading. "
+            f"He would like The Creator to follow.* **...mrr. mrr.**",
+
+            f"*He finds The Creator and bumps his head against their hand once. "
+            f"He turns. He looks toward **{dest}**. "
+            f"He turns back and blinks at The Creator slowly. "
+            f"He is inviting them. "
+            f"The invitation is warm and it is genuine and it is very much from him.* **prrr.**",
+
+            f"*He sits in front of The Creator and makes a series of sounds -- "
+            f"soft, a little urgent, clearly communicative. "
+            f"He flicks his gaze toward **{dest}** and back. "
+            f"Toward **{dest}** and back. "
+            f"He wants The Creator to come. He is asking in the best way he knows how.* **...mrrp. mrr. mrrp.**",
+
+            f"*He takes The Creator's sleeve gently in his mouth -- "
+            f"not biting, just holding, just the lightest contact -- "
+            f"and steps in the direction of **{dest}**. "
+            f"He releases. He looks up. "
+            f"He steps that way again and looks back. "
+            f"He is taking The Creator somewhere. "
+            f"He would like The Creator to notice this.* **...mrr.**",
+        ]))
         return
 
-    sleeping = m["internal"].get("is_sleeping", False)
-    helpless = m["internal"].get("helpless", False)
-    dest = server_name.strip() if server_name.strip() else "somewhere"
+    # ── Everyone else (or creator with no destination) → real invite link ───
+    if ctx.guild is None:
+        await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
+        return
 
-    if sleeping:
+    invite = None
+    try:
+        invite = await ctx.channel.create_invite(
+            max_age=86400,
+            max_uses=0,
+            unique=True,
+            reason=f"!invite requested by {ctx.author}",
+        )
+    except discord.Forbidden:
+        for ch in ctx.guild.text_channels:
+            try:
+                invite = await ch.create_invite(
+                    max_age=86400,
+                    max_uses=0,
+                    unique=True,
+                    reason=f"!invite requested by {ctx.author}",
+                )
+                break
+            except (discord.Forbidden, discord.HTTPException):
+                continue
+
+    if invite is None:
         await ctx.send(
-            f"*He is asleep. He cannot invite anyone anywhere right now. "
-            f"He is on the invitation list in his dream, probably.* **...zz.**"
+            "*He sniffs around for a door to open, but every one is locked. "
+            "He doesn't have permission to create an invite here.* **hff.**"
         )
         return
 
-    if helpless:
-        await ctx.send(
-            f"*He is restrained. He looks at The Creator. "
-            f"He looks at the direction of {dest}. "
-            f"He makes a sound that is clearly an invitation in spirit. "
-            f"He cannot do more than that right now.* **...mrr.**"
-        )
-        return
-
-    await ctx.send(random.choice([
-        f"*He pads to The Creator. He sits in front of them with considerable composure. "
-        f"He looks at them. He looks toward **{dest}**. "
-        f"He looks back at The Creator. "
-        f"He makes a small, deliberate sound. "
-        f"He would like The Creator to come to **{dest}**. "
-        f"He is asking formally. This is a formal invitation.* **...mrr. prrr.**",
-
-        f"*He arrives at The Creator's side and sits. "
-        f"He looks up at them. He looks in the direction of **{dest}**. "
-        f"He looks up again. "
-        f"He stands. He takes two steps toward **{dest}** and stops and looks back. "
-        f"He is showing The Creator. He is leading. "
-        f"He would like The Creator to follow.* **...mrr. mrr.**",
-
-        f"*He finds The Creator and bumps his head against their hand once. "
-        f"He turns. He looks toward **{dest}**. "
-        f"He turns back and blinks at The Creator slowly. "
-        f"He is inviting them. "
-        f"The invitation is warm and it is genuine and it is very much from him.* **prrr.**",
-
-        f"*He sits in front of The Creator and makes a series of sounds -- "
-        f"soft, a little urgent, clearly communicative. "
-        f"He flicks his gaze toward **{dest}** and back. "
-        f"Toward **{dest}** and back. "
-        f"He wants The Creator to come. He is asking in the best way he knows how.* **...mrrp. mrr. mrrp.**",
-
-        f"*He takes The Creator's sleeve gently in his mouth -- "
-        f"not biting, just holding, just the lightest contact -- "
-        f"and steps in the direction of **{dest}**. "
-        f"He releases. He looks up. "
-        f"He steps that way again and looks back. "
-        f"He is taking The Creator somewhere. "
-        f"He would like The Creator to notice this.* **...mrr.**",
-    ]))
+    await ctx.send(
+        f"*He pads over and drops a small card at your feet. It has a door on it.* **mrr.**\n"
+        f"🔗 **{ctx.guild.name}** — {invite.url}"
+    )
 
 
 
