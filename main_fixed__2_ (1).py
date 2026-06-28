@@ -73392,8 +73392,8 @@ async def egypt_cmd(ctx):
             "He did not ask. He did not need to.* **PRRR.**"
         )
 
-
-
+########################
+########################
 ###Invite Generation----------------
 @bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
