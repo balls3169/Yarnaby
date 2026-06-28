@@ -73394,7 +73394,9 @@ async def egypt_cmd(ctx):
 
 ########################
 ########################
-###Invite Generation----------------@bot.command(name="invite")
+###Invite Generation----------------
+
+@bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
