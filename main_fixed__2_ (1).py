@@ -72586,7 +72586,7 @@ async def yarnparent_cmd(ctx):
 # ==========================================
 
 
-@bot.command(name="unscruff", aliases=["releasescruff", "lethimgo", "letgo", "freehim"])
+@bot.command(name="unscruff", aliases=["releasescruff", "lethimgo", "letgo"])
 async def unscruff_cmd(ctx):
     """Release him from the scruff. He reassembles himself. He remembers everything."""
     m = bot.db
