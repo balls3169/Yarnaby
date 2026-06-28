@@ -73716,6 +73716,186 @@ async def summary_cmd(ctx, *, server_name: str = ""):
     await ctx.send(f"{intro}\n\n{summary_text}\n\n**...prrr.**")
 
 
+
+########################
+###Summary Question Command----------------
+
+@bot.command(name="summary_question")
+async def summary_question_cmd(ctx, *, question: str = ""):
+    """Creator-only: !summary_question (question) — Yarnaby reads more messages and answers a specific question about the server."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    try:
+        await _add_reactions(ctx, m)
+    except Exception:
+        pass
+
+    if not is_doctor:
+        await ctx.send("*He looks at you. He looks away. This one is not for you.* **...mrr.**")
+        return
+
+    question = question.strip()
+    if not question:
+        await ctx.send(
+            "*He tilts his head. He is ready to look. But — what is the question? "
+            "He needs something to look for.* **mrp.**\n"
+            "Usage: `!summary_question what are people arguing about?`"
+        )
+        return
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. He cannot answer anything from here.* **...**")
+        return
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send("*He is asleep. He cannot investigate right now.* **...zz.**")
+        return
+
+    # Resolve guild
+    guild = ctx.guild or getattr(ctx.message, "guild", None) or getattr(ctx.channel, "guild", None)
+
+    if guild is None:
+        await ctx.send("*He tilts his head. There is no server here to investigate.* **mrp.**")
+        return
+
+    if not OPENROUTER_API_KEY or aiohttp is None:
+        await ctx.send("*He opens his mouth. Nothing comes out. Something is wrong with his voice today.* **...mrr.**")
+        return
+
+    # ── Gather server info ───────────────────────────────────────────────────
+    member_count = guild.member_count or len(guild.members)
+    text_channels = [ch for ch in guild.channels if isinstance(ch, discord.TextChannel)]
+    voice_channels = [ch for ch in guild.channels if isinstance(ch, discord.VoiceChannel)]
+    role_names = [r.name for r in guild.roles if r.name != "@everyone"]
+    owner = guild.owner
+    owner_name = str(owner) if owner else "unknown"
+    created_at = guild.created_at.strftime("%B %d, %Y") if guild.created_at else "unknown"
+
+    ch_names = ", ".join(ch.name for ch in text_channels[:25])
+    role_sample = ", ".join(role_names[:20]) if role_names else "none"
+
+    # ── Read more messages — up to 15 channels, 20 msgs each ────────────────
+    await ctx.send(
+        f"*He narrows his eyes. He goes to look more carefully. The question is: **{question}** — he will find what he can.*\n"
+        f"*...he is reading...* **...mrr...**"
+    )
+
+    recent_snippets = []
+    checked = 0
+    async with ctx.typing():
+        for ch in text_channels:
+            if checked >= 15:
+                break
+            try:
+                msgs = []
+                async for msg in ch.history(limit=20):
+                    if not msg.author.bot and msg.content and len(msg.content) > 3:
+                        clean = msg.content.replace("\n", " ")[:200]
+                        msgs.append(f"[#{ch.name}] {msg.author.display_name}: {clean}")
+                if msgs:
+                    recent_snippets.extend(msgs[:8])
+                    checked += 1
+            except (discord.Forbidden, discord.HTTPException):
+                continue
+
+        recent_block = "\n".join(recent_snippets[:80]) if recent_snippets else "No readable recent messages."
+
+        # ── Language ─────────────────────────────────────────────────────────
+        lang_code = _get_lang(m, guild.id)
+        libre_target = _LIBRE_LANG_MAP.get(lang_code)
+        lang_instruction = ""
+        if libre_target:
+            lang_names = {
+                "tr": "Turkish", "es": "Spanish", "zh": "Chinese (Simplified)",
+                "de": "German", "fr": "French", "ja": "Japanese",
+            }
+            lang_full = lang_names.get(libre_target, libre_target)
+            lang_instruction = f" Answer in {lang_full}."
+
+        # ── AI prompt ────────────────────────────────────────────────────────
+        system_prompt = (
+            "You are answering a specific question about a Discord server on behalf of Yarnaby, a quiet, observant old cat. "
+            "You have been given server metadata and a large sample of recent messages. "
+            "Answer the question directly and in detail — this is not a summary, it is a targeted answer. "
+            "Use the messages as evidence. Quote or paraphrase specific things people said if relevant. "
+            "Write in clear flowing prose. Be thorough but not padded — stop when the question is answered. "
+            "Do not add unrelated server facts unless they directly help answer the question."
+            + lang_instruction
+        )
+        user_prompt = (
+            f"Server: {guild.name}\n"
+            f"Owner: {owner_name}\n"
+            f"Members: {member_count}\n"
+            f"Created: {created_at}\n"
+            f"Text channels ({len(text_channels)}): {ch_names}\n"
+            f"Voice channels: {len(voice_channels)}\n"
+            f"Roles: {role_sample}\n\n"
+            f"Recent messages (large sample):\n{recent_block}\n\n"
+            f"Question to answer: {question}"
+        )
+
+        payload = {
+            "model": "",
+            "max_tokens": 700,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+        }
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/yarnaby-bot",
+            "X-Title": "Yarnaby",
+        }
+        _models = [
+            "openai/gpt-4o-mini",
+            "anthropic/claude-haiku-4-5",
+            "google/gemini-flash-1.5",
+            "meta-llama/llama-3.1-8b-instruct",
+        ]
+
+        answer_text = None
+        timeout = aiohttp.ClientTimeout(total=40)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for model in _models:
+                try:
+                    payload["model"] = model
+                    async with session.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        json=payload,
+                        headers=headers,
+                    ) as resp:
+                        data = await resp.json()
+                        choices = data.get("choices", [])
+                        if not choices:
+                            continue
+                        result = choices[0].get("message", {}).get("content", "").strip()
+                        if result:
+                            answer_text = result
+                            break
+                except Exception:
+                    continue
+
+    if not answer_text:
+        await ctx.send(
+            "*He came back from looking. He sat down. He opened his mouth. "
+            "Nothing useful came out. He is sorry. He tried.* **...mrr.**"
+        )
+        return
+
+    intro = random.choice([
+        f"*He has read what he could. About — **{question}** — this is what he found.*",
+        f"*He looked. He read carefully. He has an answer about **{question}**.*",
+        f"*He went through every door he could open. Here is what he found about **{question}**.*",
+        f"*He sat with the messages for a while. The question was **{question}**. He has something to say.*",
+        f"*He investigated. Quietly. As he does. **{question}** — here is what was there.*",
+    ])
+
+    await ctx.send(f"{intro}\n\n{answer_text}\n\n**...prrr.**")
+
+
 # ==========================================
 # FINAL: bot.run(TOKEN) - must be last line
 # ==========================================
