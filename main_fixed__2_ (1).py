@@ -73514,9 +73514,10 @@ async def invite_cmd(ctx, *, server_name: str = ""):
         return
 
     # ── Everyone else → just the invite ─────────────────────────────────────
+    display_name = dest if dest else guild.name
     await ctx.send(
         f"*He pads over and drops a small card at your feet. It has a door on it.* **mrr.**\n"
-        f"🔗 **{guild.name}** — {invite_url}"
+        f"🔗 **{display_name}** — {invite_url}"
     )
 
 
