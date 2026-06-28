@@ -73394,20 +73394,30 @@ async def egypt_cmd(ctx):
 
 ########################
 ########################
-###Invite Generation----------------
-@bot.command(name="invite")
+###Invite Generation----------------@bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
     m = bot.db
     is_doctor = ctx.author.id == DOCTOR_ID
-    await _add_reactions(ctx, m)
+
+    try:
+        await _add_reactions(ctx, m)
+    except Exception:
+        pass
 
     dest = server_name.strip()
 
-    # ── Always generate the real invite first ───────────────────────────────
-    if ctx.guild is None:
+    # Try every possible way to get the guild
+    guild = (
+        ctx.guild
+        or getattr(ctx.message, "guild", None)
+        or getattr(ctx.channel, "guild", None)
+    )
+
+    if guild is None:
         await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
         return
 
+    # ── Always generate the real invite first ───────────────────────────────
     invite = None
     try:
         invite = await ctx.channel.create_invite(
@@ -73417,7 +73427,7 @@ async def invite_cmd(ctx, *, server_name: str = ""):
             reason=f"!invite requested by {ctx.author}",
         )
     except discord.Forbidden:
-        for ch in ctx.guild.text_channels:
+        for ch in guild.text_channels:
             try:
                 invite = await ch.create_invite(
                     max_age=86400,
@@ -73428,6 +73438,8 @@ async def invite_cmd(ctx, *, server_name: str = ""):
                 break
             except (discord.Forbidden, discord.HTTPException):
                 continue
+    except Exception:
+        pass
 
     if invite is None:
         await ctx.send(
@@ -73447,7 +73459,7 @@ async def invite_cmd(ctx, *, server_name: str = ""):
             await ctx.send(
                 f"*He is asleep. He cannot invite anyone anywhere right now. "
                 f"He is on the invitation list in his dream, probably.* **...zz.**\n"
-                f"🔗 **{ctx.guild.name}** — {invite_url}"
+                f"🔗 **{guild.name}** — {invite_url}"
             )
             return
 
@@ -73457,7 +73469,7 @@ async def invite_cmd(ctx, *, server_name: str = ""):
                 f"He looks at the direction of {dest}. "
                 f"He makes a sound that is clearly an invitation in spirit. "
                 f"He cannot do more than that right now.* **...mrr.**\n"
-                f"🔗 **{ctx.guild.name}** — {invite_url}"
+                f"🔗 **{guild.name}** — {invite_url}"
             )
             return
 
@@ -73496,16 +73508,14 @@ async def invite_cmd(ctx, *, server_name: str = ""):
             f"He is taking The Creator somewhere. "
             f"He would like The Creator to notice this.* **...mrr.**",
         ])
-        await ctx.send(f"{roleplay}\n🔗 **{ctx.guild.name}** — {invite_url}")
+        await ctx.send(f"{roleplay}\n🔗 **{guild.name}** — {invite_url}")
         return
 
-    # ── Everyone else (or creator with no destination) → just the invite ────
+    # ── Everyone else → just the invite ─────────────────────────────────────
     await ctx.send(
         f"*He pads over and drops a small card at your feet. It has a door on it.* **mrr.**\n"
-        f"🔗 **{ctx.guild.name}** — {invite_url}"
+        f"🔗 **{guild.name}** — {invite_url}"
     )
-
-
 
 
 # ==========================================
