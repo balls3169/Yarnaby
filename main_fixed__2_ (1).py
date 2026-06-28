@@ -73528,6 +73528,194 @@ async def invite_cmd(ctx, *, server_name: str = ""):
     )
 
 
+
+########################
+###Summary Command----------------
+
+@bot.command(name="summary")
+async def summary_cmd(ctx, *, server_name: str = ""):
+    """Creator-only: !summary (servername) — Yarnaby looks at a server and gives a short summary."""
+    m = bot.db
+    is_doctor = ctx.author.id == DOCTOR_ID
+
+    try:
+        await _add_reactions(ctx, m)
+    except Exception:
+        pass
+
+    if not is_doctor:
+        await ctx.send("*He looks at you. He looks away. This one is not for you.* **...mrr.**")
+        return
+
+    dest = server_name.strip()
+
+    # Resolve guild — current server, or search by name
+    guild = ctx.guild or getattr(ctx.message, "guild", None) or getattr(ctx.channel, "guild", None)
+
+    if not guild and dest:
+        dest_lower = dest.lower()
+        for g in bot.guilds:
+            if dest_lower in g.name.lower():
+                guild = g
+                break
+
+    if guild is None:
+        if dest:
+            await ctx.send(
+                f"*He sniffs around for a server called **{dest}** but cannot find it. "
+                f"He looks at you. He looks away.* **...mrr.**"
+            )
+        else:
+            await ctx.send("*He tilts his head. Which server? He doesn't know where to look.* **mrp.**")
+        return
+
+    if m["internal"].get("is_dead"):
+        await ctx.send("*He is gone. He cannot observe anything from here.* **...**")
+        return
+
+    if m["internal"].get("is_sleeping"):
+        await ctx.send(f"*He is asleep. He cannot look at **{guild.name}** right now.* **...zz.**")
+        return
+
+    # ── Gather server info ───────────────────────────────────────────────────
+    member_count = guild.member_count or len(guild.members)
+    text_channels = [ch for ch in guild.channels if isinstance(ch, discord.TextChannel)]
+    voice_channels = [ch for ch in guild.channels if isinstance(ch, discord.VoiceChannel)]
+    categories = [ch for ch in guild.channels if isinstance(ch, discord.CategoryChannel)]
+    role_names = [r.name for r in guild.roles if r.name != "@everyone"]
+    owner = guild.owner
+    owner_name = str(owner) if owner else "unknown"
+    created_at = guild.created_at.strftime("%B %d, %Y") if guild.created_at else "unknown"
+    boost_level = guild.premium_tier
+    boost_count = guild.premium_subscription_count or 0
+
+    # Channel names for context (limit to avoid token bloat)
+    ch_names = ", ".join(ch.name for ch in text_channels[:20])
+    role_sample = ", ".join(role_names[:15]) if role_names else "none"
+
+    # ── Recent messages from up to 5 readable text channels ─────────────────
+    recent_snippets = []
+    checked = 0
+    for ch in text_channels:
+        if checked >= 5:
+            break
+        try:
+            msgs = []
+            async for msg in ch.history(limit=8):
+                if not msg.author.bot and msg.content and len(msg.content) > 3:
+                    msgs.append(f"[#{ch.name}] {msg.author.display_name}: {msg.content[:120]}")
+            if msgs:
+                recent_snippets.extend(msgs[:3])
+                checked += 1
+        except (discord.Forbidden, discord.HTTPException):
+            continue
+
+    recent_block = "\n".join(recent_snippets[:12]) if recent_snippets else "No readable recent messages."
+
+    # ── Determine language for the summary ──────────────────────────────────
+    lang_code = _get_lang(m, guild.id)
+    libre_target = _LIBRE_LANG_MAP.get(lang_code)
+
+    lang_instruction = ""
+    if libre_target:
+        lang_names = {
+            "tr": "Turkish", "es": "Spanish", "zh": "Chinese (Simplified)",
+            "de": "German", "fr": "French", "ja": "Japanese",
+        }
+        lang_full = lang_names.get(libre_target, libre_target)
+        lang_instruction = f" Write the summary in {lang_full}."
+
+    # ── Build AI prompt ──────────────────────────────────────────────────────
+    system_prompt = (
+        "You are summarising a Discord server for a curious, quiet old cat named Yarnaby. "
+        "Write a SHORT, warm, observational summary (4-6 sentences max) describing what kind of place this server seems to be. "
+        "Mention what topics people seem to talk about, the vibe/atmosphere, and any notable details. "
+        "Do not use bullet points. Write in flowing prose. Be gently descriptive, not clinical. "
+        "Do not say 'the server has X channels' in a dry way — observe like a cat would: noticing things, not listing them."
+        + lang_instruction
+    )
+    user_prompt = (
+        f"Server name: {guild.name}\n"
+        f"Owner: {owner_name}\n"
+        f"Members: {member_count}\n"
+        f"Created: {created_at}\n"
+        f"Boost level: {boost_level} ({boost_count} boosts)\n"
+        f"Text channels ({len(text_channels)}): {ch_names}\n"
+        f"Voice channels: {len(voice_channels)}\n"
+        f"Categories: {len(categories)}\n"
+        f"Roles: {role_sample}\n\n"
+        f"Recent messages (sample):\n{recent_block}\n\n"
+        "Give a short, warm, cat-observed summary of what this server is and what goes on there."
+    )
+
+    if not OPENROUTER_API_KEY or aiohttp is None:
+        await ctx.send("*He looks carefully at the server. He opens his mouth. Nothing comes out. Something is wrong with his voice today.* **...mrr.**")
+        return
+
+    # ── Typing indicator while thinking ─────────────────────────────────────
+    async with ctx.typing():
+        payload = {
+            "model": "",
+            "max_tokens": 400,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+        }
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/yarnaby-bot",
+            "X-Title": "Yarnaby",
+        }
+        _models = [
+            "openai/gpt-4o-mini",
+            "anthropic/claude-haiku-4-5",
+            "google/gemini-flash-1.5",
+            "meta-llama/llama-3.1-8b-instruct",
+        ]
+
+        summary_text = None
+        timeout = aiohttp.ClientTimeout(total=30)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for model in _models:
+                try:
+                    payload["model"] = model
+                    async with session.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        json=payload,
+                        headers=headers,
+                    ) as resp:
+                        data = await resp.json()
+                        choices = data.get("choices", [])
+                        if not choices:
+                            continue
+                        result = choices[0].get("message", {}).get("content", "").strip()
+                        if result:
+                            summary_text = result
+                            break
+                except Exception:
+                    continue
+
+    if not summary_text:
+        await ctx.send(
+            f"*He goes to look at **{guild.name}** and comes back with nothing to say. "
+            f"Not because there was nothing — just. He can't find the words today.* **...mrr.**"
+        )
+        return
+
+    # ── Send the summary in Yarnaby's voice ─────────────────────────────────
+    intro = random.choice([
+        f"*He pads over and sits down. He has been looking at **{guild.name}**. This is what he sees.*",
+        f"*He has observed **{guild.name}** carefully. He settles. Here is what he found.*",
+        f"*He went to look. He came back. He opens his mouth now, which is unusual. About **{guild.name}**:*",
+        f"*He sat very still in **{guild.name}** for a while. He watched. He has thoughts.*",
+        f"*He looked around **{guild.name}**. Quietly. As he does. He will tell The Creator what he saw.*",
+    ])
+
+    await ctx.send(f"{intro}\n\n{summary_text}\n\n**...prrr.**")
+
+
 # ==========================================
 # FINAL: bot.run(TOKEN) - must be last line
 # ==========================================
