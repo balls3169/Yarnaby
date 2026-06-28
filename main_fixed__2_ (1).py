@@ -73415,33 +73415,40 @@ async def invite_cmd(ctx, *, server_name: str = ""):
         or getattr(ctx.channel, "guild", None)
     )
 
+    # ── If in DM (no guild), try to find the guild by name from dest ────────
     if guild is None:
-        await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
-        return
+        if not dest:
+            await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
+            return
+        dest_lower = dest.lower()
+        matched = None
+        for g in bot.guilds:
+            if dest_lower in g.name.lower():
+                matched = g
+                break
+        if matched is None:
+            await ctx.send(
+                f"*He sniffs around for a server called **{dest}** but cannot find it. "
+                f"He looks at you. He looks away.* **...mrr.**"
+            )
+            return
+        guild = matched
 
     # ── Always generate the real invite first ───────────────────────────────
     invite = None
-    try:
-        invite = await ctx.channel.create_invite(
-            max_age=86400,
-            max_uses=0,
-            unique=True,
-            reason=f"!invite requested by {ctx.author}",
-        )
-    except discord.Forbidden:
-        for ch in guild.text_channels:
-            try:
-                invite = await ch.create_invite(
-                    max_age=86400,
-                    max_uses=0,
-                    unique=True,
-                    reason=f"!invite requested by {ctx.author}",
-                )
-                break
-            except (discord.Forbidden, discord.HTTPException):
-                continue
-    except Exception:
-        pass
+    # In DMs ctx.channel is a DMChannel; use guild's text channels directly
+    invite_channels = guild.text_channels if ctx.guild is None else [ctx.channel]
+    for ch in invite_channels:
+        try:
+            invite = await ch.create_invite(
+                max_age=86400,
+                max_uses=0,
+                unique=True,
+                reason=f"!invite requested by {ctx.author}",
+            )
+            break
+        except (discord.Forbidden, discord.HTTPException):
+            continue
 
     if invite is None:
         await ctx.send(
