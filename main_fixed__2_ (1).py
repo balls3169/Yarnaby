@@ -73396,6 +73396,8 @@ async def egypt_cmd(ctx):
 ########################
 ###Invite Generation----------------
 
+await ctx.send(f"DEBUG guild={ctx.guild} | msg.guild={getattr(ctx.message,'guild',None)} | ch.guild={getattr(ctx.channel,'guild',None)}")
+
 @bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
     m = bot.db
