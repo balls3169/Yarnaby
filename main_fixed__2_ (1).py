@@ -73392,11 +73392,9 @@ async def egypt_cmd(ctx):
             "He did not ask. He did not need to.* **PRRR.**"
         )
 
-# ==========================================
-# !invite -- generates a server invite link.
-#            creator-only: if a destination is given, yarnaby leads them there.
-# ==========================================
 
+
+###Invite Generation----------------
 @bot.command(name="invite")
 async def invite_cmd(ctx, *, server_name: str = ""):
     m = bot.db
@@ -73405,7 +73403,42 @@ async def invite_cmd(ctx, *, server_name: str = ""):
 
     dest = server_name.strip()
 
-    # ── Creator + destination → roleplay lead-the-creator flow ──────────────
+    # ── Always generate the real invite first ───────────────────────────────
+    if ctx.guild is None:
+        await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
+        return
+
+    invite = None
+    try:
+        invite = await ctx.channel.create_invite(
+            max_age=86400,
+            max_uses=0,
+            unique=True,
+            reason=f"!invite requested by {ctx.author}",
+        )
+    except discord.Forbidden:
+        for ch in ctx.guild.text_channels:
+            try:
+                invite = await ch.create_invite(
+                    max_age=86400,
+                    max_uses=0,
+                    unique=True,
+                    reason=f"!invite requested by {ctx.author}",
+                )
+                break
+            except (discord.Forbidden, discord.HTTPException):
+                continue
+
+    if invite is None:
+        await ctx.send(
+            "*He sniffs around for a door to open, but every one is locked. "
+            "He doesn't have permission to create an invite here.* **hff.**"
+        )
+        return
+
+    invite_url = invite.url
+
+    # ── Creator + destination → roleplay + invite link ──────────────────────
     if is_doctor and dest:
         sleeping = m["internal"].get("is_sleeping", False)
         helpless = m["internal"].get("helpless", False)
@@ -73413,7 +73446,8 @@ async def invite_cmd(ctx, *, server_name: str = ""):
         if sleeping:
             await ctx.send(
                 f"*He is asleep. He cannot invite anyone anywhere right now. "
-                f"He is on the invitation list in his dream, probably.* **...zz.**"
+                f"He is on the invitation list in his dream, probably.* **...zz.**\n"
+                f"🔗 **{ctx.guild.name}** — {invite_url}"
             )
             return
 
@@ -73422,11 +73456,12 @@ async def invite_cmd(ctx, *, server_name: str = ""):
                 f"*He is restrained. He looks at The Creator. "
                 f"He looks at the direction of {dest}. "
                 f"He makes a sound that is clearly an invitation in spirit. "
-                f"He cannot do more than that right now.* **...mrr.**"
+                f"He cannot do more than that right now.* **...mrr.**\n"
+                f"🔗 **{ctx.guild.name}** — {invite_url}"
             )
             return
 
-        await ctx.send(random.choice([
+        roleplay = random.choice([
             f"*He pads to The Creator. He sits in front of them with considerable composure. "
             f"He looks at them. He looks toward **{dest}**. "
             f"He looks back at The Creator. "
@@ -73460,45 +73495,14 @@ async def invite_cmd(ctx, *, server_name: str = ""):
             f"He steps that way again and looks back. "
             f"He is taking The Creator somewhere. "
             f"He would like The Creator to notice this.* **...mrr.**",
-        ]))
+        ])
+        await ctx.send(f"{roleplay}\n🔗 **{ctx.guild.name}** — {invite_url}")
         return
 
-    # ── Everyone else (or creator with no destination) → real invite link ───
-    if ctx.guild is None:
-        await ctx.send("*He tilts his head. There's no server here to invite anyone to.* **mrp.**")
-        return
-
-    invite = None
-    try:
-        invite = await ctx.channel.create_invite(
-            max_age=86400,
-            max_uses=0,
-            unique=True,
-            reason=f"!invite requested by {ctx.author}",
-        )
-    except discord.Forbidden:
-        for ch in ctx.guild.text_channels:
-            try:
-                invite = await ch.create_invite(
-                    max_age=86400,
-                    max_uses=0,
-                    unique=True,
-                    reason=f"!invite requested by {ctx.author}",
-                )
-                break
-            except (discord.Forbidden, discord.HTTPException):
-                continue
-
-    if invite is None:
-        await ctx.send(
-            "*He sniffs around for a door to open, but every one is locked. "
-            "He doesn't have permission to create an invite here.* **hff.**"
-        )
-        return
-
+    # ── Everyone else (or creator with no destination) → just the invite ────
     await ctx.send(
         f"*He pads over and drops a small card at your feet. It has a door on it.* **mrr.**\n"
-        f"🔗 **{ctx.guild.name}** — {invite.url}"
+        f"🔗 **{ctx.guild.name}** — {invite_url}"
     )
 
 
