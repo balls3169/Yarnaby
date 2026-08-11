@@ -2,3 +2,4 @@ discord.py[voice]
 PyNaCl
 aiohttp
 imageio-ffmpeg
+Pillow
