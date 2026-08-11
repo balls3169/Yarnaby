@@ -21,6 +21,15 @@ try:
 except ImportError:  # pragma: no cover
     aiohttp = None
 
+try:
+    from PIL import Image as _PIL_Image  # type: ignore[import-not-found]
+    PIL_Image: Any = _PIL_Image
+except ImportError:  # pragma: no cover
+    # Pillow isn't in requirements.txt by default — !wide_meme checks this
+    # and gives a friendly "add Pillow and redeploy" message instead of
+    # crashing, rather than failing at import time for the whole bot.
+    PIL_Image = None
+
 if TYPE_CHECKING:
     from discord.ext import commands as _commands  # type: ignore[import-not-found]
     bot: "_commands.Bot"
@@ -2187,14 +2196,25 @@ DREAMS = [
     {"type": "small", "text": "*He makes a tiny sound - smaller than his usual sounds - and presses himself closer to the floor. He is navigating something enormous in the dream. He moves carefully. He is doing well.* **...prrt...**"},
 ]
 
-# Special hum that only surfaces when he's been hurt or had a nightmare -
-# never part of the random ambient pool.
-_SAD_HUM = (
-    "Sadece Sevilmek İstedim",
-    "*Very quietly, almost to himself, a small, broken hum starts up - `mrr... mrrow... mrrrr...` - "
-    "trailing off before it really becomes anything. He doesn't seem to notice he's doing it. "
-    "He just wanted that. That's all. That's all it was ever about.*"
-)
+# Special hums that only surface when he's been hurt, had a nightmare, or is
+# missing the Creator — never part of the random ambient pool. One is picked
+# at random each time (see usage sites: `title, attempt = random.choice(_SAD_HUMS)`).
+_SAD_HUMS = [
+    (
+        "Sadece Sevilmek İstedim",
+        "*Very quietly, almost to himself, a small, broken hum starts up - `mrr... mrrow... mrrrr...` - "
+        "trailing off before it really becomes anything. He doesn't seem to notice he's doing it. "
+        "He just wanted that. That's all. That's all it was ever about.*"
+    ),
+    (
+        "Son Aşkım Olacaksın",
+        "*A faint, unsteady hum starts up, barely there - `mrr... mrrow... mrr...` - and keeps circling "
+        "back to the same soft note like it can't let go of it. He isn't singing it so much as holding "
+        "onto it. He doesn't finish it. He doesn't need to. He already knows how it ends.*"
+    ),
+]
+# Kept for anything that might still reference the old singular name.
+_SAD_HUM = _SAD_HUMS[0]
 
 # Wake-from-dream reactions, by type. (Used by `!wake` and natural wake events.)
 WAKE_FROM_NIGHTMARE = [
@@ -2418,6 +2438,7 @@ HUM_ATTEMPTS = [
     ("Bir Sen Varsın", "Nükhet Duru", "*He goes quiet and still, then produces a soft, searching `mrr... mrrr-oo... mrr` that keeps circling back to the same note, like he's looking for someone in it. He doesn't perform this one so much as just... say it.*"),
     ("Tuana", "Levent Yüksel", "*He goes very quiet, then produces a slow, gentle hum - `mrr... mrrow... mrr...` - that softens right at the part about spring coming again. He holds that note a little longer than the rest, like he means it as a promise. Then he settles, calmer than before.*"),
     ("Yalancı Bahar", "Aşkın Nur Yengi", "*He starts slow - a soft, wandering `mrr... mrrow... mrr...` - and then something in the middle of it catches and holds. A note that carries the feeling of seasons that took more than they gave back, of something in him that has finally decided it is done being fooled. He sits with that note for a long time before letting it go. He doesn't rush the ending.* **...mrr...**"),
+    ("Son Aşkım Olacaksın", "Yalın", "*He starts a slow, careful hum - `mrr... mrrow... mrr...` - soft at first, then holding a little longer on one particular note like he means it. He doesn't rush any part of it. When it ends, he stays quiet for a second before shaking it off and moving on like nothing happened.* **...prrr...**"),
 ]
 
 # Lore unlocks (revealed one-by-one when a Chromatic is fetched)
@@ -2974,6 +2995,9 @@ def _default_db():
             "away_log": [],
             "how_found_log": [],
             "how_found_pending": {},
+            "working_on": [],
+            "working_on_finished": [],
+            "working_on_next_id": 1,
             "comfort_object": None,
             "comfort_object_assigned_at": None,
             "homecoming_pending_for": None,
@@ -5336,13 +5360,17 @@ class Yarnaby(commands.Bot):
             print(f"[hidden ball spawn failed] {e}")
 
         # --- LONELY AMBIENT (nobody has spoken to Yarnaby in 3+ hours) ---
+        # Fires ONCE per idle stretch, not every tick — the flag resets the
+        # moment anyone actually interacts with him again (see the on_message
+        # reset of last_any_interaction_at / lonely_ambient_fired).
         try:
             last_interact_str = m["internal"].get("last_any_interaction_at")
             lonely_hours = 0
             if last_interact_str:
                 last_interact = datetime.strptime(last_interact_str, "%Y-%m-%d %H:%M:%S")
                 lonely_hours = (datetime.now() - last_interact).total_seconds() / 3600
-            if lonely_hours >= 3 and not m["internal"]["is_sleeping"] and random.random() < 0.55:
+            already_fired = m["internal"].get("lonely_ambient_fired", False)
+            if lonely_hours >= 3 and not already_fired and not m["internal"]["is_sleeping"] and random.random() < 0.55:
                 if lonely_hours >= 6:
                     await channel.send(
                         random.choice([
@@ -5361,6 +5389,8 @@ class Yarnaby(commands.Bot):
                             "*A soft, unprompted **chrrp** - aimed at nobody. He heard himself do it. He didn't mean to. He pads away, ears slightly back.*",
                         ])
                     )
+                m["internal"]["lonely_ambient_fired"] = True
+                save_db(m)
         except Exception as e:
             print(f"[lonely ambient failed] {e}")
 
@@ -5390,7 +5420,7 @@ class Yarnaby(commands.Bot):
                         ])
                     )
                     if random.random() < 0.2:
-                        title, attempt = _SAD_HUM
+                        title, attempt = random.choice(_SAD_HUMS)
                         await channel.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
         except Exception as e:
             print(f"[mood ambient failed] {e}")
@@ -8169,6 +8199,7 @@ async def _on_message_body(message):
 
     # --- TRACK LAST ANY-USER INTERACTION (for lonely ambient) ---
     m["internal"]["last_any_interaction_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
+    m["internal"]["lonely_ambient_fired"] = False  # reset so the next idle stretch can fire once again
 
     # --- FIRST MEETING MEMORY ---
     if u_id not in m["social_matrix"]:
@@ -8723,24 +8754,32 @@ async def _on_message_body(message):
 
     if guild_state.get("is_deaf", False):
         if name_call or comfort_directive or natural_directive:
+            if _sensory_announce_once(m, _chat_guild_id, "chat_deaf", True):
+                await message.channel.send(random.choice([
+                    "*You call him. He does not turn. His ears stay still, pointed at a silence only he is inside.* **...**",
+                    "*The name lands nowhere. He keeps watching the room, unaware he was called at all.* **...mrr?**",
+                    "*He does not hear it. Not the words, not the softness around them. Nothing reaches him from there.* **...**",
+                    "*His ear gives one tiny, useless twitch, like it remembers what hearing used to do. He still does not respond.* **...mrr.**",
+                ]))
+            # else: already established he's deaf this bout — stays quietly
+            # unresponsive instead of re-describing the same thing every call.
+        save_db(m)
+        return
+    else:
+        _sensory_announce_once(m, _chat_guild_id, "chat_deaf", False)  # reset for next bout
+
+    if guild_state.get("is_blind", False) and (name_call or natural_directive):
+        if _sensory_announce_once(m, _chat_guild_id, "chat_blind", True):
             await message.channel.send(random.choice([
-                "*You call him. He does not turn. His ears stay still, pointed at a silence only he is inside.* **...**",
-                "*The name lands nowhere. He keeps watching the room, unaware he was called at all.* **...mrr?**",
-                "*He does not hear it. Not the words, not the softness around them. Nothing reaches him from there.* **...**",
-                "*His ear gives one tiny, useless twitch, like it remembers what hearing used to do. He still does not respond.* **...mrr.**",
+                "*He hears the name and turns toward it, but not quite to you. His eyes search without finding. He takes one careful step and stops.* **...mrr?**",
+                "*He knows you called him. He cannot see where the call came from, so he lowers himself and listens harder.* **...mrr...**",
+                "*His head follows your voice. His paws do not. He is blind here, and the room has too many edges.* **mrp...**",
+                "*He answers the sound, not the sight: one uncertain little turn, one lifted paw, then stillness.* **...mrr.**",
             ]))
         save_db(m)
         return
-
-    if guild_state.get("is_blind", False) and (name_call or natural_directive):
-        await message.channel.send(random.choice([
-            "*He hears the name and turns toward it, but not quite to you. His eyes search without finding. He takes one careful step and stops.* **...mrr?**",
-            "*He knows you called him. He cannot see where the call came from, so he lowers himself and listens harder.* **...mrr...**",
-            "*His head follows your voice. His paws do not. He is blind here, and the room has too many edges.* **mrp...**",
-            "*He answers the sound, not the sight: one uncertain little turn, one lifted paw, then stillness.* **...mrr.**",
-        ]))
-        save_db(m)
-        return
+    elif not guild_state.get("is_blind", False):
+        _sensory_announce_once(m, _chat_guild_id, "chat_blind", False)  # reset for next bout
 
     if name_call or natural_directive or comfort_directive:
         _chat_health = m["stats"].get("health", 100)
@@ -8750,20 +8789,30 @@ async def _on_message_body(message):
         _chat_blurry = (guild_state.get("is_blurry", False) or _chat_auto_impaired or _chat_injury_blur) and not guild_state.get("is_blind", False)
         _chat_muffled = (guild_state.get("is_muffled", False) or _chat_auto_impaired or _chat_injury_muffle) and not guild_state.get("is_deaf", False)
 
+        # Compute all three announce-once flags unconditionally so each one's
+        # flag properly resets the moment that particular combo is no longer
+        # active, even when a different branch below ends up firing instead.
+        _ann_bm = _sensory_announce_once(m, _chat_guild_id, "chat_blurry_muffled", _chat_blurry and _chat_muffled)
+        _ann_b = _sensory_announce_once(m, _chat_guild_id, "chat_blurry", _chat_blurry and not _chat_muffled)
+        _ann_mu = _sensory_announce_once(m, _chat_guild_id, "chat_muffled", _chat_muffled and not _chat_blurry)
+
         if _chat_blurry and _chat_muffled:
-            await message.channel.send(random.choice(_SENSORY_COMBO_FALLBACK["blurry_muffled"]))
-            save_db(m)
+            if _ann_bm:
+                await message.channel.send(random.choice(_SENSORY_COMBO_FALLBACK["blurry_muffled"]))
+                save_db(m)
             if random.random() < 0.30:
                 return
             # otherwise fall through to normal response logic below
         elif _chat_blurry and (name_call or natural_directive):
-            await message.channel.send(random.choice(_SENSORY_PARTIAL_FALLBACK["blurry"]))
-            save_db(m)
+            if _ann_b:
+                await message.channel.send(random.choice(_SENSORY_PARTIAL_FALLBACK["blurry"]))
+                save_db(m)
             if random.random() < 0.20:
                 return
         elif _chat_muffled:
-            await message.channel.send(random.choice(_SENSORY_PARTIAL_FALLBACK["muffled"]))
-            save_db(m)
+            if _ann_mu:
+                await message.channel.send(random.choice(_SENSORY_PARTIAL_FALLBACK["muffled"]))
+                save_db(m)
             if random.random() < 0.20:
                 return
 
@@ -12097,7 +12146,7 @@ def _consume_dream_reaction(m, woken_by_doctor: bool) -> str:
     if dt == "nightmare":
         base = random.choice(WAKE_FROM_NIGHTMARE)
         if random.random() < 0.25:
-            title, attempt = _SAD_HUM
+            title, attempt = random.choice(_SAD_HUMS)
             base += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
         # Mark that he just woke from a nightmare — comfort phrases get a better response
         m["internal"]["just_woke_from_nightmare"] = (
@@ -15086,6 +15135,7 @@ GIFT_TOXIC = [
 
 ADIDAS_CAP_TERMS = ["adidas cap", "adidas hat"]
 ADIDAS_SHOES_TERMS = ["adidas shoe", "adidas shoes", "adidas sneakers"]
+ADIDAS_HOODIE_TERMS = ["adidas hoodie", "adidas sweater", "adidas jacket"]
 
 
 def _get_sickness_level(health: int, temp: str) -> int:
@@ -15654,6 +15704,16 @@ async def gift(ctx, *, item: Optional[str] = None):
         if u_id in m["social_matrix"]:
             m["social_matrix"][u_id]["score"] += 2
         _track_item(m, "Adidas shoes", rarity="Adored", source="gift")
+        save_db(m)
+        return
+
+    # 3b. ADIDAS HOODIE - points to the dedicated !fashion_star moment
+    if _match_any(item_lower, ADIDAS_HOODIE_TERMS):
+        await ctx.send(
+            f"*Yarnaby sniffs the **{item}** with real interest. This isn't just a gift — this is an outfit. "
+            f"Try `!fashion_star` to actually put it on him and see how the runway walk goes.*"
+        )
+        _track_item(m, "Adidas hoodie", rarity="Curious", source="gift")
         save_db(m)
         return
 
@@ -16402,6 +16462,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!stare` / `!staredown` - `!yawn` - `!sneeze` - `!ears` - `!tail`\n"
             "- `!nod` / `*nod*` - `!shake` / `*shake head*`\n"
             "- `!cuddle` / `!snuggle` (10m cd) - `!bellyrub` / `!tummy` (15m cd)\n"
+            "- `!sleepy_stir` (10m cd) - only while he's asleep; he briefly stirs in your arms, makes one small sound, and drifts back off\n"
+            "- `!embarrass` - fluster him, he hides his face against you, affection coaxes him back out\n"
             "- `!apologize` / `!sorry` (30m cd) - `!compliment [text]` - `!whistle`\n"
             "- `!stretch` - `!storytime` / `!read [text]` - `!blink @user` (1m cd)\n"
             "- `!sing [song]` - `!dance`\n"
@@ -16527,6 +16589,7 @@ async def help_cmd(ctx, *, section: str = None):
         "outfit": (
             "**Outfit** - `yarn!help outfit`\n"
             "- `!outfit` / `!wearing` - see what he's currently wearing\n"
+            "- `!fashion_star` - put him in a tiny Adidas hoodie and see how the fashion moment goes\n"
             "- `!wear [item]` - put an outfit on him\n"
             "- `!takeoff [item]` - remove an outfit (Adidas items: Creator only)\n"
             "- `!inspect [item]` - look closely at something in his outfit or inventory\n"
@@ -16575,6 +16638,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!cook [dish]` - cook something together; outcome depends on trust score\n"
             "  Can go well (he helps), neutral (he watches), or end in a mess.\n"
             "- `!pillow` - give Yarnaby a pillow for his nest\n"
+            "- `!pillow_fight` - pillow fight with him; he might win, lose, or you can bribe him "
+            "with pets/bellyrubs/scritches, or tickle him mid-fight\n"
             "  His reaction depends on trust score, whether he's asleep, and whether he already has one.\n"
             "- `!become [thing]` - ask Yarnaby to pretend to be something (a statue, a rock, etc.)\n"
             "  If no thing is given, he picks something himself. How long he holds the pose depends on trust score.\n"
@@ -16778,6 +16843,7 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!bond` / `!bestfriend` / `!friends` / `!family` / `!relationship_titles`\n"
             "  - how he'd describe your relationship\n"
             "- `!jealous` / `!grudge_list` - who he's jealous of / grudges he's still holding\n"
+            "- `!cheat_yarnaby` - you come back smelling like another cat; he smells it, average cat reaction\n"
             "- `!apologise` / `!opinion` / `!politics` - ask him for an apology, an opinion, or a take\n"
             "- `!trust` / `!trust_history` / `!vibecheck` - trust status and how it's trended\n"
             "- `!whatforgot` / `!wherewereyou` - what he forgot / where he was during an absence\n"
@@ -16808,6 +16874,7 @@ async def help_cmd(ctx, *, section: str = None):
             "  *(requires score >= 3 to view)*\n"
             "- `!favorite` / `!fav` - his current favourite item\n"
             "- `!showoff` / `!trick` - he does something impressive and pretends he was not trying\n"
+            "- `!backflip` - he attempts a backflip; he does not have the anatomy for this; he always fails\n"
             "- `!show [item]` / `!showhim [item]` - **show him something** from outside\n"
             "  He inspects it, decides if he wants it; if yes, it goes into his inventory.\n"
             "  Special reactions for: food (eats it), yarn (immediate interest), weapons (refused),\n"
@@ -19628,8 +19695,11 @@ async def outfit_cmd(ctx):
     if shoes:
         state = "ripped (now a toy)" if shoes.get("ripped") else "still intact"
         lines.append(f" **Adidas shoes** - received {_time_ago(shoes.get('received_at'))}. Status: {state}.")
+    hoodie = worn.get("adidas_hoodie")
+    if hoodie:
+        lines.append(f" **Adidas hoodie** - put on {_time_ago(hoodie.get('received_at'))}.")
     for slot, entry in worn.items():
-        if slot in ("adidas_cap", "adidas_shoes"):
+        if slot in ("adidas_cap", "adidas_shoes", "adidas_hoodie"):
             continue
         if isinstance(entry, dict):
             item_name = entry.get("name", slot)
@@ -20028,7 +20098,7 @@ async def mood_cmd(ctx, *, thing: str = ""):
     await ctx.send(f"**Mood:** {mood} - {flavor} {stat_bar(m)}")
 
     if mood in ("Traumatized", "Sad", "Depressed (will recover)") and not m["internal"]["is_sleeping"] and random.random() < 0.2:
-        title, attempt = _SAD_HUM
+        title, attempt = random.choice(_SAD_HUMS)
         await ctx.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
 
 
@@ -20142,7 +20212,7 @@ async def mood_check_cmd(ctx):
             await ctx.send(random.choice(responses))
 
         if mood in ("Sad", "Depressed (will recover)") and not m["internal"]["is_sleeping"] and random.random() < 0.15:
-            title, attempt = _SAD_HUM
+            title, attempt = random.choice(_SAD_HUMS)
             await ctx.send(f"*A little later, very quietly - **{title}** -*\n{attempt}")
 
     # --- CHILDREN AWARENESS (15% chance after main mood response) ---
@@ -25962,6 +26032,110 @@ async def howfound_cmd(ctx):
         lines.append(f"\n**Free-text answers ({len(freetext)}):**")
         for e in freetext[-15:]:
             lines.append(f"- `{e['ts']}` **{e.get('guild_name', '?')}**: {e['answer']}")
+    await ctx.send("\n".join(lines)[:1900])
+
+
+# ==========================================
+# "What The Creator is working on" board
+# !add_working (Creator only, adds an item)
+# !working_on (anyone, view the open list)
+# !finish_working (Creator only, archives or deletes an item)
+# !finished_working (anyone, view the archive)
+# ==========================================
+
+@bot.command(name="add_working", aliases=["addworking", "workingadd"])
+async def add_working_cmd(ctx, *, text: str = None):
+    """Creator only: add something to the 'currently working on' board."""
+    m = bot.db
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*That's The Creator's board to add to.* **mrr.**")
+        return
+    if not text or not text.strip():
+        await ctx.send("*Add what? Give me something after the command, e.g. `!add_working new trap minigame`.* **mrr?**")
+        return
+    m["internal"].setdefault("working_on", [])
+    next_id = m["internal"].get("working_on_next_id", 1)
+    entry = {
+        "id": next_id,
+        "text": text.strip()[:300],
+        "added_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    m["internal"]["working_on"].append(entry)
+    m["internal"]["working_on_next_id"] = next_id + 1
+    save_db(m)
+    await ctx.send(f"*Noted.* **#{next_id}** — {entry['text']} **mrr.**")
+
+
+@bot.command(name="working_on", aliases=["workingon", "wip", "creatorworkingon"])
+async def working_on_cmd(ctx):
+    """Anyone: see what The Creator is currently working on."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    items = m["internal"].get("working_on", [])
+    if not items:
+        await ctx.send("*Nothing on the board right now.* **mrr.**")
+        return
+    lines = ["🛠️ **What The Creator is working on:**"]
+    for e in items:
+        lines.append(f"**#{e['id']}** — {e['text']} *(since {e['added_at'][:10]})*")
+    await ctx.send("\n".join(lines)[:1900])
+
+
+@bot.command(name="finish_working", aliases=["finishworking", "workingdone", "completework"])
+async def finish_working_cmd(ctx, *, arg: str = None):
+    """Creator only: close out an item from the board.
+    `!finish_working <#>` archives it to the finished list.
+    `!finish_working <#> delete` removes it without archiving."""
+    m = bot.db
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can close these out.* **mrr.**")
+        return
+    items = m["internal"].get("working_on", [])
+    if not items:
+        await ctx.send("*There's nothing open to finish.* **mrr.**")
+        return
+    if not arg or not arg.strip():
+        await ctx.send("*Which one? Give me the number from `!working_on` — add `delete` at the end to skip archiving.* **mrr?**")
+        return
+    parts = arg.strip().split()
+    delete_mode = False
+    if parts and parts[-1].lower() in ("delete", "del", "remove"):
+        delete_mode = True
+        parts = parts[:-1]
+    if not parts or not parts[0].lstrip("#").isdigit():
+        await ctx.send("*That doesn't look like a number. Check `!working_on` for the right ID.* **mrr?**")
+        return
+    target_id = int(parts[0].lstrip("#"))
+    match = next((e for e in items if e["id"] == target_id), None)
+    if not match:
+        await ctx.send(f"*No open item with **#{target_id}**.* **mrr.**")
+        return
+    items.remove(match)
+    if delete_mode:
+        save_db(m)
+        await ctx.send(f"*Removed **#{target_id}** — {match['text']}. Not archived.* **mrr.**")
+    else:
+        match["finished_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        fin = m["internal"].setdefault("working_on_finished", [])
+        fin.append(match)
+        if len(fin) > 100:
+            del fin[:len(fin) - 100]
+        save_db(m)
+        await ctx.send(f"*Done. **#{target_id}** — {match['text']} moved to finished.* **prrr.**")
+
+
+@bot.command(name="finished_working", aliases=["workingfinished", "wipdone", "workhistory"])
+async def finished_working_cmd(ctx):
+    """Anyone: see the archive of finished items (last 15)."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+    items = m["internal"].get("working_on_finished", [])
+    if not items:
+        await ctx.send("*Nothing finished yet.* **mrr.**")
+        return
+    lines = ["✅ **Finished:**"]
+    for e in items[-15:]:
+        lines.append(f"**#{e['id']}** — {e['text']} *(finished {e.get('finished_at', '?')[:10]})*")
     await ctx.send("\n".join(lines)[:1900])
 
 
@@ -33937,6 +34111,133 @@ async def cuddle_cmd(ctx):
         if _cdc >= 10: await _grant_and_announce(m, u_id, "cuddle_10", ctx.channel)
     except Exception as _ach_err:
         print(f"[achievements/cuddle] {_ach_err}")
+    save_db(m)
+
+
+# ==========================================
+# !sleepy_stir — he briefly wakes in your arms, makes one small sound, and
+# drifts right back off. Only makes sense (and only works) while he's asleep.
+# ==========================================
+@bot.command(name="sleepy_stir", aliases=["sleepystir", "halfwake", "wakesinarms", "driftback"])
+async def sleepy_stir_cmd(ctx):
+    """He's asleep, in your arms. He stirs, cracks an eye, realizes where he is, and settles right back."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if not m["internal"].get("is_sleeping", False):
+        await ctx.send(random.choice([
+            "*He's not asleep right now — this only really works while he's dozing.*",
+            "*He's wide awake. There's nothing to stir out of.*",
+        ]))
+        return
+
+    remaining = _cooldown_remaining(m, f"sleepy_stir:{u_id}", 600)
+    if remaining > 0:
+        await ctx.send(f"*He's already settled back under. Let him rest a bit longer. (~{remaining}s)*")
+        return
+    _set_cooldown(m, f"sleepy_stir:{u_id}")
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*One eye opens, slow and unfocused. It takes him a second — and then it doesn't. He's in The Creator's arms. He already knew that, somewhere underneath the sleep. He gives one small, satisfied **mrrp** — barely more than a breath — and lets the eye fall shut again.* **...zz...**",
+            "*He stirs, just slightly, chin lifting an inch off The Creator's arm. He doesn't fully wake. He doesn't need to. He recognizes the warmth, the weight, the way he's being held, before he even opens his eyes. A soft **mew**, and he's already going back under.* **...prrr... zz...**",
+            "*His ear twitches first. Then one eye, briefly. He finds The Creator's face above him, blinks once, slow and unbothered, and makes a small, sleepy sound low in his throat — not quite a word, not quite nothing — before sinking back into sleep like he never left it.* **...mrr... zz...**",
+        ]))
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+    elif score >= 15:
+        await ctx.send(random.choice([
+            f"*He stirs in {ctx.author.display_name}'s arms — one eye cracking open, hazy and unfocused. It takes a second to place where he is. When he does, something in him relaxes further, not less. A quiet **mrrp**, and he's already drifting back off.* **...zz...**",
+            f"*His eyes open halfway, catch on {ctx.author.display_name}'s face, and just... stay there a moment, unhurried. He lets out a soft, sleepy **mew**, tucks his head back down, and is gone again almost immediately.* **...prrr... zz...**",
+        ]))
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 2)
+    elif score >= 0:
+        await ctx.send(random.choice([
+            f"*He stirs slightly, blinking awake for just a second. He registers {ctx.author.display_name}, registers that he's being held, and — too tired to do much about it either way — lets out one small **mrr** and settles back down.* **...zz...**",
+            "*One eye opens partway. He doesn't fully process what's happening before sleep pulls him back under, a faint, wordless sound trailing after him.* **...mrr... zz...**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*He stirs, cracks one eye, and takes a beat too long to recognize whose arms these are. There's a flicker of something stiff before exhaustion wins out anyway. A short, flat **mrr**, and he shifts his weight slightly away before going back under.* **...zz...**",
+            "*He wakes just enough to reposition himself, putting a little more distance between them than there was a second ago, then lets sleep take him back regardless. He's too tired to hold a grudge right now. That can wait.* **...mrr... zz...**",
+        ]))
+
+    save_db(m)
+
+
+# ==========================================
+# !embarrass — we fluster him, he hides his face against us, affection coaxes
+# him back out
+# ==========================================
+@bot.command(name="embarrass", aliases=["embarrasshim", "teasehim", "flusterhim", "hidehisface"])
+async def embarrass_cmd(ctx):
+    """Something flusters him, he buries his face against you to hide it, and
+    affection is what eventually coaxes him back out."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+
+    if m["internal"].get("is_sleeping", False):
+        await ctx.send(random.choice([
+            "*Yarnaby is asleep. He cannot do that right now.*",
+            "*He is curled up tight. That will have to wait.*",
+            "*He is napping. He'll be ready when he wakes up.*",
+        ]))
+        return
+
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+    name = "The Creator" if is_doctor else ctx.author.display_name
+
+    # ── The embarrassing moment + the hide ──────────────────────────────
+    await ctx.send(random.choice([
+        f"*You catch him mid-conversation with his own reflection — a whole one-sided exchange, apparently quite invested. He freezes the second he notices you noticing. His ears go flat, and before you can say a word, he's pressed his face directly into you, hiding completely.* **...mrrf!**",
+        f"*He goes for a jump, misjudges it by an embarrassing margin, and half-slides down instead of landing clean. He catches you watching. Immediately, wordlessly, he shoves his face against you and does not come out.* **...mrrf!**",
+        f"*He's mid tail-chase — fully committed, spinning, absolutely losing — when he clocks you watching the whole thing. He stops dead, ears flat, and buries his face against you like that will retroactively make it not have happened.* **...mrrf!**",
+        f"*He tries to meow and it comes out wrong — too high, cracked in the middle — and he hears himself do it. He goes rigid, then immediately hides his face against you, refusing to acknowledge the sound ever happened.* **...mrrf!**",
+        f"*You catch him practicing an expression at his own reflection in a spoon, very seriously, like it's important research. He notices you noticing. He is instantly, thoroughly mortified, and buries his face against you to escape it.* **...mrrf!**",
+    ]))
+    await asyncio.sleep(1.6)
+
+    # ── The affection, offered while he's still hiding ──────────────────
+    await ctx.send(random.choice([
+        "*You don't say anything about it. You just start petting him slowly, steadily, right where his face is pressed against you. He stays exactly where he is — but he doesn't pull away, either.* **...mrr...**",
+        "*You keep your hand right there, gentle, unbothered, like this is the most normal thing in the world. He stays hidden. His breathing evens out a little.* **...mrr...**",
+        "*No teasing, no comment — just soft, steady scratches at the base of his ear while he keeps his face firmly out of sight. Slowly, some of the tension goes out of him.* **...mrr...**",
+    ]))
+    await asyncio.sleep(1.8)
+
+    # ── The reveal — tiered by trust ─────────────────────────────────────
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*It doesn't take long. He lifts his head, checks it's actually The Creator, and lets his face be seen fully — still faintly embarrassed, not bothering to hide it anymore.* **prrr.**",
+            "*He peeks up almost immediately, finds The Creator's face, and just... stays there, looking back, unguarded. Whatever it was, it's already forgotten.* **mrr. prrr.**",
+        ]))
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+    elif score >= 15:
+        await ctx.send(random.choice([
+            f"*After a few seconds, he lifts his head just enough to check — finds {name} looking back, unbothered — and lets himself be fully seen, ears still a little back but no longer hiding.* **mrr. prrr.**",
+            f"*He peeks out first, one eye, then commits and lifts his whole head. Still a bit flustered. Doesn't try to hide again.* **...prrr.**",
+        ]))
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 2)
+        if u_id in m["social_matrix"]:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+    elif score >= 0:
+        await ctx.send(random.choice([
+            f"*It takes a little longer this time. Eventually he lifts his head partway, glances at {name}, and settles — still not quite meeting your eyes, but no longer hiding either.* **...mrr.**",
+            "*He peeks out slowly, checking the coast is clear, and stays half-visible rather than fully out. Progress, of a kind.* **...mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            f"*He doesn't come out easily. He peeks once — just enough to confirm it's {name} — and immediately presses his face right back where it was.* **...mrrf.**",
+            "*He stays hidden a long while. When he finally does lift his head, it's brief, wary, and he tucks right back in a moment later.* **...mrr.**",
+        ]))
+
     save_db(m)
 
 
@@ -46826,6 +47127,68 @@ async def jealous_cmd(ctx, target: Optional[discord.Member] = None):
 
 
 # ==========================================
+# !cheat_yarnaby - you come back to the factory smelling like another cat
+# ==========================================
+@bot.command(name="cheat_yarnaby", aliases=["cheatyarnaby", "smellsanothercat", "othercatscent", "catcheating"])
+async def cheat_yarnaby_cmd(ctx):
+    """You return to the factory after touching another cat. He smells it on you.
+    Standard, unremarkable, completely normal cat reaction to this."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(
+            random.choice([
+                "*Yarnaby is asleep. He cannot do that right now.*",
+                "*He is curled up tight. That will have to wait.*",
+                "*He is napping. He'll be ready when he wakes up.*",
+            ])
+        )
+        return
+
+    # ── The approach — he notices before you've even said anything ─────────
+    await ctx.send(random.choice([
+        "*You walk back into the factory. Yarnaby trots over to greet you, stops mid-stride, and goes stiff. His nose is already working before the rest of him catches up.* **...mrr?**",
+        "*Yarnaby comes to meet you at the door. Two steps in, he stops. His whiskers go forward. Something about you is not right.* **...mrr??**",
+        "*He climbs up to greet you and immediately buries his face in your sleeve instead. He is not saying hello. He is investigating.* **mrr?**",
+    ]))
+    await asyncio.sleep(1.8)
+
+    # ── The sniff ────────────────────────────────────────────────────────
+    await ctx.send(random.choice([
+        "*He sniffs your hands. Then your sleeve. Then your hands again, longer this time. His ears go back half an inch.* **...mrrow.**",
+        "*Long, deliberate sniff. He pulls back, considers it, and goes back in for a second pass like the first one might have been wrong. It wasn't.* **...mrr.**",
+        "*He works his way up your arm sniff by sniff, methodical about it, cataloguing exactly how much of you smells like somewhere else.* **mrr...**",
+    ]))
+    await asyncio.sleep(1.8)
+
+    # ── The reaction — average cat, no more, no less ────────────────────────
+    if is_doctor:
+        await ctx.send(random.choice([
+            "*He sits back and looks at The Creator. He doesn't say anything about it. He just headbutts your hand, firmly, twice, and rubs his cheek along your leg — putting himself back on you. There. Fixed.* **prrr.**",
+            "*He gives The Creator a long, unreadable look, then climbs directly into your lap and starts kneading like he's reclaiming the territory one paw at a time.* **mrr. ...prrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send(random.choice([
+            "*He backs off half a step, sits down hard, and stares at you. Not hostile. Just pointed. Then he stands, walks a slow circle around your legs, and rubs against you anyway — re-marking every inch he can reach.* **mrr.**",
+            "*He gives you a long, flat stare, tail tip flicking. Then, despite himself, he headbutts your knee and starts rubbing his whole side along you until the other scent is thoroughly buried under his.* **...mrr. prrr.**",
+        ]))
+    elif score >= 2:
+        await ctx.send(random.choice([
+            "*He takes one step back, sits, and just looks at you for a while. He doesn't come closer. He doesn't leave either.* **...mrr.**",
+            "*His ears stay slightly back. He allows one obligatory headbutt to your hand, brief and businesslike, and then goes to sit somewhere else entirely.* **mrr.**",
+        ]))
+    else:
+        await ctx.send(random.choice([
+            "*He takes one look, one sniff, and walks away without a sound. He doesn't come back for a while.* **...mrr.**",
+            "*He backs up, sits at a distance, and starts grooming himself pointedly — the universal cat signal for 'I am not thinking about you right now.'* **mrr.**",
+        ]))
+
+
+# ==========================================
 # !showoff - he does something impressive
 # ==========================================
 @bot.command(name="showoff", aliases=["showhimoff", "impressive", "yarnshowoff", "trick"])
@@ -46879,6 +47242,221 @@ async def showoff_cmd(ctx):
             f"*He {trick}. He {landing}. He does not look at you at all. "
             f"You were not supposed to see that.* **mrr.**"
         )
+
+
+# ==========================================
+# !backflip - he attempts a backflip (he does not have the anatomy for this)
+# ==========================================
+@bot.command(name="backflip", aliases=["dobackflip", "backflipattempt", "yarnflip"])
+async def backflip_cmd(ctx):
+    """He attempts a backflip. He does not have the anatomy for this. He tries anyway. He always fails."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(
+            random.choice([
+                "*Yarnaby is asleep. He cannot do that right now.*",
+                "*He is curled up tight. That will have to wait.*",
+                "*He is napping. He'll be ready when he wakes up.*",
+            ])
+        )
+        return
+
+    # ── The windup ───────────────────────────────────────────────────────
+    await ctx.send(random.choice([
+        "*He crouches low, tail twitching, doing the math on this. The math does not check out. He commits anyway.* **mrr...**",
+        "*He backs up three steps, eyes the open floor like it owes him a favor, and lowers his hindquarters for takeoff.* **...mrr.**",
+        "*He gives no warning. One second he's sitting. The next, he's mid-launch, already regretting it.* **MRR—**",
+    ]))
+    await asyncio.sleep(1.6)
+
+    # He never masters this — it's a physical impossibility for him — but
+    # repeated attempts (same slow-learning system as !curiosity_killsyarnaby
+    # etc.) make the rough/injury outcomes a little less likely over time,
+    # even though the flip itself never once succeeds. The freed-up weight
+    # goes to the neutral outcomes, not the affectionate ones — caution
+    # doesn't make him luckier, just marginally safer.
+    flip_caution = _incident_caution(m, "backflip")
+    injury_w = max(0.6, 3.0 - flip_caution * 2.4)
+    rough_w = max(4.0, 12.0 - flip_caution * 6.0)
+    safe_bonus = (3.0 - injury_w) + (12.0 - rough_w)
+
+    _BACKFLIP_OUTCOMES = {
+        # ── Good outcomes — the "failure" works out in his favor ──────────
+        "belly_rub": {
+            "weight": 13,
+            "affection": True,
+            "fail": [
+                "*He gets almost all the way around, overcorrects, and lands flat on his back instead — legs in the air, completely undignified.* **...mrrp?**",
+                "*The rotation goes wrong in a very specific way: he ends up perfectly upside down, paws up, blinking at the ceiling like he meant to do that.* **mrr?**",
+            ],
+            "after": [
+                "*He looks up at you from the floor, belly fully exposed, and doesn't move to get up. This is apparently fine now. You reach down and rub his belly and he immediately starts purring like the whole thing was the plan all along.* **PRRRRR.**",
+                "*He stays exactly where he landed — on his back, paws curled — and gives you a look that says only one thing. You oblige. Belly rubs. He is instantly, completely forgiven for the failed flip.* **prrr...**",
+            ],
+        },
+        "box_landing": {
+            "weight": 9,
+            "affection": True,
+            "fail": [
+                "*He overshoots the rotation entirely and lands, by sheer accident, directly inside a nearby box/basket — sitting bolt upright like he meant to stick a dismount into furniture.* **...mrr?**",
+            ],
+            "after": [
+                "*It looks so deliberately funny that you can't help but laugh and scratch his head right there in the box. He decides, on reflection, that this counts as a win.* **prrr.**",
+            ],
+        },
+        "lap_landing": {
+            "weight": 7,
+            "affection": True,
+            "fail": [
+                "*The flip goes nowhere near correctly, and he ends up — entirely by accident — directly in your lap, mid-collapse.* **...mrrp!**",
+            ],
+            "after": [
+                "*He doesn't move. He's not going to acknowledge how this happened. You might as well pet him, since he's already there.* **prrr.**",
+            ],
+        },
+        "fluke_stick": {
+            "weight": 6,
+            "affection": True,
+            "fail": [
+                "*By some miracle of momentum he rotates almost the whole way around and half-lands on his feet — wobbly, stunned, clearly as surprised as anyone.* **...mrr?!**",
+            ],
+            "after": [
+                "*He freezes, waiting to see if anyone clocks how much of that was luck. You clap. He immediately acts like this was the plan the entire time.* **mrr! prrr.**",
+            ],
+        },
+        # ── Neutral outcomes — just comedy, no stat effect ──────────────────
+        "clean_flop": {
+            "weight": 25 + safe_bonus * 0.5,
+            "fail": [
+                "*He leaves the ground. He rotates about a quarter of the way through the intended flip. He lands flat on his side with a sound like a dropped sandbag.* **THUMP.**",
+                "*He gets impressive height for someone with no plan for landing. There is no landing. There is only floor.* **...FWUMP.**",
+                "*He achieves liftoff, a brief and confused moment of inversion, and then gravity, which was always going to win.* **...THUD.**",
+            ],
+            "after": [
+                "*He lies there for a second. He stands up like nothing happened. He immediately begins grooming, as if this washes it from the record.* **...mrr. prrr.**",
+                "*He gets up, shakes out one back leg, and walks away at a deliberately normal pace. This did not happen.* **mrr.**",
+            ],
+        },
+        "dizzy_stumble": {
+            "weight": 12 + safe_bonus * 0.3,
+            "fail": [
+                "*He rotates, lands upright of all things, takes one step — and immediately tips over sideways. The room, apparently, is still spinning.* **...mrr?**",
+            ],
+            "after": [
+                "*He lies there blinking until the world stops moving, then gets up like nothing happened.* **...mrr.**",
+            ],
+        },
+        "hairball": {
+            "weight": 6,
+            "fail": [
+                "*Mid-rotation, something goes wrong in a completely different way than expected.* **...hhk—**",
+            ],
+            "after": [
+                "*He lands, coughs up a hairball directly onto the floor, and looks personally betrayed by his own body.* **...mrr.**",
+            ],
+        },
+        "tangled": {
+            "weight": 6,
+            "fail": [
+                "*He comes down wrong and lands half-wrapped in the nearest blanket, which does nothing to help the landing.* **...mrrp!**",
+            ],
+            "after": [
+                "*He fights his way free with as much dignity as the situation allows, which is none.* **mrr.**",
+            ],
+        },
+        "rough_landing": {
+            "weight": rough_w,
+            "fail": [
+                "*He gets about halfway around before self-preservation kicks in too late, and he comes down wrong — mostly on one shoulder.* **...mrrp!**",
+                "*The rotation is ambitious. The landing is not. He hits the floor at an angle no cat should hit anything at.* **MRROWP.**",
+            ],
+            "after": [
+                "*He sits up slowly, blinking. He rolls his shoulder once, decides it's fine, and pretends the whole thing was intentional.* **...mrr.**",
+                "*He stays down a second longer than is reassuring, then gets up, a little stiff, and refuses to acknowledge it.* **mrr...**",
+            ],
+        },
+        "head_bonk": {
+            "weight": 6,
+            "fail": [
+                "*He mistimes the rotation and clips his head lightly on the edge of the couch on the way down.* **...mrrp.**",
+            ],
+            "after": [
+                "*He sits there for a second, unbothered, already forgetting it happened.* **mrr.**",
+            ],
+        },
+        # ── Actual injury — same as before, just now one option among many ──
+        "paw_injury": {
+            "weight": injury_w,
+            "injured": True,
+            "fail": [
+                "*He gets almost all the way around this time — closer than ever — and lands wrong on a front paw. Not serious. Also not nothing.* **MRROWP!**",
+            ],
+            "after": [
+                "*He holds the paw up for a second, testing it. He puts weight back on it, decides it's fine, and limps very slightly in a way he will absolutely deny.* **...mrr.**",
+            ],
+        },
+    }
+
+    outcome_key = random.choices(
+        list(_BACKFLIP_OUTCOMES.keys()),
+        weights=[o["weight"] for o in _BACKFLIP_OUTCOMES.values()],
+        k=1,
+    )[0]
+    outcome = _BACKFLIP_OUTCOMES[outcome_key]
+    injured = outcome.get("injured", False)
+    affection = outcome.get("affection", False)
+
+    fail = random.choice(outcome["fail"])
+    after = random.choice(outcome["after"])
+
+    if injured:
+        m["internal"].setdefault("injuries", []).append({
+            "type": "backflip attempt",
+            "location": "paw",
+            "severity": "minor",
+            "caused_by": "attempting a backflip",
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "treated": False,
+        })
+    if affection:
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+        if u_id in m["social_matrix"] and not is_doctor:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+
+    await ctx.send(fail)
+    await asyncio.sleep(1.3)
+    await ctx.send(after)
+
+    new_caution = _record_incident_learning(m, "backflip", weight=1.4 if injured else 1.0)
+    if not affection and _caution_tier(new_caution) in ("strong", "high"):
+        await asyncio.sleep(1.0)
+        await ctx.send(random.choice([
+            "*He crouches for the next one a little lower, braces a little harder before he even leaves the ground. It doesn't change the outcome. It never does. He tries anyway.* **...mrr.**",
+            "*He's clearly bracing for the landing before it happens now — old lessons that never stopped him, just made him flinch on the way down.* **mrr.**",
+        ]))
+
+    # ── Reaction, tiered same as !showoff ────────────────────────────────
+    # (skipped for the affectionate outcomes — he's not hiding from those)
+    if affection:
+        pass
+    elif is_doctor:
+        await ctx.send(random.choice([
+            "*He looks at The Creator to check if anyone saw that. The Creator saw that. He decides not to address it.* **...mrr.**",
+            "*He glances at The Creator, daring them to say something. They don't. He appreciates this.* **mrr.**",
+        ]))
+    elif score >= 6:
+        await ctx.send("*He checks if you're laughing. You might be. He decides you weren't.* **...mrr.**")
+    elif score >= 2:
+        await ctx.send("*He glances at you briefly, decides it's not worth addressing, and starts grooming his shoulder instead.* **mrr.**")
+    else:
+        await ctx.send("*He doesn't check if you saw. He assumes you did. He is already walking away.* **...mrr.**")
+
+    save_db(m)
 
 
 # ==========================================
@@ -53715,6 +54293,67 @@ async def _send_visual_result(ctx, prompt: str, label: str):
             await ctx.send(f"*Yarnaby blinks. The image resolves:*\n{data}")
 
 
+# ==========================================
+# !wide_meme — the classic "wide Putin" stretch-meme format, but Yarnaby
+# ==========================================
+@bot.command(name="wide_meme", aliases=["wideyarnaby", "wideputin", "stretchwide", "widememe"])
+async def wide_meme_cmd(ctx):
+    """Stretches Yarnaby's (the bot's) profile picture out horizontally, wide-Putin-meme style."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    if PIL_Image is None:
+        await ctx.send(
+            "*This needs the `Pillow` image library, which isn't installed yet — "
+            "add `Pillow` to requirements.txt and redeploy.* **mrr.**"
+        )
+        return
+    if aiohttp is None:
+        await ctx.send("*Something's missing on the networking side — can't fetch the image right now.* **mrr.**")
+        return
+
+    try:
+        source_url = str(bot.user.display_avatar.url)
+    except Exception:
+        source_url = None
+
+    if not source_url:
+        await ctx.send("*Couldn't find his profile picture right now.* **mrr.**")
+        return
+
+    try:
+        import io
+        timeout = aiohttp.ClientTimeout(total=20)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(source_url) as resp:
+                if resp.status != 200:
+                    await ctx.send("*Couldn't fetch that image.* **mrr.**")
+                    return
+                data = await resp.read()
+
+        img = PIL_Image.open(io.BytesIO(data)).convert("RGBA")
+        stretch_factor = random.uniform(3.2, 4.2)
+        new_width = min(int(img.width * stretch_factor), 4000)  # cap so Discord doesn't choke on it
+        wide_img = img.resize((new_width, img.height), PIL_Image.LANCZOS)
+
+        buf = io.BytesIO()
+        wide_img.save(buf, format="PNG")
+        buf.seek(0)
+
+        await ctx.send(
+            random.choice([
+                "*Yarnaby, but wide. Extremely wide. No context given.* **mrr.**",
+                "*He has been stretched. He did not consent to this. Here he is anyway.* **mrrp.**",
+                "*Aspect ratio: abandoned.* **...mrr.**",
+                "*This is now his canonical shape.* **mrr.**",
+            ]),
+            file=discord.File(buf, filename="wide_yarnaby.png"),
+        )
+    except Exception as e:
+        print(f"[wide_meme] {e}")
+        await ctx.send("*Something went wrong stretching that image.* **mrr.**")
+
+
 @bot.command(name="visual", aliases=["imageprompt", "yarnabyvisual", "scene_prompt"])
 async def visual_cmd(ctx, *, scene: str = ""):
     """Generate a Yarnaby scene image."""
@@ -54177,6 +54816,25 @@ def _ensure_v28_defaults(m):
 _INCIDENT_CAUTION_CAP = 0.85
 
 
+def _sensory_announce_once(m, guild_id, key: str, active: bool) -> bool:
+    """Returns True only the first time `active` is True for this guild+key
+    since it last was False — i.e. once per continuous 'bout' of a given
+    sensory-impairment combo, not once per message/command attempt while it
+    persists. Call this unconditionally every time (pass the live current
+    boolean, even when False) so the flag actually resets the moment the
+    state clears — otherwise a stale flag from a previous bout could wrongly
+    suppress the next one."""
+    store = m["internal"].setdefault("sensory_bout_flags", {})
+    flag_key = f"{guild_id}:{key}"
+    if not active:
+        store.pop(flag_key, None)
+        return False
+    if store.get(flag_key):
+        return False
+    store[flag_key] = True
+    return True
+
+
 def _incident_learning_store(m):
     _ensure_v28_defaults(m)
     return m["internal"]["incident_learning"]
@@ -54490,6 +55148,7 @@ async def lessons_cmd(ctx):
         "socket": "Power sockets",
         "stretch_stuck": "Getting claws stuck stretching",
         "road": "Wandering near the road",
+        "backflip": "Attempting backflips",
     }
 
     if not store:
@@ -58107,6 +58766,48 @@ async def _maybe_dream_twitching(ch, m):
 # Wire the new ambients into the existing video ambient tick
 _ORIG_video_ambient_tick_callback = _video_ambient_tick.coro if hasattr(_video_ambient_tick, "coro") else None
 
+
+async def _maybe_narrator_rhymes(channel, m):
+    """A joke ambient — extremely rare. The narration itself briefly, and for
+    no reason, slips into rhyme mid-description, notices what it's doing,
+    and awkwardly snaps back to normal prose. Purely a fourth-wall gag; no
+    stat effects, no state changes, just a bit."""
+    if random.random() > 0.03:  # rare on purpose — this is a bit, not a feature
+        return
+    if m["internal"].get("is_sleeping"):
+        return
+    try:
+        await channel.send(random.choice([
+            "*Yarnaby pads across the floor, unhurried and slow,\n"
+            "chasing a thought that he doesn't quite know.\n"
+            "He stops. He sits. He stares at the wall—*\n"
+            "...the narration catches itself mid-rhyme, clears its throat, and continues normally. "
+            "*He is staring at the wall. That's it. That's the sentence now.* **mrr.**",
+
+            "*The evening light falls soft and low,\n"
+            "Yarnaby watches it come and go.\n"
+            "He flicks his tail. He shifts his paws—*\n"
+            "Okay, this is getting out of hand. *He's just sitting in a sunbeam. Moving on.* **prrr.**",
+
+            "*He stretches out with practiced grace,\n"
+            "then knocks a pen clean off its place.\n"
+            "It rolls, it falls, he watches it drop—*\n"
+            "Sorry. Not sure what happened there. *The pen is on the floor now. He seems satisfied.* **mrrp.**",
+
+            "*A yawn, a blink, a slow footfall,\n"
+            "Yarnaby answers some silent call.\n"
+            "Where he's headed, no one's sure—*\n"
+            "...right, that's quite enough of that. *He's just walking somewhere. No further explanation available.* **mrr.**",
+
+            "*Something's different about tonight's prose,\n"
+            "it seems to have picked up meter and rose\n"
+            "into verse, without much explaining why—*\n"
+            "This has gone on too long. Apologies. *Yarnaby continues existing, unrhymed, as normal.* **mrr.**",
+        ]))
+    except Exception as e:
+        print(f"[narrator rhymes ambient] {e}")
+
+
 @tasks.loop(minutes=20)
 async def _natural_ambient_tick():
     """Tick for natural cat behaviour ambient events."""
@@ -58137,6 +58838,8 @@ async def _natural_ambient_tick():
         await _maybe_child_hiding(m, ch)
         # rare dead-child body discovery — distinct from quiet grief ambient
         await _maybe_find_dead_child_body(m, ch)
+        # extremely rare joke ambient — the narration briefly starts rhyming
+        await _maybe_narrator_rhymes(ch, m)
     except Exception as e:
         print(f"[natural ambient tick] {e}")
 
@@ -58950,6 +59653,139 @@ async def test_patience_cmd(ctx):
             "He maintains eye contact while doing it. You don't know what he said. "
             "He does.* **mrr.**"
         )
+
+
+@bot.command(name="fashion_star", aliases=["fashionstar", "adidashoodie", "hoodiefit", "runwayyarny"])
+async def fashion_star_cmd(ctx):
+    """Put Yarnaby in a tiny Adidas hoodie and see how the fashion moment goes."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"].get("is_sleeping", False):
+        await ctx.send(random.choice([
+            "*Yarnaby is asleep. He cannot do that right now.*",
+            "*He is curled up tight. That will have to wait.*",
+            "*He is napping. He'll be ready when he wakes up.*",
+        ]))
+        return
+
+    # ── Putting it on ────────────────────────────────────────────────────
+    await ctx.send(random.choice([
+        "*You bring out a tiny Adidas hoodie — three stripes, drawstring hood and all. He eyes it with deep suspicion before allowing it to happen.* **...mrr?**",
+        "*The hoodie comes out. He sniffs it once, decides it passes inspection, and stands still long enough for you to actually get it on him.* **mrr.**",
+        "*You wrestle him gently into the Adidas hoodie, one paw at a time. He tolerates roughly sixty percent of the process.* **...mrrp.**",
+    ]))
+    await asyncio.sleep(1.6)
+
+    _FASHION_OUTCOMES = {
+        "star": {
+            "weight": 20,
+            "affection": True,
+            "fail": [
+                "*The second it's on, something shifts in him. He struts — actually struts — across the room, tail up, chest out, hood bouncing with every step, like he was born knowing exactly how good this looks.* **prrr!**",
+                "*He turns, catches his own reflection in something, and stops to admire it for a solid three seconds before continuing his walk like nothing happened.* **mrr. prrr.**",
+            ],
+            "after": [
+                "*He poses. Unprompted, unasked, completely aware of the camera that isn't there. This is, apparently, his moment.* **PRRR.**",
+            ],
+        },
+        "swimming_in_it": {
+            "weight": 15,
+            "affection": True,
+            "fail": [
+                "*The hoodie is, generously, three sizes too big. He's basically just a hoodie with legs and two ears poking out the top of the hood. He does not seem to mind even slightly.* **...mrrp?**",
+            ],
+            "after": [
+                "*He shuffles forward, sleeves dragging on the floor, paws barely visible. It is, objectively, the most adorable thing that has happened all week. He has no idea.* **mrr.**",
+            ],
+        },
+        "tolerates": {
+            "weight": 16,
+            "fail": [
+                "*He stands very still once it's on, staring straight ahead, radiating quiet endurance. He isn't fighting it. He also isn't enjoying it. He is simply enduring the hoodie.* **...mrr.**",
+            ],
+            "after": [
+                "*He gives it a few minutes, decides it's fine, and goes back to whatever he was doing — hoodie and all, without further comment.* **mrr.**",
+            ],
+        },
+        "escape_attempt": {
+            "weight": 16,
+            "fail": [
+                "*The instant it's on, the wiggling starts — the full-body, backing-up, low-to-the-ground shimmy of a cat actively trying to leave his own hoodie.* **mrrp! mrrp!**",
+            ],
+            "after": [
+                "*He gets one paw free, then the other, and manages to squirm halfway out before giving up on subtlety entirely and just flopping over to finish the job.* **...mrr.**",
+            ],
+        },
+        "hood_up": {
+            "weight": 10,
+            "affection": True,
+            "fail": [
+                "*The hood flips up over his ears mid-movement, and the effect is immediate and devastating: tiny, unbothered, extremely pleased with himself.* **mrr.**",
+            ],
+            "after": [
+                "*He keeps the hood up the whole time, peering out from inside it like he's got somewhere important to be. He does not.* **prrr.**",
+            ],
+        },
+        "drawstring_chaos": {
+            "weight": 8,
+            "fail": [
+                "*He forgets the fashion show is happening the second he notices the drawstrings. The hoodie is no longer an outfit. It is now a toy that happens to be attached to him.* **mrr! MRR!**",
+            ],
+            "after": [
+                "*He wrestles the drawstring for a solid minute, fully committed, the runway walk long forgotten.* **...mrrp.**",
+            ],
+        },
+        "stuck_in_sleeve": {
+            "weight": 6,
+            "fail": [
+                "*Mid-strut, a paw catches wrong in a sleeve, and the confident walk becomes an undignified little hop across the room.* **mrrp?! mrrp!**",
+            ],
+            "after": [
+                "*He gets the paw free, shakes it out, and immediately resumes walking like the hop never happened.* **...mrr.**",
+            ],
+        },
+        "full_diva": {
+            "weight": 4,  # rare — the best possible outcome
+            "affection": True,
+            "fail": [
+                "*He does not just wear the hoodie. He commits to it. Slow walk, deliberate pauses, a look over one shoulder like there's a photographer somewhere he needs to acknowledge. He knows exactly what he's doing.* **PRRR.**",
+            ],
+            "after": [
+                "*He holds a pose in the doorway for a beat too long to be an accident, then continues on, entirely unbothered by how extra that was.* **prrr!**",
+            ],
+        },
+    }
+
+    outcome_key = random.choices(
+        list(_FASHION_OUTCOMES.keys()),
+        weights=[o["weight"] for o in _FASHION_OUTCOMES.values()],
+        k=1,
+    )[0]
+    outcome = _FASHION_OUTCOMES[outcome_key]
+    affection = outcome.get("affection", False)
+
+    await ctx.send(random.choice(outcome["fail"]))
+    await asyncio.sleep(1.3)
+    await ctx.send(random.choice(outcome["after"]))
+
+    worn = m.setdefault("worn_items", {})
+    worn["adidas_hoodie"] = {
+        "received_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "from": u_id,
+        "outcome": outcome_key,
+    }
+    _track_item(m, "Adidas hoodie", rarity="Adored" if affection else "Curious", source="gift")
+
+    if affection:
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 2)
+        if u_id in m["social_matrix"] and not is_doctor:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+
+    save_db(m)
 
 
 @bot.command(name="sultan", aliases=["sultanyarny", "sultansuit", "royaloutfit",
@@ -77074,7 +77910,7 @@ async def _escape_torture(m, channel_id: int, reason: str = "silence"):
             f"*His breathing is still off. But he is here. He is coming back.*",
         ])
         if random.random() < 0.3:
-            title, attempt = _SAD_HUM
+            title, attempt = random.choice(_SAD_HUMS)
             recovery_msg += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
         await channel.send(recovery_msg)
     elif reason == "silence":
@@ -77095,7 +77931,7 @@ async def _escape_torture(m, channel_id: int, reason: str = "silence"):
             "He grooms his paw once. He is back.* **...prrr...**",
         ])
         if random.random() < 0.3:
-            title, attempt = _SAD_HUM
+            title, attempt = random.choice(_SAD_HUMS)
             recovery_msg += f"\n\n*A little later, very quietly - **{title}** -*\n{attempt}"
         await channel.send(recovery_msg)
 
@@ -83882,10 +84718,31 @@ async def _global_state_check(ctx):
     _eff_blurry = (_manual_blurry or _sick_impaired or _injury_blur) and not _full_blind
     _eff_muffled = (_manual_muffled or _sick_impaired or _injury_muffle) and not _full_deaf
 
+    # Same "announce once per bout" pattern as the lonely-ambient fix and
+    # the chat name-call handler above — computed unconditionally for every
+    # combo so each flag properly resets the instant that combo is no
+    # longer active, regardless of which branch actually fires below.
+    _ann_bd = _sensory_announce_once(m, _cmd_guild_id, "cmd_blind_deaf", _full_blind and _full_deaf)
+    _ann_db = _sensory_announce_once(m, _cmd_guild_id, "cmd_deaf_blurry", _full_deaf and _eff_blurry and not _full_blind)
+    _ann_d = _sensory_announce_once(m, _cmd_guild_id, "cmd_deaf", _full_deaf and not _eff_blurry)
+    _ann_bm2 = _sensory_announce_once(m, _cmd_guild_id, "cmd_blind_muffled", _full_blind and _eff_muffled and not _full_deaf)
+    _ann_bl = _sensory_announce_once(m, _cmd_guild_id, "cmd_blind", _full_blind and not _eff_muffled)
+    _ann_bm = _sensory_announce_once(m, _cmd_guild_id, "cmd_blurry_muffled", _eff_blurry and _eff_muffled)
+    _ann_b = _sensory_announce_once(m, _cmd_guild_id, "cmd_blurry", _eff_blurry and not _eff_muffled)
+    _ann_mu = _sensory_announce_once(m, _cmd_guild_id, "cmd_muffled", _eff_muffled and not _eff_blurry)
+
+    _STILL_BLOCKED_LINES = [
+        "*Still the same as a moment ago. Nothing's changed.* **...mrr.**",
+        "*No different this time. He's still like that.* **...mrr.**",
+        "*Same as before — still can't get through to him properly.* **...mrr.**",
+    ]
+
     if cmd_name not in _SENSORY_EXEMPT:
         # ── Both senses fully gone — always blocks, no chance involved ──────
         if _full_blind and _full_deaf:
-            if _combo_entry and _combo_entry.get("blind_deaf"):
+            if not _ann_bd:
+                await ctx.send(random.choice(_STILL_BLOCKED_LINES))
+            elif _combo_entry and _combo_entry.get("blind_deaf"):
                 await ctx.send(_combo_entry["blind_deaf"])
             else:
                 await ctx.send(random.choice(_SENSORY_COMBO_FALLBACK["blind_deaf"]))
@@ -83893,7 +84750,9 @@ async def _global_state_check(ctx):
 
         # ── Full deaf + blurry vision on top — still a full block ──────────
         if _full_deaf and _eff_blurry:
-            if _combo_entry and _combo_entry.get("deaf_blurry"):
+            if not _ann_db:
+                await ctx.send(random.choice(_STILL_BLOCKED_LINES))
+            elif _combo_entry and _combo_entry.get("deaf_blurry"):
                 await ctx.send(_combo_entry["deaf_blurry"])
             else:
                 await ctx.send(random.choice(_SENSORY_COMBO_FALLBACK["deaf_blurry"]))
@@ -83901,7 +84760,9 @@ async def _global_state_check(ctx):
 
         # ── Full deaf alone — full block ────────────────────────────────────
         if _full_deaf:
-            if _sensory_entry:
+            if not _ann_d:
+                await ctx.send(random.choice(_STILL_BLOCKED_LINES))
+            elif _sensory_entry:
                 await ctx.send(_sensory_entry["deaf"])
             else:
                 await ctx.send(random.choice([
@@ -83914,7 +84775,9 @@ async def _global_state_check(ctx):
 
         # ── Full blind + muffled hearing on top — still a full block ───────
         if _full_blind and _eff_muffled:
-            if _combo_entry and _combo_entry.get("blind_muffled"):
+            if not _ann_bm2:
+                await ctx.send(random.choice(_STILL_BLOCKED_LINES))
+            elif _combo_entry and _combo_entry.get("blind_muffled"):
                 await ctx.send(_combo_entry["blind_muffled"])
             else:
                 await ctx.send(random.choice(_SENSORY_COMBO_FALLBACK["blind_muffled"]))
@@ -83922,7 +84785,9 @@ async def _global_state_check(ctx):
 
         # ── Full blind alone — full block ───────────────────────────────────
         if _full_blind:
-            if _sensory_entry:
+            if not _ann_bl:
+                await ctx.send(random.choice(_STILL_BLOCKED_LINES))
+            elif _sensory_entry:
                 await ctx.send(_sensory_entry["blind"])
             else:
                 await ctx.send(random.choice([
@@ -83936,24 +84801,30 @@ async def _global_state_check(ctx):
         # ── Partial states — command usually still goes through ────────────
         # These never fully raise the way full blind/deaf do; instead there's
         # a small chance the attempt still fizzles, and otherwise a flavor
-        # line plays before the command's own logic runs normally.
+        # line plays before the command's own logic runs normally. The
+        # descriptive line itself only plays once per bout (see _ann_* above)
+        # — on repeat attempts within the same bout it just quietly applies
+        # the pass-through chance without re-describing anything.
         if _eff_blurry and _eff_muffled:
-            text = (_combo_entry or {}).get("blurry_muffled") or random.choice(_SENSORY_COMBO_FALLBACK["blurry_muffled"])
-            await ctx.send(text)
+            if _ann_bm:
+                text = (_combo_entry or {}).get("blurry_muffled") or random.choice(_SENSORY_COMBO_FALLBACK["blurry_muffled"])
+                await ctx.send(text)
             if random.random() < 0.30:
                 raise _StateBlocked("blurry_muffled")
             return
 
         if _eff_blurry:
-            text = (_sensory_entry or {}).get("blurry") or random.choice(_SENSORY_PARTIAL_FALLBACK["blurry"])
-            await ctx.send(text)
+            if _ann_b:
+                text = (_sensory_entry or {}).get("blurry") or random.choice(_SENSORY_PARTIAL_FALLBACK["blurry"])
+                await ctx.send(text)
             if random.random() < 0.20:
                 raise _StateBlocked("blurry")
             return
 
         if _eff_muffled:
-            text = (_sensory_entry or {}).get("muffled") or random.choice(_SENSORY_PARTIAL_FALLBACK["muffled"])
-            await ctx.send(text)
+            if _ann_mu:
+                text = (_sensory_entry or {}).get("muffled") or random.choice(_SENSORY_PARTIAL_FALLBACK["muffled"])
+                await ctx.send(text)
             if random.random() < 0.20:
                 raise _StateBlocked("muffled")
             return
@@ -84539,6 +85410,156 @@ async def pillow_cmd(ctx):
 
     m["internal"]["has_pillow"] = True
     _track_item(m, "a pillow", rarity="Loved", source="gift")
+    save_db(m)
+
+
+# ==========================================
+# !pillow_fight — a pillow fight against Yarnaby
+# ==========================================
+@bot.command(name="pillow_fight", aliases=["pillowfight", "fightpillow", "pillow_battle"])
+async def pillow_fight_cmd(ctx):
+    """A pillow fight against Yarnaby. He might win, he might lose, or you might end it
+    early with pets/bellyrubs/scritches — or tickle him mid-fight and watch him fall apart."""
+    m = bot.db
+    is_doctor = _is_effective_doctor(ctx, m)
+    u_id = str(ctx.author.id)
+    await _add_reactions(ctx, m)
+    score = 99 if is_doctor else m["social_matrix"].get(u_id, {}).get("score", 0)
+
+    if m["internal"]["is_sleeping"]:
+        await ctx.send(
+            random.choice([
+                "*Yarnaby is asleep. He cannot do that right now.*",
+                "*He is curled up tight. That will have to wait.*",
+                "*He is napping. He'll be ready when he wakes up.*",
+            ])
+        )
+        return
+
+    # ── The opener ───────────────────────────────────────────────────────
+    await ctx.send(random.choice([
+        "*You grab a pillow. He sees it happen in real time and immediately drops into a crouch, tail lashing, entirely too excited about this.* **mrr!!**",
+        "*The pillow comes up. He's already moving before it's fully airborne — this was clearly always going to happen eventually.* **PRRK!**",
+        "*You raise the pillow. He doesn't wait for the first swing. He launches.* **MRROW!**",
+    ]))
+    await asyncio.sleep(1.6)
+
+    _PILLOW_FIGHT_OUTCOMES = {
+        "user_wins": {
+            "weight": 20,
+            "fail": [
+                "*The pillow catches him mid-leap and he goes down in a tumble of limbs and wool, immediately bouncing back up like nothing happened.* **MRROWP!**",
+                "*You get him with a clean hit. He staggers sideways two steps, sits down hard, and blinks like he's recalculating his whole strategy.* **...mrrp?**",
+                "*He commits to the attack a half-second too early and takes the full brunt of the pillow across the side. He looks personally offended by the outcome.* **mrrp!**",
+            ],
+            "after": [
+                "*He shakes it off, ears back, tail flicking — clearly plotting a rematch he has not yet announced.* **...mrr.**",
+                "*He sits there a moment, processing the loss, then immediately resets into a crouch for round two.* **mrr!**",
+            ],
+        },
+        "yarnaby_wins": {
+            "weight": 20,
+            "fail": [
+                "*He gets under your guard, grabs the pillow with both front paws, and yanks it clean out of your hands.* **MRROW!**",
+                "*A single, decisive pounce, and the pillow — and your dignity — belong to him now.* **PRRK!**",
+                "*He doesn't so much win the fight as end it early, dragging the pillow off to a corner like a trophy.* **mrrow.**",
+            ],
+            "after": [
+                "*He sits on top of the pillow, tail curled around himself, extremely pleased with the outcome.* **prrr.**",
+                "*He guards his winnings from a safe distance, watching you for any sign of a comeback attempt.* **mrr.**",
+            ],
+        },
+        "bribe_pets": {
+            "weight": 9,
+            "affection": True,
+            "fail": [
+                "*Mid-swing, you switch tactics entirely and just pet him instead. He freezes, pillow forgotten, already leaning into your hand.* **...mrr?**",
+            ],
+            "after": [
+                "*The fight is over. He surrendered the second the petting started and has no regrets about it whatsoever.* **prrrrr.**",
+            ],
+        },
+        "bribe_bellyrub": {
+            "weight": 9,
+            "affection": True,
+            "fail": [
+                "*You lower the pillow and go for his belly instead. He drops flat onto his back mid-fight, all four paws up, pillow completely abandoned.* **...mrrp!**",
+            ],
+            "after": [
+                "*Total, immediate surrender. The pillow fight is cancelled indefinitely.* **PRRRRR.**",
+            ],
+        },
+        "bribe_scritches": {
+            "weight": 9,
+            "affection": True,
+            "fail": [
+                "*You reach past his guard and go straight for behind his ears. His whole stance collapses instantly.* **...mrr...**",
+            ],
+            "after": [
+                "*He leans hard into your hand, eyes half-closed, the pillow fight now a distant and irrelevant memory.* **prrr...**",
+            ],
+        },
+        "tickled": {
+            "weight": 9,
+            "affection": True,
+            "fail": [
+                "*You find his ticklish spot mid-fight and go for it without warning. He completely loses his composure — kicking, squirming, one indignant little `mrrp!` after another.* **PRRK! mrrp! mrrp!**",
+            ],
+            "after": [
+                "*He rolls onto his side, still kicking half-heartedly, thoroughly defeated by tickling rather than combat. He will not be discussing this again.* **...mrr.**",
+            ],
+        },
+        "stalemate": {
+            "weight": 7,
+            "fail": [
+                "*Both sides commit fully and neither lands a decisive blow. You end up in a standoff, pillow held between you, both breathing a little harder than either would like to admit.* **...mrr...**",
+            ],
+            "after": [
+                "*You both back off at the same moment, by unspoken agreement. Nobody won. Nobody's saying that out loud.* **mrr.**",
+            ],
+        },
+        "pillow_explodes": {
+            "weight": 6,
+            "fail": [
+                "*Somewhere in the chaos, a seam gives out. Feathers go everywhere — genuinely everywhere — and for a moment neither of you can see the other through the blizzard of it.* **MRROWP?!**",
+            ],
+            "after": [
+                "*The fight stops on its own. You're both just standing in a small snowstorm of feathers, staring at the wreckage of the pillow.* **...mrr.**",
+            ],
+        },
+    }
+
+    outcome_key = random.choices(
+        list(_PILLOW_FIGHT_OUTCOMES.keys()),
+        weights=[o["weight"] for o in _PILLOW_FIGHT_OUTCOMES.values()],
+        k=1,
+    )[0]
+    outcome = _PILLOW_FIGHT_OUTCOMES[outcome_key]
+    affection = outcome.get("affection", False)
+
+    await ctx.send(random.choice(outcome["fail"]))
+    await asyncio.sleep(1.3)
+    await ctx.send(random.choice(outcome["after"]))
+
+    if affection:
+        m["stats"]["affection_crave"] = max(0, m["stats"].get("affection_crave", 0) - 3)
+        if u_id in m["social_matrix"] and not is_doctor:
+            m["social_matrix"][u_id]["score"] = m["social_matrix"][u_id].get("score", 0) + 1
+
+    # ── Reaction, tiered like !showoff / !backflip — skipped for affection outcomes ──
+    if not affection:
+        if is_doctor:
+            await ctx.send(random.choice([
+                "*He checks with The Creator afterward, tail flicking, gauging whether a rematch is welcome.* **...mrr?**",
+                "*He glances at The Creator like he's already planning round two.* **mrr.**",
+            ]))
+        elif score >= 6:
+            await ctx.send("*He looks pleased with how that went either way — win or lose, this was clearly fun.* **mrr.**")
+        elif score >= 2:
+            await ctx.send("*He gives you a brief look, decides the fight was acceptable, and goes back to his business.* **mrr.**")
+        else:
+            await ctx.send("*He doesn't linger afterward. He's already walking off.* **...mrr.**")
+
     save_db(m)
 
 
