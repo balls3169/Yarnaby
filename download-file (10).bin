@@ -2998,6 +2998,8 @@ def _default_db():
             "working_on": [],
             "working_on_finished": [],
             "working_on_next_id": 1,
+            "co_owner_id": None,
+            "pending_co_owner": None,
             "comfort_object": None,
             "comfort_object_assigned_at": None,
             "homecoming_pending_for": None,
@@ -3344,11 +3346,21 @@ def _create_persona(m, uid: str, name: str) -> tuple:
 
 def _is_effective_doctor(ctx, m) -> bool:
     """Return True if this user should get Creator treatment right now.
-    The real account check still applies, but while The Creator is wearing
-    a non-default persona, he's treated as an ordinary stranger — no score
-    bypass, no special recognition. Switching back to 'default' restores
-    the usual Creator treatment. Hard admin/security gates that check
-    ctx.author.id == DOCTOR_ID directly are unaffected by this."""
+    Covers both the real Creator account AND the current co-owner (see
+    !set_co) — the co-owner gets full interaction-level Creator treatment
+    (max trust tier, swear-filter exemption, home-channel bypass, etc.)
+    everywhere this helper is used, which is most of the roleplay/command
+    tiering across the bot. While The Creator is wearing a non-default
+    persona, he's treated as an ordinary stranger — no score bypass, no
+    special recognition; the co-owner is unaffected by the Creator's own
+    persona state. Switching back to 'default' restores the usual Creator
+    treatment. Hard admin/security gates that check ctx.author.id ==
+    DOCTOR_ID directly (bot management commands like !set_home, !badword,
+    !turnbackon, !set_co itself, etc.) are deliberately NOT extended to the
+    co-owner and are unaffected by this function."""
+    co_owner_id = m.get("internal", {}).get("co_owner_id")
+    if co_owner_id and str(ctx.author.id) == str(co_owner_id):
+        return True
     if ctx.author.id != DOCTOR_ID:
         return False
     uid = str(ctx.author.id)
@@ -8077,6 +8089,8 @@ def _commands_suppressed(message, m) -> bool:
     be DELIBERATELY skipped entirely, rather than just "nothing matched"."""
     if message.author.bot:
         return True
+    co_owner_id = m.get("internal", {}).get("co_owner_id")
+    is_co_owner = bool(co_owner_id) and str(message.author.id) == str(co_owner_id)
     if m["internal"].get("bot_disabled"):
         _cmd = message.content.strip().lower()
         if not (_cmd == "!turnbackon" and message.author.id == DOCTOR_ID):
@@ -8085,7 +8099,7 @@ def _commands_suppressed(message, m) -> bool:
         _home_ch = m["internal"].get("home_channel_id")
         _orig_ch = m["internal"].get("original_home_channel_id")
         _allowed = {str(c) for c in [_home_ch, _orig_ch] if c}
-        if _allowed and str(message.channel.id) not in _allowed and message.author.id != DOCTOR_ID:
+        if _allowed and str(message.channel.id) not in _allowed and message.author.id != DOCTOR_ID and not is_co_owner:
             return True
     return False
 
@@ -16991,6 +17005,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!sleep` - `!wake` - `!praise` - `!dreamseed [type]`\n"
             "- `!memory_log` - `!maintenance`\n"
             "- `!set_home` - pin the current channel as his home\n"
+            "- `!unset_home` - remove the home-channel restriction\n"
+            "- `!set_co @user` - propose a co-owner (Creator-level trust/access, not admin); confirm with `!set_co CONFIRM`, cancel/revoke with `!set_co CANCEL`\n"
             "- `!set_departure YYYY-MM-DD` - set a departure date\n"
             "- `!countdown` / `!daysleft` - how many days until (or since) the departure date\n"
             "  Tone changes as the date approaches - calm > quieter > clingy in the final week\n"
@@ -18040,6 +18056,14 @@ async def yarnstate_cmd(ctx):
         f"**Sleeping:** {is_sleeping}  |  **Napping:** {is_napping}",
         f"**Panicking:** {_get_guild_state(m, str(ctx.guild.id) if ctx.guild else 'dm').get('is_panicking', False)}  "
         f"(health ≤12 triggers, clears above 25)",
+        "",
+        "**⚠️ Things that can silently block non-Creator commands:**",
+        f"**Home channel restriction:** {'ACTIVE — non-Creator users are ignored outside this channel! Use `!unset_home` to lift it.' if (internal.get('home_channel_id') or internal.get('original_home_channel_id')) else 'not set (commands work everywhere)'}",
+        f"  home_channel_id: `{internal.get('home_channel_id')}`  |  original: `{internal.get('original_home_channel_id')}`",
+        f"**Co-owner:** {internal.get('co_owner_id') or '(none)'}"
+        + (f"  |  pending: {internal['pending_co_owner']['user_id']}" if internal.get('pending_co_owner') else ""),
+        f"**Bot disabled:** {internal.get('bot_disabled', False)}",
+        f"**Blocking bleed (untreated serious wound):** {_has_blocking_bleed(m)}  (blocks most non-medical commands for non-Creator users — use `!treat`)",
         "",
         f"**Creator last seen:** {gone_str}",
         f"  raw: `{doctor_last_str or 'None'}`",
@@ -25756,6 +25780,110 @@ async def unset_home_cmd(ctx):
         )
     else:
         await ctx.send("*There was no home channel pinned to begin with — nothing to undo.* **mrr.**")
+
+
+@bot.command(name="set_co", aliases=["setco", "set_coowner", "co_owner"])
+async def set_co_cmd(ctx, *, arg: str = None):
+    """Creator only: set (or remove) a co-owner.
+
+    The co-owner gets full interaction-level Creator treatment everywhere
+    `_is_effective_doctor` is checked — max trust tier, swear-filter
+    exemption, home-channel bypass, and bypasses sleeping/helpless/low-trust
+    command blocks. They do NOT get hard admin/security commands that check
+    the Creator's Discord ID directly — !set_home, !unset_home, !badword
+    management, !turnbackon, or !set_co itself all stay Creator-only.
+
+    Usage:
+      !set_co @user    - propose a co-owner (needs confirmation)
+      !set_co CONFIRM  - lock in the pending proposal
+      !set_co CANCEL   - cancel a pending proposal, OR remove the current
+                          co-owner entirely if nothing is pending
+    """
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can do that.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+    arg_clean = (arg or "").strip()
+    arg_upper = arg_clean.upper()
+
+    # ── CONFIRM ──────────────────────────────────────────────────────────
+    if arg_upper == "CONFIRM":
+        pending = m["internal"].get("pending_co_owner")
+        if not pending:
+            await ctx.send("*There's no pending co-owner request to confirm. Use `!set_co @user` first.* **mrr.**")
+            return
+        m["internal"]["co_owner_id"] = pending["user_id"]
+        m["internal"]["pending_co_owner"] = None
+        save_db(m)
+        try:
+            target = await bot.fetch_user(int(pending["user_id"]))
+            target_name = target.mention
+        except Exception:
+            target_name = f"<@{pending['user_id']}>"
+        await ctx.send(
+            f"*Confirmed. {target_name} is now co-owner — same trust, same access, "
+            f"same everything that matters. He treats them like he treats The Creator now.* **mrr.**"
+        )
+        return
+
+    # ── CANCEL ───────────────────────────────────────────────────────────
+    if arg_upper == "CANCEL":
+        pending = m["internal"].get("pending_co_owner")
+        if pending:
+            m["internal"]["pending_co_owner"] = None
+            save_db(m)
+            await ctx.send("*Cancelled. Nothing changed.* **mrr.**")
+            return
+        current = m["internal"].get("co_owner_id")
+        if current:
+            m["internal"]["co_owner_id"] = None
+            save_db(m)
+            try:
+                target = await bot.fetch_user(int(current))
+                target_name = target.mention
+            except Exception:
+                target_name = f"<@{current}>"
+            await ctx.send(f"*Co-owner status revoked from {target_name}. Back to just The Creator.* **mrr.**")
+            return
+        await ctx.send("*There's no co-owner set, and nothing pending to cancel.* **mrr.**")
+        return
+
+    # ── Propose a new co-owner ──────────────────────────────────────────
+    target_user = None
+    if ctx.message.mentions:
+        target_user = ctx.message.mentions[0]
+    elif arg_clean.isdigit():
+        try:
+            target_user = await bot.fetch_user(int(arg_clean))
+        except Exception:
+            target_user = None
+
+    if not target_user:
+        await ctx.send(
+            "*Mention someone, e.g. `!set_co @user` — or use `!set_co CONFIRM` / `!set_co CANCEL` "
+            "if you already started this.* **mrr?**"
+        )
+        return
+
+    if target_user.id == DOCTOR_ID:
+        await ctx.send("*That's already The Creator.* **mrr.**")
+        return
+
+    m["internal"]["pending_co_owner"] = {
+        "user_id": str(target_user.id),
+        "set_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    save_db(m)
+    await ctx.send(
+        f"*You're about to make {target_user.mention} co-owner. They'll get the same trust tier and "
+        f"access as The Creator for pretty much everything — max trust in every interaction, exempt from "
+        f"the swear filter, exempt from the home-channel lock, exempt from sleeping/helpless/low-trust "
+        f"blocks. They will NOT get admin/security commands like `!set_home`, `!badword`, `!turnbackon`, "
+        f"or `!set_co` itself — those stay Creator-only.*\n\n"
+        f"Type `!set_co CONFIRM` to lock it in, or `!set_co CANCEL` to back out. **...mrr?**"
+    )
 
 
 @bot.command(name="reset")
@@ -65964,6 +66092,7 @@ async def _rulecheck_listener(message):
 DEFAULT_BAD_WORDS = [
     # Racial slurs
     "nigger", "nigga", "n1gger", "n1gga", "nigg3r", "nigg4", "niqqa",
+    "niggr", "nigr", "nigga2", "n1663r",
     "chink", "spic", "spick", "wetback", "kike", "gook", "coon",
     "raghead", "towelhead", "zipperhead", "beaner", "cracker",
     "redskin", "injun", "paki", "golliwog",
@@ -65990,6 +66119,16 @@ DEFAULT_BAD_WORDS = [
     "dipshit",
     "douche", "douchebag",
     "retard", "ret@rd",
+    "cum", "cumming", "jerkoff", "jerk off",
+    "rape", "rapist",
+    "piss off",
+    "bastard",
+    "bollocks",
+    "wank",
+    "skank",
+    "hoe",
+    "thot",
+    "simp",  # borderline but frequently used as an insult here
     # Hate speech
     "nazi", "n@zi",
     "heil",
@@ -65997,12 +66136,13 @@ DEFAULT_BAD_WORDS = [
     "white power", "white supremacy",
     "kill yourself", "kys",
     "go die",
+    "neck yourself",
 ]
 
 # Words that should only match as whole words (short ones prone to false positives)
 _WHOLE_WORD_ONLY = {
     "fag", "cunt", "dick", "cock", "kys", "mf",
-    "fck", "fuk",
+    "fck", "fuk", "hoe", "cum", "wank", "simp",
 }
 
 
@@ -66051,6 +66191,35 @@ async def badword_cmd(ctx, *, word: str = ""):
     await ctx.send(f"*He adds it to the list without looking up.* ✅ `{w}` added to filter.")
 
 
+def _badword_normalize(text: str):
+    """Returns (leet_normalized, despaced, collapsed) for bad-word matching.
+
+    leet_normalized: common leetspeak substitutions collapsed (0->o, 1->i,
+    l->i, |->i, etc.)
+
+    despaced: the same, but with ALL whitespace and common separator
+    punctuation (spaces, dots, underscores, dashes, asterisks) stripped
+    out entirely. This is what catches "n i g g e r" or "n.i.g.g.e.r" —
+    spacing text out letter-by-letter specifically to dodge word filters.
+
+    collapsed: despaced, with any run of repeated identical characters
+    fully deduplicated ("niiiiggggerrrr" -> "niger"). Bad words are also
+    collapsed the same way before comparison, so a legitimately-doubled
+    letter in the word itself (the two g's in "nigger") doesn't break the
+    match — both sides collapse to the same shape.
+    """
+    import re as _re
+    base = text.lower()
+    subs = (base
+        .replace("@", "a").replace("0", "o").replace("1", "i")
+        .replace("3", "e").replace("$", "s").replace("+", "t")
+        .replace("!", "i").replace("4", "a").replace("5", "s")
+        .replace("|", "i").replace("l", "i"))  # lowercase L is a common "i" stand-in
+    despaced = _re.sub(r'[\s._\-*]+', '', subs)
+    collapsed = _re.sub(r'(.)\1+', r'\1', despaced)
+    return subs, despaced, collapsed
+
+
 @bot.listen("on_message")
 async def _badword_listener(message):
     import re as _re
@@ -66058,10 +66227,11 @@ async def _badword_listener(message):
         return
     if message.author.id == DOCTOR_ID:
         return
+    m = bot.db
+    if str(message.author.id) == str(m.get("internal", {}).get("co_owner_id") or ""):
+        return  # co-owner is exempt from the swear filter too, see !set_co
     if message.author.guild_permissions.manage_messages:
         return
-
-    m = bot.db
 
     # Pre-populate defaults if not yet initialized
     if "bad_words" not in m["internal"]:
@@ -66073,20 +66243,21 @@ async def _badword_listener(message):
         return
 
     content_lower = message.content.lower()
-    # Strip common substitutions for matching
-    normalized = (content_lower
-        .replace("@", "a").replace("0", "o").replace("1", "i")
-        .replace("3", "e").replace("$", "s").replace("+", "t")
-        .replace("!", "i").replace("4", "a").replace("5", "s"))
+    normalized, despaced, collapsed = _badword_normalize(message.content)
 
     triggered = False
     for w in bw:
         if w in _WHOLE_WORD_ONLY:
+            # Whole-word-only entries stay boundary-checked on the
+            # space-preserving form only — these are exactly the short,
+            # false-positive-prone words (hoe/cum/fag/etc.), so they
+            # deliberately don't get the despaced/collapsed treatment.
             if _re.search(rf'\b{_re.escape(w)}\b', normalized):
                 triggered = True
                 break
         else:
-            if w in normalized or w in content_lower:
+            w_collapsed = _re.sub(r'(.)\1+', r'\1', w)
+            if w in normalized or w in content_lower or w in despaced or w_collapsed in collapsed:
                 triggered = True
                 break
 
@@ -84699,7 +84870,8 @@ async def _global_state_check(ctx):
         return
 
     m = bot.db
-    is_creator = ctx.author.id == DOCTOR_ID
+    _co_owner_id = m.get("internal", {}).get("co_owner_id")
+    is_creator = ctx.author.id == DOCTOR_ID or (bool(_co_owner_id) and str(ctx.author.id) == str(_co_owner_id))
     u_id = str(ctx.author.id)
     score = m["social_matrix"].get(u_id, {}).get("score", 0) if not is_creator else 99
 
