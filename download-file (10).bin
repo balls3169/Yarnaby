@@ -25732,7 +25732,30 @@ async def set_home_cmd(ctx, channel: discord.TextChannel = None):
     save_db(m)
     await ctx.send(
         "*Yarnaby looks around the channel slowly, then sits down deliberately in the middle of it. He has decided this is home now. He will return here when he doesn't know where else to go.*"
+        "\n\n⚠️ Heads up: once a home channel is pinned, everyone except you will be silently ignored "
+        "in every other channel — no error message, commands just won't respond. Use `!unset_home` to lift that."
     )
+
+
+@bot.command(name="unset_home", aliases=["unsethome", "unpin_home", "clear_home"])
+async def unset_home_cmd(ctx):
+    """Creator-only: remove the home-channel restriction so Yarnaby responds everywhere again."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Yarnaby tilts his head. He doesn't move. This is The Creator's call.*")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+    had_home = bool(m["internal"].get("home_channel_id") or m["internal"].get("original_home_channel_id"))
+    m["internal"]["home_channel_id"] = None
+    m["internal"]["original_home_channel_id"] = None
+    save_db(m)
+    if had_home:
+        await ctx.send(
+            "*Yarnaby gets up and wanders off — no longer tied to one room. "
+            "He'll respond to everyone, everywhere, again.* **mrr.**"
+        )
+    else:
+        await ctx.send("*There was no home channel pinned to begin with — nothing to undo.* **mrr.**")
 
 
 @bot.command(name="reset")
