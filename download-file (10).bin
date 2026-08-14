@@ -3000,6 +3000,7 @@ def _default_db():
             "working_on_next_id": 1,
             "co_owner_id": None,
             "pending_co_owner": None,
+            "disabled_guilds": [],
             "comfort_object": None,
             "comfort_object_assigned_at": None,
             "homecoming_pending_for": None,
@@ -8091,11 +8092,15 @@ def _commands_suppressed(message, m) -> bool:
         return True
     co_owner_id = m.get("internal", {}).get("co_owner_id")
     is_co_owner = bool(co_owner_id) and str(message.author.id) == str(co_owner_id)
+    is_creator_or_co = message.author.id == DOCTOR_ID or is_co_owner
     if m["internal"].get("bot_disabled"):
         _cmd = message.content.strip().lower()
         if not (_cmd == "!turnbackon" and message.author.id == DOCTOR_ID):
             return True
     if message.guild:
+        _disabled_guilds = set(m["internal"].get("disabled_guilds", []))
+        if str(message.guild.id) in _disabled_guilds and not is_creator_or_co:
+            return True
         _home_ch = m["internal"].get("home_channel_id")
         _orig_ch = m["internal"].get("original_home_channel_id")
         _allowed = {str(c) for c in [_home_ch, _orig_ch] if c}
@@ -17007,6 +17012,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!set_home` - pin the current channel as his home\n"
             "- `!unset_home` - remove the home-channel restriction\n"
             "- `!set_co @user` - propose a co-owner (Creator-level trust/access, not admin); confirm with `!set_co CONFIRM`, cancel/revoke with `!set_co CANCEL`\n"
+            "- `!server_disable [server_id]` - disable Yarnaby in one specific server only (defaults to the current server)\n"
+            "- `!server_enable [server_id]` - re-enable him there\n"
             "- `!set_departure YYYY-MM-DD` - set a departure date\n"
             "- `!countdown` / `!daysleft` - how many days until (or since) the departure date\n"
             "  Tone changes as the date approaches - calm > quieter > clingy in the final week\n"
@@ -18063,6 +18070,7 @@ async def yarnstate_cmd(ctx):
         f"**Co-owner:** {internal.get('co_owner_id') or '(none)'}"
         + (f"  |  pending: {internal['pending_co_owner']['user_id']}" if internal.get('pending_co_owner') else ""),
         f"**Bot disabled:** {internal.get('bot_disabled', False)}",
+        f"**Disabled in servers:** {', '.join(internal.get('disabled_guilds', [])) or '(none)'}",
         f"**Blocking bleed (untreated serious wound):** {_has_blocking_bleed(m)}  (blocks most non-medical commands for non-Creator users — use `!treat`)",
         "",
         f"**Creator last seen:** {gone_str}",
@@ -25884,6 +25892,72 @@ async def set_co_cmd(ctx, *, arg: str = None):
         f"or `!set_co` itself — those stay Creator-only.*\n\n"
         f"Type `!set_co CONFIRM` to lock it in, or `!set_co CANCEL` to back out. **...mrr?**"
     )
+
+
+@bot.command(name="server_disable", aliases=["serverdisable", "disable_server", "guild_disable"])
+async def server_disable_cmd(ctx, server_id: str = None):
+    """Creator only: disable Yarnaby in one specific server, by its ID,
+    without touching any other server. Unlike the global !disable, this
+    only affects the one server given."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can do that.* **mrr.**")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    target_id = server_id.strip() if server_id else (str(ctx.guild.id) if ctx.guild else None)
+    if not target_id or not target_id.isdigit():
+        await ctx.send(
+            "*Give me a valid server ID — `!server_disable <server_id>` — or run this from inside "
+            "the server you want disabled and leave the ID off.* **mrr?**"
+        )
+        return
+
+    guild_obj = bot.get_guild(int(target_id))
+    guild_label = guild_obj.name if guild_obj else f"server `{target_id}` (not currently a member there)"
+
+    disabled = set(m["internal"].setdefault("disabled_guilds", []))
+    if target_id in disabled:
+        await ctx.send(f"*Yarnaby is already disabled in **{guild_label}**.* **mrr.**")
+        return
+    disabled.add(target_id)
+    m["internal"]["disabled_guilds"] = list(disabled)
+    save_db(m)
+    await ctx.send(
+        f"*Yarnaby goes quiet — but only in **{guild_label}**. Everywhere else, nothing changes. "
+        f"Use `!server_enable {target_id}` to bring him back there.* **...mrr.**"
+    )
+
+
+@bot.command(name="server_enable", aliases=["serverenable", "enable_server", "guild_enable"])
+async def server_enable_cmd(ctx, server_id: str = None):
+    """Creator only: re-enable Yarnaby in a specific server that was
+    disabled with !server_disable."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can do that.* **mrr.**")
+        return
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    target_id = server_id.strip() if server_id else (str(ctx.guild.id) if ctx.guild else None)
+    if not target_id or not target_id.isdigit():
+        await ctx.send(
+            "*Give me a valid server ID — `!server_enable <server_id>` — or run this from inside "
+            "the server you want re-enabled and leave the ID off.* **mrr?**"
+        )
+        return
+
+    guild_obj = bot.get_guild(int(target_id))
+    guild_label = guild_obj.name if guild_obj else f"server `{target_id}`"
+
+    disabled = set(m["internal"].setdefault("disabled_guilds", []))
+    if target_id not in disabled:
+        await ctx.send(f"*Yarnaby isn't disabled in **{guild_label}** — nothing to undo.* **mrr.**")
+        return
+    disabled.discard(target_id)
+    m["internal"]["disabled_guilds"] = list(disabled)
+    save_db(m)
+    await ctx.send(f"*Yarnaby is back — **{guild_label}** is no longer disabled.* **mrr.**")
 
 
 @bot.command(name="reset")
