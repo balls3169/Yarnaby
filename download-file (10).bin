@@ -93485,6 +93485,70 @@ async def invite_creator_cmd(ctx, *, ad_description: str = ""):
 
 
 
+# ── Other Bots ─────────────────────────────────────────────────────────────
+# A little status board of The Creator's other bot projects. Purely
+# informational, hardcoded here since it's a small, occasionally-updated
+# list rather than something that needs its own storage/edit commands.
+
+OTHER_BOTS = [
+    {
+        "name": "Ralsei",
+        "aka": "raly",
+        "stage": "Testing",
+        "inspired_by": "Deltarune",
+        "needed": "More commands (for now).",
+    },
+    {
+        "name": "Football Maestro",
+        "stage": "Testing",
+        "inspired_by": "Football",
+        "needed": "Needs testing.",
+    },
+    {
+        "name": "Catt",
+        "stage": "Given up",
+        "inspired_by": "Real cats",
+        "reason": "Kept failing.",
+    },
+]
+
+_OTHER_BOTS_STAGE_EMOJI = {
+    "Online and running": "🟢",
+    "Testing": "🟡",
+    "Given up": "⚫",
+}
+
+
+@bot.command(name="other_bots", aliases=["otherbots", "sidebots", "otherprojects"])
+async def other_bots_cmd(ctx):
+    """A status board of The Creator's other bot projects."""
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    embed = discord.Embed(
+        title="🤖 Other Bots",
+        description="*Yarnaby has heard things. Other projects. Other creatures. He doesn't say how he feels about that.* **mrr.**",
+        color=discord.Color.blurple(),
+    )
+    for bot_entry in OTHER_BOTS:
+        emoji = _OTHER_BOTS_STAGE_EMOJI.get(bot_entry["stage"], "⚪")
+        name_line = bot_entry["name"]
+        if bot_entry.get("aka"):
+            name_line += f" ({bot_entry['aka']})"
+        value_lines = [
+            f"**Stage:** {emoji} {bot_entry['stage']}",
+            f"**Inspired by:** {bot_entry['inspired_by']}",
+        ]
+        if bot_entry["stage"] == "Given up":
+            value_lines.append(f"**Reason:** {bot_entry.get('reason', 'Not specified.')}")
+        else:
+            value_lines.append(f"**Still needed:** {bot_entry.get('needed', 'Not specified yet.')}")
+        embed.add_field(name=name_line, value="\n".join(value_lines), inline=False)
+
+    embed.set_footer(text="This list is maintained by hand and may not always be current.")
+    await ctx.send(embed=embed)
+
+
 ########################
 ###Drool Command----------------
 
