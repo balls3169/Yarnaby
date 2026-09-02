@@ -264,8 +264,18 @@ async def _translate_text(text: str, target: str) -> str:
     to_translate = protected if placeholder_map else text
 
     def _restore(t: str) -> str:
-        for token, original in placeholder_map:
-            t = t.replace(token, original)
+        for idx, (token, original) in enumerate(placeholder_map):
+            # Translation services sometimes don't recognize XXTOKENXX0XX as
+            # a single unit and insert spaces into it (e.g. "XXTOKENXX 0 XX"),
+            # which breaks a plain exact-match replace. Tolerate whitespace
+            # anywhere inside the token shape, and case variation too.
+            pattern = re.compile(rf"X\s*X\s*T\s*O\s*K\s*E\s*N\s*X\s*X\s*{idx}\s*X\s*X", re.IGNORECASE)
+            t = pattern.sub(lambda _m, o=original: o, t)
+        # Safety net: if any token-shaped text somehow survived the above
+        # (a translator mangled it beyond what the tolerant regex catches),
+        # strip it rather than ever let raw "XXTOKENXX..." leak into a
+        # message someone actually sees.
+        t = re.sub(r"X\s*X\s*T\s*O\s*K\s*E\s*N\s*X\s*X\s*\d+\s*X\s*X", "", t, flags=re.IGNORECASE)
         return t
 
     # ── 1. MyMemory (primary) ─────────────────────────────────────────────────
