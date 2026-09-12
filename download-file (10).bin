@@ -63178,7 +63178,51 @@ async def cleanup_cmd(ctx, *, content: str = ""):
                 pass
 
 
-@bot.command(name="getoutNSFW", aliases=["leaveallnsfw", "nsfwleave", "leaveNSFW", "clearnsfw"])
+@bot.command(name="unmark_nsfw", aliases=["unmarknsfw", "clearnsfwlog", "nsfwunmark"])
+async def unmark_nsfw_cmd(ctx, *, server_name: str = ""):
+    """Creator-only: clear a server's entries from the NSFW detection log."""
+    if ctx.author.id != DOCTOR_ID:
+        await ctx.send("*Only The Creator can do that.* **mrr.**")
+        return
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+
+    dest = server_name.strip()
+    guild = ctx.guild
+    if not guild and dest:
+        dest_lower = dest.lower()
+        for g in bot.guilds:
+            if dest_lower in g.name.lower() or dest == str(g.id):
+                guild = g
+                break
+
+    if guild is None:
+        await ctx.send("*Which server? Use this in the server itself, or give a name/ID.* `!unmark_nsfw [server]`")
+        return
+
+    nsfw_log = m["internal"].setdefault("nsfw_servers_log", [])
+    before = len(nsfw_log)
+    nsfw_log[:] = [e for e in nsfw_log if e.get("guild_id") != str(guild.id)]
+    removed = before - len(nsfw_log)
+    save_db(m)
+
+    if removed == 0:
+        await ctx.send(f"*No record of **{guild.name}** being flagged. Nothing to clear.* **mrr.**")
+        return
+
+    msg = f"*He crosses **{guild.name}** off the list. {removed} record(s) cleared.* ✅"
+    if _is_nsfw_guild(guild):
+        msg += (
+            "\n\n⚠️ *Worth knowing: this only clears the logged history — it doesn't override the live "
+            "check. The server's actual settings (NSFW-flagged channels, its age-restricted level, or its "
+            "name) still trip that check on their own, so `!cleanup` will likely flag it again unless "
+            "those underlying settings change.*"
+        )
+    await ctx.send(msg)
+
+
+
 async def getout_nsfw_cmd(ctx):
     """Make Yarnaby leave all detected NSFW servers immediately. Creator only."""
     if ctx.author.id != DOCTOR_ID:
