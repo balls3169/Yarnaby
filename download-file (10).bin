@@ -3728,9 +3728,13 @@ class Yarnaby(commands.Bot):
                 _lang_tip = (
                     "\n\n🌐 **Tip:** Use `!language` to switch my language! / Utiliza `!language` para cambiar mi idioma! / Utilisez `!language` pour changer ma langue! / Benutze `!language` um meine Sprache zu ändern! / 使用 `!language` 切换我的语言！/ `!language` を使って言語を変えよう！/ Dili değiştirmek için `!language` kullan!"
                 )
+                _restart_tip = (
+                    "\n\n🌐 Tip: use `!language` to change my language, "
+                    "or `!support_server` if you ever need help or want to chat about the bot!"
+                )
                 if _ann_guild_id and _invite_creator_already_shown(self.db, _ann_guild_id):
                     await _ann_channel.send(
-                        "**The Keeper has turned Yarnaby back on.**" + _lang_tip
+                        "**The Keeper has turned Yarnaby back on.**" + _restart_tip
                     )
                 else:
                     await _ann_channel.send(
@@ -3757,7 +3761,11 @@ class Yarnaby(commands.Bot):
                 for ch in guild.text_channels:
                     if ch.permissions_for(guild.me).send_messages:
                         if _invite_creator_already_shown(self.db, g_id):
-                            await ch.send("**The Keeper has turned Yarnaby back on.**")
+                            await ch.send(
+                                "**The Keeper has turned Yarnaby back on.**"
+                                "\n\n🌐 Tip: use `!language` to change my language, "
+                                "or `!support_server` if you ever need help or want to chat about the bot!"
+                            )
                         else:
                             dialog = random.choice(_SERVER_STARTUP_DIALOGS)
                             await ch.send(f"{dialog}\n\n{_invite_creator_recommendation_block()}")
@@ -8117,6 +8125,17 @@ def _commands_suppressed(message, m) -> bool:
         _disabled_guilds = set(m["internal"].get("disabled_guilds", []))
         if str(message.guild.id) in _disabled_guilds and not is_creator_or_co:
             return True
+        gs = _get_guild_state(m, str(message.guild.id))
+        _off_limits = set(gs.get("off_limits_channels", []))
+        if str(message.channel.id) in _off_limits:
+            _cmd = message.content.strip().lower()
+            _is_toggle = any(
+                _cmd == f"{p}{c}" or _cmd.startswith(f"{p}{c} ")
+                for p in ("yarn!", "!")
+                for c in ("off_limits", "offlimits")
+            )
+            if not _is_toggle:
+                return True
         _home_ch = m["internal"].get("home_channel_id")
         _orig_ch = m["internal"].get("original_home_channel_id")
         _allowed = {str(c) for c in [_home_ch, _orig_ch] if c}
@@ -8174,6 +8193,18 @@ async def _on_message_body(message):
     m = bot.db
     u_id = str(message.author.id)
     now = datetime.now()
+
+    # --- OFF-LIMITS CHANNEL ---
+    # If this channel has been marked off-limits (!off_limits), skip every
+    # ambient reaction/name-mention/etc below entirely. This does NOT block
+    # the !off_limits command itself from toggling back off - that's handled
+    # separately via _commands_suppressed(), in the on_message wrapper's
+    # `finally` block, which runs independently of this function returning
+    # early here.
+    if message.guild:
+        _gs_ol = _get_guild_state(m, str(message.guild.id))
+        if str(message.channel.id) in set(_gs_ol.get("off_limits_channels", [])):
+            return
 
     # --- "HOW DID YOU FIND YARNABY?" free-text answer capture ---
     # If this guild has a pending question and this message is in that exact
@@ -17074,7 +17105,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!setscore @user [value]` - set a user's trust score directly\n"
             "- `!set_original_home` - reset his 'original home' channel reference\n"
             "- `!setcountdown YYYY-MM-DD` - alias for `!set_departure`\n"
-            "- `!personal_assistant` - Creator utility/reminder mode"
+            "- `!personal_assistant` - Creator utility/reminder mode\n"
+            "- `!thank_all [message]` - broadcast a celebration/thank-you to every server at once"
         ),
         "incidents": (
             "**Incidents & disasters** - `yarn!help incidents`\n"
@@ -17352,6 +17384,7 @@ async def help_cmd(ctx, *, section: str = None):
             "**Auto-notification:** joining a flagged server DMs The Keeper immediately.\n\n"
             "**Commands (Creator only):**\n"
             "- `!cleanup` / `!nsfwscan` - scan all current servers for NSFW flags\n"
+            "- `!unmark_nsfw [server]` - clear a server's entry from the NSFW detection log\n"
             "- `!getoutNSFW` / `!leaveallnsfw` - immediately leave all flagged servers\n\n"
             "**Content blocking (always active):**\n"
             "NSFW `!feed`, `!gift`, `!rub`, `!bite` items -> hard refusal every time."
@@ -17402,6 +17435,7 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!antinsfw` - best-effort AI image filter for non-NSFW channels\n"
             "- `!antiscam` - deletes crypto-giveaway/casino scam links; `!scamword` / `!scamdomain`\n"
             "  to add/remove tracked phrases and domains\n"
+            "- `!full_anti [on/off/status]` - toggle antiraid/antispam/antilink/antinsfw/antiscam all at once\n"
             "- `!rulecheck` - best-effort AI flag (not auto-action) for messages that look like they\n"
             "  break the rules set with `!setrules`; posts to the log channel for a mod to `!warn`/`!ban`\n"
             "- `!raid` / `!raidban` / `!raidlog` / `!raidstop` - raid detection and response tools\n"
@@ -17412,6 +17446,8 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!warn` / `!warning` / `!warnings` / `!clearwarns` - the warning system\n"
             "- `!purge [count]` - bulk-delete messages\n"
             "- `!lockchannel` / `!unlock` / `!unlockall` / `!slowmode` - channel controls\n"
+            "- `!off_limits` - toggle a channel off-limits: no commands, no ambient chatter from\n"
+            "  Yarnaby at all there, until it's used in that same channel again\n"
             "- `!setmuterole` - configure which role `!mute` applies\n"
             "- `!setrules` / `!rules` - set or view this server's rules\n"
             "- `!ticket` / `!closeticket` - a simple support-ticket flow\n"
@@ -17422,6 +17458,10 @@ async def help_cmd(ctx, *, section: str = None):
             "- `!dm` / `!dm_user` - Creator: DM a specific user through Yarnaby\n\n"
             "**Utility/info:**\n"
             "- `!whois @user` - info dump on a Discord user\n"
+            "- `!invite_creator [pitch]` - server owner only: send The Keeper an invite to this server\n"
+            "- `!support_server` - get an invite to Yarnaby's official support server\n"
+            "- `!other_bots` - a status board of The Keeper's other bot projects\n"
+            "- `!spotify_playlist` - The Keeper's go-to playlist\n"
             "- `!servers` / `!serverscan` - servers Yarnaby is in\n"
             "- `!my_permissions` - check your permissions in this server\n"
             "- `!afk` - mark yourself away\n"
@@ -17478,6 +17518,9 @@ async def help_cmd(ctx, *, section: str = None):
         "tickets": "moderation", "whois": "moderation", "afk": "moderation", "remind": "moderation",
         "reminder": "moderation", "purge": "moderation", "slowmode": "moderation",
         "ban": "moderation", "bans": "moderation", "antiscam": "moderation", "scam": "moderation",
+        "full_anti": "moderation", "fullanti": "moderation", "off_limits": "moderation",
+        "offlimits": "moderation", "unmark_nsfw": "moderation", "support_server": "moderation",
+        "other_bots": "moderation", "spotify": "moderation", "invite_creator": "moderation",
         "scamword": "moderation", "scamdomain": "moderation", "rulecheck": "moderation",
         "antinsfw": "moderation", "nsfwfilter": "moderation",
         "photo": "media", "photos": "media", "camera": "media", "pov": "media", "drawing": "media",
@@ -17594,7 +17637,7 @@ async def help_cmd(ctx, *, section: str = None):
         "memorial     - !wyg full summary, absence tracking, !missing, !comfortyarny / !comfort_dream\n"
         "minigames    - !8ball, !trivia, !rps, !math, !maze, !scramble\n"
         "mood         - mood states and how they drift\n"
-        "moderation   - real server admin/mod tools: !mute, !ban, !warn, !ticket, !antiraid, !antiscam, !whois\n"
+        "moderation   - real server admin/mod tools: !mute, !ban, !warn, !ticket, !antiraid, !full_anti, !off_limits, !whois\n"
         "outfit       - !wear, !takeoff, !inspect, what he's wearing\n"
         "outings      - !car, !gym, !park, !factory, weather/time events\n"
         "passive      - passive triggers: meow detection, return leg-hug, name reactions, ALL-CAPS tone\n"
@@ -93603,6 +93646,44 @@ async def thank_all_cmd(ctx, *, message: str = ""):
         more = f" (+{len(skipped) - 5} more)" if len(skipped) > 5 else ""
         summary += f"\n*Could not post in: {shown}{more}.*"
     await ctx.send(summary + " **mrr.**")
+
+
+@bot.command(name="off_limits", aliases=["offlimits", "off_limit", "no_yarnaby"])
+async def off_limits_cmd(ctx):
+    """Toggle this channel off-limits: no commands, no ambient chatter from
+    Yarnaby here at all, until this is run again in the same channel."""
+    if not ctx.guild:
+        await ctx.send("*That only makes sense in a server channel.* **mrr.**")
+        return
+    is_admin = (
+        ctx.author.id == DOCTOR_ID
+        or ctx.author.guild_permissions.administrator
+        or ctx.author.guild_permissions.manage_channels
+    )
+    if not is_admin:
+        return  # silent - looks like it doesn't exist
+
+    m = bot.db
+    await _add_reactions(ctx, m)
+    gs = _get_guild_state(m, str(ctx.guild.id))
+    off_list = gs.setdefault("off_limits_channels", [])
+    ch_id = str(ctx.channel.id)
+
+    if ch_id in off_list:
+        off_list.remove(ch_id)
+        save_db(m)
+        await ctx.send(
+            "*He looks back into the room like it's suddenly allowed to exist again.* \u2705 "
+            "**This channel isn't off-limits anymore.** **mrr.**"
+        )
+    else:
+        off_list.append(ch_id)
+        save_db(m)
+        await ctx.send(
+            "*He backs out of the room slowly and doesn't look in again.* \U0001F6AB "
+            "**This channel is now off-limits.** No commands, no ambient chatter, nothing - "
+            "until `!off_limits` is used here again."
+        )
 
 
 # ── Other Bots ─────────────────────────────────────────────────────────────
